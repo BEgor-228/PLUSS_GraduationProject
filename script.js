@@ -31,59 +31,88 @@ class LipetskMap {
     }
   
     setupMapInteractivity() {
-      const svg = document.querySelector("#mapWrapper svg")
-      if (!svg) return
-  
-      // Find all path elements that represent districts
-      const paths = svg.querySelectorAll("path, polygon, circle, rect")
+      const svg = document.querySelector("#mapWrapper svg");
+      if (!svg) return;
+    
+      const groups = svg.querySelectorAll("g[id][data-region-name]");
+      const originalOrder = Array.from(groups); // Сохраняем исходный порядок групп
+    
       const colors = [
-        "#e8f4f8",
-        "#f0e8f8",
-        "#e8f8e8",
-        "#f8f0e8",
-        "#f8e8e8",
-        "#e8f8f0",
-        "#f4e8f8",
-        "#e8e8f8",
-        "#f8f4e8",
-        "#f0f8e8",
-        "#f8e8f4",
-        "#e8f0f8",
-        "#f8e8f0",
-        "#e8f4e8",
-        "#f4f8e8",
-      ]
-  
-      paths.forEach((path, index) => {
-        if (!path.id) {
-          path.id = `district-${index}`
-        }
-  
-        // Assign colors and make interactive
-        path.classList.add("district")
-        path.style.fill = colors[index % colors.length]
-        path.setAttribute("tabindex", "0")
-        path.setAttribute("role", "button")
-  
-        // Store district info
-        const districtName = this.getDistrictName(path.id)
-        this.districts[path.id] = {
-          name: districtName,
-          element: path,
-        }
-  
-        // Add event listeners
-        path.addEventListener("click", (e) => this.handleDistrictClick(e, path.id))
-        path.addEventListener("mouseenter", (e) => this.showTooltip(e, districtName))
-        path.addEventListener("mouseleave", () => this.hideTooltip())
-        path.addEventListener("mousemove", (e) => this.updateTooltipPosition(e))
-        path.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault()
-            this.handleDistrictClick(e, path.id)
+        "#a3c9e2", // Голубой
+        "#d1a3e2", // Фиолетовый
+        "#a3e2a3", // Зелёный
+        "#e2c9a3", // Персиковый
+        "#e2a3a3", // Розовый
+        "#a3e2c9", // Мятный
+        "#c9a3e2", // Лавандовый
+        "#a3a3e2", // Синий
+        "#e2e2a3", // Жёлтый
+        "#c9e2a3", // Лаймовый
+        "#e2a3c9", // Сиреневый
+        "#a3c9e2", // Бирюзовый
+        "#e2a3a3", // Коралловый
+        "#a3e2b5", // Салатовый
+        "#c9e2b5", // Оливковый 
+      ];
+    
+      groups.forEach((group, index) => {
+        const regionId = group.id;
+        const regionName = group.getAttribute("data-region-name") || this.getDistrictName(regionId);
+    
+        const polygons = group.querySelectorAll("polygon, path, circle, rect");
+        polygons.forEach((polygon) => {
+          if (!polygon.id) {
+            polygon.id = `${regionId}-shape-${index}`;
           }
-        })
-      })
+    
+          polygon.classList.add("district");
+          polygon.style.fill = colors[index % colors.length];
+          polygon.setAttribute("tabindex", "0");
+          polygon.setAttribute("role", "button");
+    
+          this.districts[polygon.id] = {
+            name: regionName,
+            element: polygon,
+            group: group,
+          };
+    
+          polygon.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.handleDistrictClick(e, polygon.id);
+          });
+          polygon.addEventListener("mouseenter", (e) => {
+            e.stopPropagation();
+            this.showTooltip(e, regionName);
+            svg.appendChild(group);
+            if (group.id === "region_eletskiy") {
+              const eletsGroup = svg.querySelector("#elets");
+              if (eletsGroup) {
+                svg.appendChild(eletsGroup);
+              }
+            }
+          });
+          polygon.addEventListener("mouseleave", () => {
+            this.hideTooltip();
+            originalOrder.forEach((originalGroup) => svg.appendChild(originalGroup));
+          });
+          polygon.addEventListener("mousemove", (e) => {
+            this.updateTooltipPosition(e);
+          });
+          polygon.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              this.handleDistrictClick(e, polygon.id);
+            }
+          });
+        });
+      });
+    
+      // Дополнительно поднимаем город поверх всех при инициализации
+      const eletsGroup = svg.querySelector("#elets");
+      if (eletsGroup) {
+        svg.appendChild(eletsGroup);
+      }
     }
   
     getDistrictName(districtId) {

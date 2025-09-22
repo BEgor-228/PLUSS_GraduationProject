@@ -1,518 +1,546 @@
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f8f9fa;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Header */
+.header {
+  background: white;
+  padding: 20px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.header h1 {
+  color: #2c3e50;
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.admin-panel {
+  display: flex;
+  gap: 10px;
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: #3498db;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2980b9;
+}
+
+.btn-secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #7f8c8d;
+}
+
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #c0392b;
+}
+
+/* Map */
+.main {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.map-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.map-wrapper svg {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+}
+
+/* SVG District Styles */
+.district, .region {
+  cursor: pointer;
+  stroke: #fff;
+  stroke-width: 1;
+  stroke-miterlimit: 10;
   
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.6;
-    color: #333;
-    background-color: #f8f9fa;
-  }
+  /* Плавный переход для transform и filter */
+  transition: transform 0.15s ease-out, filter 0.15s ease-out;
   
+  /* Начальное положение */
+  transform: translate(0, 0);
+}
+
+.district:hover, .region:hover {
+  /* Сдвигаем сам элемент вверх и влево */
+  transform: translate(-5px, -5px);
+
+  /* Магия экструзии и тени! */
+  filter: 
+    /* 1. Создаем "стенки" - сплошные тени без размытия */
+    drop-shadow(1px 1px 0 #95a5a6)
+    drop-shadow(2px 2px 0 #95a5a6)
+    drop-shadow(3px 3px 0 #8b9a9b)
+    drop-shadow(4px 4px 0 #8b9a9b)
+    drop-shadow(5px 5px 0 #7f8c8d)
+    
+    /* 2. Добавляем финальную мягкую тень на "землю" */
+    drop-shadow(8px 8px 10px rgba(0, 0, 0, 0.3));
+    
+  stroke-width: 2;
+  stroke: #ecf0f1;
+}
+
+.district:focus, .region:focus {
+  outline: 2px solid #3498db;
+  outline-offset: 2px;
+}
+
+/* Отключаем события для группы региона, но включаем для полигона */
+g[id="region_eletskiy"] {
+  pointer-events: none;
+}
+
+g[id="region_eletskiy"] polygon.region {
+  pointer-events: all;
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  color: #2c3e50;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Filters */
+.filters-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.filters-section h3 {
+  margin-bottom: 15px;
+  color: #2c3e50;
+}
+
+.filter-group {
+  margin-bottom: 20px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #555;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Templates */
+.templates-section {
+  margin-bottom: 30px;
+}
+
+.templates-section h3 {
+  margin-bottom: 15px;
+  color: #2c3e50;
+}
+
+.template-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.template-btn {
+  padding: 8px 16px;
+  background: #ecf0f1;
+  border: 1px solid #bdc3c7;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.template-btn:hover {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.template-btn.active {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+/* Institutions */
+.institutions-section h3 {
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+.institutions-list {
+  display: grid;
+  gap: 15px;
+}
+
+.institution-card {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 20px;
+  background: white;
+  transition: box-shadow 0.2s;
+}
+
+.institution-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.institution-card h4 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.institution-type {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #3498db;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.institution-description {
+  color: #666;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.institution-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.detail-item {
+  font-size: 14px;
+  color: #555;
+}
+
+.detail-item strong {
+  color: #333;
+}
+
+.institution-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.tag {
+  padding: 4px 8px;
+  background: #e8f5e8;
+  color: #27ae60;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.tag.aoop {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.institution-contacts {
+  margin-bottom: 15px;
+}
+
+.contact-item {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.institution-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Form */
+.institution-form {
+  display: grid;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #555;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.age-inputs {
+  display: flex;
+  gap: 10px;
+}
+
+.age-inputs input {
+  flex: 1;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+/* Utility classes */
+.hidden {
+  display: none !important;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  color: #666;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
   .container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 10px;
   }
-  
-  /* Header */
+
   .header {
-    background: white;
-    padding: 20px 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
   }
-  
+
   .header h1 {
-    color: #2c3e50;
-    font-size: 1.8rem;
-    margin-bottom: 10px;
+    font-size: 1.5rem;
+    margin-bottom: 15px;
   }
-  
-  .header-controls {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-  }
-  
-  .admin-panel {
-    display: flex;
-    gap: 10px;
-  }
-  
-  /* Buttons */
-  .btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-  }
-  
-  .btn-primary {
-    background: #3498db;
-    color: white;
-  }
-  
-  .btn-primary:hover {
-    background: #2980b9;
-  }
-  
-  .btn-secondary {
-    background: #95a5a6;
-    color: white;
-  }
-  
-  .btn-secondary:hover {
-    background: #7f8c8d;
-  }
-  
-  .btn-danger {
-    background: #e74c3c;
-    color: white;
-  }
-  
-  .btn-danger:hover {
-    background: #c0392b;
-  }
-  
-  /* Map */
-  .main {
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
+
   .map-container {
-    position: relative;
-    width: 100%;
-    height: 600px;
-    overflow: hidden;
-    border-radius: 8px;
-    border: 1px solid #ddd;
+    height: 400px;
   }
-  
-  .map-wrapper {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .map-wrapper svg {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-  }
-  
-  /* SVG District Styles */
-  .district {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    stroke: #fff;
-    stroke-width: 1;
-  }
-  
-  .district:hover {
-    opacity: 0.8;
-    stroke-width: 2;
-    stroke: #2c3e50;
-  }
-  
-  .district:focus {
-    outline: 2px solid #3498db;
-    outline-offset: 2px;
-  }
-  
-  /* Tooltip */
-  .tooltip {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 14px;
-    pointer-events: none;
-    z-index: 1000;
-    white-space: nowrap;
-  }
-  
-  /* Modal */
-  .modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-    padding: 20px;
-  }
-  
+
   .modal-content {
-    background: white;
-    border-radius: 8px;
-    width: 100%;
-    max-width: 900px;
-    max-height: 90vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    max-width: 95%;
+    margin: 10px;
   }
-  
-  .modal-header {
-    padding: 20px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .modal-header h2 {
-    color: #2c3e50;
-    margin: 0;
-  }
-  
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #999;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .close-btn:hover {
-    color: #333;
-  }
-  
-  .modal-body {
-    padding: 20px;
-    overflow-y: auto;
-    flex: 1;
-  }
-  
-  /* Filters */
-  .filters-section {
-    margin-bottom: 30px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 6px;
-  }
-  
-  .filters-section h3 {
-    margin-bottom: 15px;
-    color: #2c3e50;
-  }
-  
-  .filter-group {
-    margin-bottom: 20px;
-  }
-  
-  .filter-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #555;
-  }
-  
+
   .checkbox-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-  }
-  
-  .checkbox-group label {
-    display: flex;
-    align-items: center;
-    margin-bottom: 0;
-    font-weight: normal;
-    cursor: pointer;
-  }
-  
-  .checkbox-group input[type="checkbox"] {
-    margin-right: 8px;
-  }
-  
-  .filter-actions {
-    display: flex;
+    flex-direction: column;
     gap: 10px;
-    margin-top: 20px;
   }
-  
-  /* Templates */
-  .templates-section {
-    margin-bottom: 30px;
-  }
-  
-  .templates-section h3 {
-    margin-bottom: 15px;
-    color: #2c3e50;
-  }
-  
+
   .template-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  
-  .template-btn {
-    padding: 8px 16px;
-    background: #ecf0f1;
-    border: 1px solid #bdc3c7;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
-  }
-  
-  .template-btn:hover {
-    background: #3498db;
-    color: white;
-    border-color: #3498db;
-  }
-  
-  .template-btn.active {
-    background: #3498db;
-    color: white;
-    border-color: #3498db;
-  }
-  
-  /* Institutions */
-  .institutions-section h3 {
-    margin-bottom: 20px;
-    color: #2c3e50;
-  }
-  
-  .institutions-list {
-    display: grid;
-    gap: 15px;
-  }
-  
-  .institution-card {
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 20px;
-    background: white;
-    transition: box-shadow 0.2s;
-  }
-  
-  .institution-card:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .institution-card h4 {
-    color: #2c3e50;
-    margin-bottom: 10px;
-    font-size: 1.1rem;
-  }
-  
-  .institution-type {
-    display: inline-block;
-    padding: 4px 8px;
-    background: #3498db;
-    color: white;
-    border-radius: 4px;
-    font-size: 12px;
-    margin-bottom: 10px;
-  }
-  
-  .institution-description {
-    color: #666;
-    margin-bottom: 15px;
-    line-height: 1.5;
-  }
-  
-  .institution-details {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-bottom: 15px;
-  }
-  
-  .detail-item {
-    font-size: 14px;
-    color: #555;
-  }
-  
-  .detail-item strong {
-    color: #333;
-  }
-  
-  .institution-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 15px;
-  }
-  
-  .tag {
-    padding: 4px 8px;
-    background: #e8f5e8;
-    color: #27ae60;
-    border-radius: 4px;
-    font-size: 12px;
-  }
-  
-  .tag.aoop {
-    background: #fff3cd;
-    color: #856404;
-  }
-  
-  .institution-contacts {
-    margin-bottom: 15px;
-  }
-  
-  .contact-item {
-    font-size: 14px;
-    color: #555;
-    margin-bottom: 5px;
-  }
-  
-  .institution-actions {
-    display: flex;
-    gap: 10px;
-  }
-  
-  /* Form */
-  .institution-form {
-    display: grid;
-    gap: 20px;
-  }
-  
-  .form-group {
-    display: flex;
     flex-direction: column;
   }
-  
-  .form-group label {
-    margin-bottom: 5px;
-    font-weight: 500;
-    color: #555;
+
+  .institution-details {
+    flex-direction: column;
+    gap: 8px;
   }
-  
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-  }
-  
-  .form-group input:focus,
-  .form-group select:focus,
-  .form-group textarea:focus {
-    outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-  }
-  
-  .age-inputs {
-    display: flex;
-    gap: 10px;
-  }
-  
-  .age-inputs input {
-    flex: 1;
-  }
-  
+
   .form-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 20px;
+    flex-direction: column;
   }
-  
-  /* Utility classes */
-  .hidden {
-    display: none !important;
+}
+
+@media (max-width: 480px) {
+  .modal {
+    padding: 10px;
   }
-  
-  .text-center {
-    text-align: center;
+
+  .modal-body {
+    padding: 15px;
   }
-  
-  .text-muted {
-    color: #666;
+
+  .filters-section {
+    padding: 15px;
   }
-  
-  /* Responsive */
-  @media (max-width: 768px) {
-    .container {
-      padding: 0 10px;
-    }
-  
-    .header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-  
-    .header h1 {
-      font-size: 1.5rem;
-      margin-bottom: 15px;
-    }
-  
-    .map-container {
-      height: 400px;
-    }
-  
-    .modal-content {
-      max-width: 95%;
-      margin: 10px;
-    }
-  
-    .checkbox-group {
-      flex-direction: column;
-      gap: 10px;
-    }
-  
-    .template-buttons {
-      flex-direction: column;
-    }
-  
-    .institution-details {
-      flex-direction: column;
-      gap: 8px;
-    }
-  
-    .form-actions {
-      flex-direction: column;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .modal {
-      padding: 10px;
-    }
-  
-    .modal-body {
-      padding: 15px;
-    }
-  
-    .filters-section {
-      padding: 15px;
-    }
-  }
-  
+}
