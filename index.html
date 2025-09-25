@@ -19,11 +19,17 @@
         </header>
 
         <main class="main">
-            <div class="map-container">
-                <div id="mapWrapper" class="map-wrapper">
-                    <!-- SVG map will be loaded here -->
+            <div class="map-legend-wrapper">
+                <div class="map-container">
+                    <div id="mapWrapper" class="map-wrapper">
+                        <!-- SVG map will be loaded here -->
+                    </div>
+                    <div id="tooltip" class="tooltip hidden"></div>
                 </div>
-                <div id="tooltip" class="tooltip hidden"></div>
+                <div class="legend-container">
+                    <h3>Легенда</h3>
+                    <ul id="legendList" class="legend-list"></ul>
+                </div>
             </div>
         </main>
 
@@ -43,6 +49,7 @@
                             <div class="checkbox-group">
                                 <label><input type="checkbox" value="preschool" checked> Дошкольные</label>
                                 <label><input type="checkbox" value="school" checked> Школы</label>
+                                <label><input type="checkbox" value="school_internat" checked> Школы-интернаты</label>
                                 <label><input type="checkbox" value="spo" checked> СПО</label>
                                 <label><input type="checkbox" value="vo" checked> ВО</label>
                             </div>
@@ -62,7 +69,18 @@
                             <div class="checkbox-group">
                                 <label><input type="checkbox" value="hearing_impairment"> Нарушения слуха</label>
                                 <label><input type="checkbox" value="vision_impairment"> Нарушения зрения</label>
+                                <label><input type="checkbox" value="musculoskeletal_impairment"> Нарушения опорно-двигательного аппарата</label>
+                                <label><input type="checkbox" value="speech_impairment"> Нарушения речи</label>
+                                <label><input type="checkbox" value="mental_retardation"> Задержка психического развития</label>
+                                <label><input type="checkbox" value="autism"> Расстройство аутистического спектра</label>
+                                <label><input type="checkbox" value="multiple_disorders"> Множественные нарушения развития</label>
                                 <label><input type="checkbox" value="intellectual_disability"> Интеллектуальные нарушения</label>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label>АООП:</label>
+                            <div class="checkbox-group">
                                 <label><input type="checkbox" value="aoop"> Реализует АООП</label>
                             </div>
                         </div>
@@ -109,6 +127,14 @@
                         </div>
                         
                         <div class="form-group">
+                            <label for="districtId">Район *</label>
+                            <select id="districtId" required>
+                                <option value="">Выберите район</option>
+                                <!-- District options will be populated dynamically -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
                             <label for="institutionDescription">Описание</label>
                             <textarea id="institutionDescription" rows="3"></textarea>
                         </div>
@@ -119,6 +145,7 @@
                                 <option value="">Выберите тип</option>
                                 <option value="preschool">Дошкольное</option>
                                 <option value="school">Школа</option>
+                                <option value="school_internat">Школа-интернат</option>
                                 <option value="spo">СПО</option>
                                 <option value="vo">ВО</option>
                             </select>
@@ -150,19 +177,23 @@
                         </div>
                         
                         <div class="form-group">
-                            <label>
-                                <input type="checkbox" id="implementsAOOP">
-                                Реализует АООП
-                            </label>
-                        </div>
-                        
-                        <div class="form-group">
                             <label>Особые условия</label>
                             <div class="checkbox-group">
                                 <label><input type="checkbox" value="hearing_impairment"> Нарушения слуха</label>
                                 <label><input type="checkbox" value="vision_impairment"> Нарушения зрения</label>
+                                <label><input type="checkbox" value="musculoskeletal_impairment"> Нарушения опорно-двигательного аппарата</label>
+                                <label><input type="checkbox" value="speech_impairment"> Нарушения речи</label>
+                                <label><input type="checkbox" value="mental_retardation"> Задержка психического развития</label>
+                                <label><input type="checkbox" value="autism"> Расстройство аутистического спектра</label>
+                                <label><input type="checkbox" value="multiple_disorders"> Множественные нарушения развития</label>
                                 <label><input type="checkbox" value="intellectual_disability"> Интеллектуальные нарушения</label>
                             </div>
+                        </div>
+                        
+                        <div class="form-group" id="aoopGroup">
+                            <label>Реализуемые АООП</label>
+                            <div id="aoopList" class="aoop-list"></div>
+                            <button type="button" id="addAoOp" class="btn btn-secondary">Добавить программу</button>
                         </div>
                         
                         <div class="form-group">

@@ -1,10 +1,12 @@
 class LipetskMap {
     constructor() {
       this.isAdminMode = false
-      this.currentDistrict = null
+      this.currentDistrictName = null
       this.editingInstitution = null
       this.institutions = this.loadInstitutions()
       this.districts = {}
+      this.districtColors = {}
+      this.aoopCounter = 0
   
       this.init()
     }
@@ -24,6 +26,7 @@ class LipetskMap {
         mapWrapper.innerHTML = svgText
   
         this.setupMapInteractivity()
+        this.populateLegend()
       } catch (error) {
         console.error("Error loading map:", error)
         document.getElementById("mapWrapper").innerHTML = '<p class="text-center text-muted">Ошибка загрузки карты</p>'
@@ -58,6 +61,8 @@ class LipetskMap {
       groups.forEach((group, index) => {
         const regionId = group.id;
         const regionName = group.getAttribute("data-region-name") || this.getDistrictName(regionId);
+        const color = colors[index % colors.length];
+        this.districtColors[regionName] = color;
     
         const polygons = group.querySelectorAll("polygon, path, circle, rect");
         polygons.forEach((polygon) => {
@@ -66,7 +71,7 @@ class LipetskMap {
           }
     
           polygon.classList.add("district");
-          polygon.style.fill = colors[index % colors.length];
+          polygon.style.fill = color;
           polygon.setAttribute("tabindex", "0");
           polygon.setAttribute("role", "button");
     
@@ -115,8 +120,31 @@ class LipetskMap {
       }
     }
   
+    populateLegend() {
+      const legendList = document.getElementById("legendList");
+      if (!legendList) return;
+  
+      const sortedDistricts = Object.keys(this.districtColors).sort();
+      legendList.innerHTML = sortedDistricts.map(name => {
+        const color = this.districtColors[name];
+        return `
+          <li class="legend-item" data-district-name="${name}">
+            <div class="color-swatch" style="background-color: ${color};"></div>
+            <span>${name}</span>
+          </li>
+        `;
+      }).join("");
+  
+      document.querySelectorAll(".legend-item").forEach(item => {
+        item.addEventListener("click", () => {
+          const name = item.dataset.districtName;
+          this.currentDistrictName = name;
+          this.openDistrictModal(name);
+        });
+      });
+    }
+  
     getDistrictName(districtId) {
-      // Map district IDs to names (you can expand this based on actual SVG IDs)
       const districtNames = {
         "district-0": "Липецкий район",
         "district-1": "Елецкий район",
@@ -167,7 +195,7 @@ class LipetskMap {
   
     handleDistrictClick(event, districtId) {
       const districtName = this.districts[districtId].name
-      this.currentDistrict = districtId
+      this.currentDistrictName = districtName
       this.openDistrictModal(districtName)
     }
   
@@ -204,6 +232,7 @@ class LipetskMap {
       const typeNames = {
         preschool: "Дошкольное",
         school: "Школа",
+        school_internat: "Школа-интернат",
         spo: "СПО",
         vo: "ВО",
       }
@@ -211,6 +240,11 @@ class LipetskMap {
       const conditionNames = {
         hearing_impairment: "Нарушения слуха",
         vision_impairment: "Нарушения зрения",
+        musculoskeletal_impairment: "Нарушения опорно-двигательного аппарата",
+        speech_impairment: "Нарушения речи",
+        mental_retardation: "Задержка психического развития",
+        autism: "Расстройство аутистического спектра",
+        multiple_disorders: "Множественные нарушения развития",
         intellectual_disability: "Интеллектуальные нарушения",
       }
   
@@ -220,11 +254,24 @@ class LipetskMap {
           ? `${institution.classes.join(", ")} классы`
           : ""
   
+      const uniqueConditions = [...new Set(institution.conditions)];
       const tags = []
-      if (institution.implements_AOOP) tags.push('<span class="tag aoop">АООП</span>')
-      institution.conditions.forEach((condition) => {
+      uniqueConditions.forEach((condition) => {
         tags.push(`<span class="tag">${conditionNames[condition] || condition}</span>`)
       })
+  
+      const aoopList = institution.aoop_programs && institution.aoop_programs.length > 0 
+        ? `<div class="aoop-section">
+             <h5>Реализуемые АООП:</h5>
+             <ul class="aoop-list-card">
+               ${institution.aoop_programs.map(prog => `
+                 <li>
+                   <a href="${prog.url}" target="_blank">${prog.name}</a>
+                 </li>
+               `).join('')}
+             </ul>
+           </div>`
+        : ""
   
       const adminButtons = this.isAdminMode
         ? `
@@ -246,9 +293,12 @@ class LipetskMap {
                   
                   <div class="institution-details">
                       ${ageInfo ? `<div class="detail-item"><strong>Возраст/Классы:</strong> ${ageInfo}</div>` : ""}
+                      <div class="detail-item"><strong>Район:</strong> ${institution.district_id}</div>
                   </div>
                   
                   ${tags.length > 0 ? `<div class="institution-tags">${tags.join("")}</div>` : ""}
+                  
+                  ${aoopList}
                   
                   ${
                     institution.director
@@ -266,7 +316,7 @@ class LipetskMap {
                     institution.website
                       ? `
                       <div class="contact-item">
-                          <strong>Сайт:</strong> <a href="${institution.website}" target="_blank">${institution.website}</a>
+                          <strong>Перейти на сайт:</strong> <a href="${institution.website}" target="_blank">${institution.website}</a>
                       </div>
                   `
                       : ""
@@ -331,6 +381,11 @@ class LipetskMap {
         this.toggleFormFields(e.target.value)
       })
   
+      // Add AOOP program
+      document.getElementById("addAoOp").addEventListener("click", () => {
+        this.addAoOpField()
+      })
+  
       // Close modals on backdrop click
       document.getElementById("districtModal").addEventListener("click", (e) => {
         if (e.target.id === "districtModal") {
@@ -343,6 +398,34 @@ class LipetskMap {
           document.getElementById("institutionModal").classList.add("hidden")
         }
       })
+    }
+  
+    addAoOpField(name = "", url = "") {
+      const aoopList = document.getElementById("aoopList")
+      const id = this.aoopCounter++
+  
+      const field = document.createElement("div")
+      field.classList.add("aoop-field")
+      field.innerHTML = `
+        <input type="text" placeholder="Название программы" value="${name}" class="aoop-name">
+        <input type="url" placeholder="Ссылка на программу" value="${url}" class="aoop-url">
+        <button type="button" class="btn btn-danger remove-aoop">Удалить</button>
+      `
+  
+      field.querySelector(".remove-aoop").addEventListener("click", () => {
+        field.remove()
+      })
+  
+      aoopList.appendChild(field)
+    }
+  
+    populateDistrictSelect() {
+      const districtSelect = document.getElementById("districtId")
+      const sortedDistricts = Object.keys(this.districtColors).sort()
+      districtSelect.innerHTML = `
+        <option value="">Выберите район</option>
+        ${sortedDistricts.map(name => `<option value="${name}">${name}</option>`).join("")}
+      `
     }
   
     toggleAdminMode() {
@@ -371,16 +454,23 @@ class LipetskMap {
   
     openInstitutionForm(institution = null) {
       this.editingInstitution = institution
+      this.aoopCounter = 0
       const modal = document.getElementById("institutionModal")
       const title = document.getElementById("institutionModalTitle")
       const form = document.getElementById("institutionForm")
+      const aoopList = document.getElementById("aoopList")
+      aoopList.innerHTML = ""
   
       title.textContent = institution ? "Редактировать учреждение" : "Добавить учреждение"
+  
+      // Populate district select
+      this.populateDistrictSelect()
   
       if (institution) {
         this.populateForm(institution)
       } else {
         form.reset()
+        document.getElementById("districtId").value = this.currentDistrictName || ""
         this.toggleFormFields("")
       }
   
@@ -389,6 +479,7 @@ class LipetskMap {
   
     populateForm(institution) {
       document.getElementById("institutionName").value = institution.name
+      document.getElementById("districtId").value = institution.district_id
       document.getElementById("institutionDescription").value = institution.description || ""
       document.getElementById("institutionType").value = institution.type
   
@@ -404,12 +495,21 @@ class LipetskMap {
         })
       }
   
-      document.getElementById("implementsAOOP").checked = institution.implements_AOOP
-  
+      // Reset and populate conditions
+      document.querySelectorAll('.form-group input[type="checkbox"][value]').forEach((cb) => {
+        cb.checked = false
+      })
       institution.conditions.forEach((condition) => {
-        const checkbox = document.querySelector(`input[value="${condition}"]`)
+        const checkbox = document.querySelector(`.form-group input[value="${condition}"]`)
         if (checkbox) checkbox.checked = true
       })
+  
+      // Populate AOOP programs
+      if (institution.aoop_programs) {
+        institution.aoop_programs.forEach((prog) => {
+          this.addAoOpField(prog.name, prog.url)
+        })
+      }
   
       if (institution.director) {
         document.getElementById("directorName").value = institution.director.name || ""
@@ -429,7 +529,7 @@ class LipetskMap {
       if (type === "preschool") {
         ageGroup.classList.remove("hidden")
         classesGroup.classList.add("hidden")
-      } else if (type === "school") {
+      } else if (type === "school" || type === "school_internat") {
         ageGroup.classList.add("hidden")
         classesGroup.classList.remove("hidden")
       } else {
@@ -445,11 +545,11 @@ class LipetskMap {
       const institution = {
         id: this.editingInstitution ? this.editingInstitution.id : this.generateId(),
         name: document.getElementById("institutionName").value,
+        district_id: document.getElementById("districtId").value,
         description: document.getElementById("institutionDescription").value,
         type: document.getElementById("institutionType").value,
-        implements_AOOP: document.getElementById("implementsAOOP").checked,
-        district_id: this.currentDistrict ? this.districts[this.currentDistrict].name : "Липецкий район",
         conditions: [],
+        aoop_programs: [],
         director: {
           name: document.getElementById("directorName").value,
           phone: document.getElementById("directorPhone").value,
@@ -465,7 +565,7 @@ class LipetskMap {
         if (ageMin && ageMax) {
           institution.ageRange = { min: Number.parseInt(ageMin), max: Number.parseInt(ageMax) }
         }
-      } else if (institution.type === "school") {
+      } else if (institution.type === "school" || institution.type === "school_internat") {
         const classes = []
         document.querySelectorAll("#classesGroup input:checked").forEach((cb) => {
           classes.push(cb.value)
@@ -474,17 +574,35 @@ class LipetskMap {
       }
   
       // Handle conditions
+      const conditions = new Set()
       document
         .querySelectorAll(
-          'input[value="hearing_impairment"]:checked, input[value="vision_impairment"]:checked, input[value="intellectual_disability"]:checked',
+          'input[value="hearing_impairment"]:checked, ' +
+          'input[value="vision_impairment"]:checked, ' +
+          'input[value="musculoskeletal_impairment"]:checked, ' +
+          'input[value="speech_impairment"]:checked, ' +
+          'input[value="mental_retardation"]:checked, ' +
+          'input[value="autism"]:checked, ' +
+          'input[value="multiple_disorders"]:checked, ' +
+          'input[value="intellectual_disability"]:checked'
         )
         .forEach((cb) => {
-          institution.conditions.push(cb.value)
+          conditions.add(cb.value)
         })
+      institution.conditions = [...conditions]
+  
+      // Handle AOOP programs
+      document.querySelectorAll(".aoop-field").forEach((field) => {
+        const name = field.querySelector(".aoop-name").value.trim()
+        const url = field.querySelector(".aoop-url").value.trim()
+        if (name && url) {
+          institution.aoop_programs.push({ name, url })
+        }
+      })
   
       // Validate required fields
-      if (!institution.name || !institution.type) {
-        alert("Пожалуйста, заполните обязательные поля")
+      if (!institution.name || !institution.type || !institution.district_id) {
+        alert("Пожалуйста, заполните обязательные поля: Название, Тип учреждения и Район")
         return
       }
   
@@ -533,7 +651,7 @@ class LipetskMap {
       // Type filters
       const typeFilters = []
       document.querySelectorAll('.filter-group input[type="checkbox"]:checked').forEach((cb) => {
-        if (["preschool", "school", "spo", "vo"].includes(cb.value)) {
+        if (["preschool", "school", "school_internat", "spo", "vo"].includes(cb.value)) {
           typeFilters.push(cb.value)
         }
       })
@@ -556,7 +674,14 @@ class LipetskMap {
       const conditionFilters = []
       document
         .querySelectorAll(
-          '.filter-group input[value="hearing_impairment"]:checked, .filter-group input[value="vision_impairment"]:checked, .filter-group input[value="intellectual_disability"]:checked, .filter-group input[value="aoop"]:checked',
+          '.filter-group input[value="hearing_impairment"]:checked, ' +
+          '.filter-group input[value="vision_impairment"]:checked, ' +
+          '.filter-group input[value="musculoskeletal_impairment"]:checked, ' +
+          '.filter-group input[value="speech_impairment"]:checked, ' +
+          '.filter-group input[value="mental_retardation"]:checked, ' +
+          '.filter-group input[value="autism"]:checked, ' +
+          '.filter-group input[value="multiple_disorders"]:checked, ' +
+          '.filter-group input[value="intellectual_disability"]:checked'
         )
         .forEach((cb) => {
           conditionFilters.push(cb.value)
@@ -565,10 +690,15 @@ class LipetskMap {
       if (conditionFilters.length > 0) {
         institutions = institutions.filter((inst) => {
           return conditionFilters.some((filter) => {
-            if (filter === "aoop") return inst.implements_AOOP
             return inst.conditions.includes(filter)
           })
         })
+      }
+  
+      // AOOP filter
+      const aoopFilter = document.querySelector('.filter-group input[value="aoop"]:checked')
+      if (aoopFilter) {
+        institutions = institutions.filter((inst) => inst.aoop_programs && inst.aoop_programs.length > 0)
       }
   
       this.displayInstitutions(institutions)
@@ -576,7 +706,7 @@ class LipetskMap {
   
     resetFilters() {
       document.querySelectorAll('.filter-group input[type="checkbox"]').forEach((cb) => {
-        cb.checked = ["preschool", "school", "spo", "vo", "3-4", "5-6", "7+"].includes(cb.value)
+        cb.checked = ["preschool", "school", "school_internat", "spo", "vo", "3-4", "5-6", "7+"].includes(cb.value)
       })
   
       document.querySelectorAll(".template-btn").forEach((btn) => {
@@ -604,9 +734,8 @@ class LipetskMap {
       // Apply specific template filters
       switch (template) {
         case "certificate":
-          // This would need specific logic based on your data structure
           document
-            .querySelectorAll('.filter-group input[value="preschool"], .filter-group input[value="school"]')
+            .querySelectorAll('.filter-group input[value="preschool"], .filter-group input[value="school"], .filter-group input[value="school_internat"]')
             .forEach((cb) => (cb.checked = true))
           break
         case "hearing":
@@ -649,47 +778,53 @@ class LipetskMap {
             description:
               "Детский сад общеразвивающего вида с приоритетным осуществлением деятельности по познавательно-речевому развитию детей",
             type: "preschool",
+            district_id: "Липецкий район",
             ageRange: { min: 3, max: 6 },
             conditions: ["hearing_impairment"],
-            implements_AOOP: true,
+            aoop_programs: [
+              { name: "АООП для детей с нарушениями слуха", url: "https://example.com/aoop1" },
+              { name: "АООП для дошкольников с ЗПР", url: "https://example.com/aoop2" }
+            ],
             director: {
               name: "Иванова Мария Петровна",
               phone: "+7 (4742) 12-34-56",
               email: "solnyshko@lipetsk.ru",
             },
             website: "https://solnyshko-lipetsk.ru",
-            district_id: "Липецкий район",
           },
           {
             id: "sample_2",
             name: "МБОУ СОШ №5",
             description: "Средняя общеобразовательная школа с углубленным изучением математики и информатики",
             type: "school",
+            district_id: "Липецкий район",
             classes: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
             conditions: ["vision_impairment", "intellectual_disability"],
-            implements_AOOP: true,
+            aoop_programs: [
+              { name: "АООП для школьников с нарушениями зрения", url: "https://example.com/aoop3" },
+              { name: "АООП для детей с интеллектуальными нарушениями", url: "https://example.com/aoop4" }
+            ],
             director: {
               name: "Петров Алексей Иванович",
               phone: "+7 (4742) 23-45-67",
               email: "school5@lipetsk.edu.ru",
             },
             website: "https://school5-lipetsk.ru",
-            district_id: "Липецкий район",
           },
           {
             id: "sample_3",
             name: "Елецкий государственный колледж",
             description: "Среднее профессиональное образование по направлениям: экономика, информатика, строительство",
             type: "spo",
+            district_id: "Елецкий район",
             conditions: [],
-            implements_AOOP: false,
+            aoop_programs: [],
             director: {
               name: "Сидорова Елена Владимировна",
               phone: "+7 (47467) 34-56-78",
               email: "college@elets.ru",
             },
             website: "https://elets-college.ru",
-            district_id: "Елецкий район",
           },
         ]
   
@@ -704,4 +839,3 @@ class LipetskMap {
   document.addEventListener("DOMContentLoaded", () => {
     lipetskMap = new LipetskMap()
   })
-  
