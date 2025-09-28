@@ -42,6 +42,23 @@
                 </div>
                 
                 <div class="modal-body">
+                    <div class="region-info-section">
+                        <div class="region-image">
+                            <!-- Green square placeholder -->
+                        </div>
+                        <div class="region-details">
+                            <h3 id="regionName">Название региона</h3>
+                            <p class="region-description">Информация о регионе</p>
+                        </div>
+                        <h3>Учреждения <span id="institutionCount">(0)</span></h3>
+                    </div>
+
+                    <div class="institutions-section">
+                        <div id="institutionsList" class="institutions-list">
+                            <!-- Institutions will be loaded here -->
+                        </div>
+                    </div>
+
                     <div class="filters-section">
                         <h3>Фильтры</h3>
                         <div class="filter-group">
@@ -89,22 +106,15 @@
                             <button id="applyFilters" class="btn btn-primary">Применить</button>
                             <button id="resetFilters" class="btn btn-secondary">Сбросить</button>
                         </div>
-                    </div>
-                    
-                    <div class="templates-section">
-                        <h3>Быстрый поиск</h3>
-                        <div class="template-buttons">
-                            <button class="template-btn" data-template="certificate">Берут со свидетельством</button>
-                            <button class="template-btn" data-template="hearing">Для детей с нарушением слуха</button>
-                            <button class="template-btn" data-template="vision">Для детей с нарушением зрения</button>
-                            <button class="template-btn" data-template="aoop">Реализуют АООП</button>
-                        </div>
-                    </div>
-                    
-                    <div class="institutions-section">
-                        <h3>Учреждения <span id="institutionCount">(0)</span></h3>
-                        <div id="institutionsList" class="institutions-list">
-                            <!-- Institutions will be loaded here -->
+
+                        <div class="templates-section">
+                            <h3>Быстрый поиск</h3>
+                            <div class="template-buttons">
+                                <button class="template-btn" data-template="certificate">Берут со свидетельством</button>
+                                <button class="template-btn" data-template="hearing">Для детей с нарушением слуха</button>
+                                <button class="template-btn" data-template="vision">Для детей с нарушением зрения</button>
+                                <button class="template-btn" data-template="aoop">Реализуют АООП</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -119,7 +129,7 @@
                     <button id="closeInstitutionModal" class="close-btn">&times;</button>
                 </div>
                 
-                <div class="modal-body">
+                <div class="modal-body2">
                     <form id="institutionForm" class="institution-form">
                         <div class="form-group">
                             <label for="institutionName">Название учреждения *</label>

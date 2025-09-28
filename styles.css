@@ -165,40 +165,37 @@ body {
 }
 
 /* SVG District Styles */
-.district, .region {
+.district,
+.region {
   cursor: pointer;
   stroke: #fff;
   stroke-width: 1;
   stroke-miterlimit: 10;
-  
+
   /* Плавный переход для transform и filter */
   transition: transform 0.15s ease-out, filter 0.15s ease-out;
-  
+
   /* Начальное положение */
   transform: translate(0, 0);
 }
 
-.district:hover, .region:hover {
+.district:hover,
+.region:hover {
   /* Сдвигаем сам элемент вверх и влево */
   transform: translate(-5px, -5px);
 
   /* Магия экструзии и тени! */
-  filter: 
-    /* 1. Создаем "стенки" - сплошные тени без размытия */
-    drop-shadow(1px 1px 0 #95a5a6)
-    drop-shadow(2px 2px 0 #95a5a6)
-    drop-shadow(3px 3px 0 #8b9a9b)
-    drop-shadow(4px 4px 0 #8b9a9b)
-    drop-shadow(5px 5px 0 #7f8c8d)
-    
-    /* 2. Добавляем финальную мягкую тень на "землю" */
+  /* 1. Создаем "стенки" - сплошные тени без размытия */
+  filter: drop-shadow(1px 1px 0 #95a5a6) drop-shadow(2px 2px 0 #95a5a6) drop-shadow(3px 3px 0 #8b9a9b)
+    drop-shadow(4px 4px 0 #8b9a9b) drop-shadow(5px 5px 0 #7f8c8d) /* 2. Добавляем финальную мягкую тень на "землю" */
     drop-shadow(8px 8px 10px rgba(0, 0, 0, 0.3));
-    
+
   stroke-width: 2;
   stroke: #ecf0f1;
 }
 
-.district:focus, .region:focus {
+.district:focus,
+.region:focus {
   outline: 2px solid #3498db;
   outline-offset: 2px;
 }
@@ -244,7 +241,7 @@ g[id="region_eletskiy"] polygon.region {
   background: white;
   border-radius: 8px;
   width: 100%;
-  max-width: 900px;
+  max-width: 1200px; /* Increased max-width for three-column layout */
   max-height: 90vh;
   overflow: hidden;
   display: flex;
@@ -283,22 +280,100 @@ g[id="region_eletskiy"] polygon.region {
 }
 
 .modal-body {
+  padding: 0;
+  overflow: hidden;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 300px 1fr 320px;
+  height: 100%;
+}
+.modal-body2 {
   padding: 20px;
   overflow-y: auto;
   flex: 1;
 }
 
-/* Filters */
-.filters-section {
-  margin-bottom: 30px;
+/* Left column - Region info */
+.region-info-section {
   padding: 20px;
   background: #f8f9fa;
-  border-radius: 6px;
+  border-right: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.region-image {
+  width: 200px;
+  height: 150px;
+  background: #27ae60; /* Green square */
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.region-image::before {
+  content: "Изображение региона";
+}
+
+.region-details {
+  text-align: center;
+}
+
+.region-details h3 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+}
+
+.region-description {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Middle column - Institutions */
+.institutions-section {
+  padding: 20px;
+  overflow-y: auto;
+  background: white;
+}
+
+.institutions-section h3 {
+  margin-bottom: 20px;
+  color: #2c3e50;
+  /* position: sticky; */
+  top: 0;
+  background: white;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.institutions-list {
+  display: grid;
+  gap: 15px;
+}
+
+/* Right column - Filters */
+.filters-section {
+  padding: 20px;
+  background: #f8f9fa;
+  border-left: 1px solid #eee;
+  overflow-y: auto;
 }
 
 .filters-section h3 {
   margin-bottom: 15px;
   color: #2c3e50;
+  /* position: sticky; */
+  top: 0;
+  background: #f8f9fa;
+  padding-bottom: 10px;
 }
 
 .filter-group {
@@ -310,12 +385,13 @@ g[id="region_eletskiy"] polygon.region {
   margin-bottom: 8px;
   font-weight: 500;
   color: #555;
+  font-size: 14px;
 }
 
 .checkbox-group {
   display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
+  flex-direction: column; /* Changed to column for better fit in narrow column */
+  gap: 8px;
 }
 
 .checkbox-group label {
@@ -324,6 +400,7 @@ g[id="region_eletskiy"] polygon.region {
   margin-bottom: 0;
   font-weight: normal;
   cursor: pointer;
+  font-size: 13px;
 }
 
 .checkbox-group input[type="checkbox"] {
@@ -332,34 +409,38 @@ g[id="region_eletskiy"] polygon.region {
 
 .filter-actions {
   display: flex;
+  flex-direction: column; /* Stack buttons vertically */
   gap: 10px;
   margin-top: 20px;
+  margin-bottom: 30px;
 }
 
 /* Templates */
 .templates-section {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .templates-section h3 {
   margin-bottom: 15px;
   color: #2c3e50;
+  font-size: 16px;
 }
 
 .template-buttons {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column; /* Stack template buttons vertically */
+  gap: 8px;
 }
 
 .template-btn {
-  padding: 8px 16px;
+  padding: 8px 12px;
   background: #ecf0f1;
   border: 1px solid #bdc3c7;
-  border-radius: 20px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: all 0.2s;
+  text-align: left;
 }
 
 .template-btn:hover {
@@ -374,21 +455,10 @@ g[id="region_eletskiy"] polygon.region {
   border-color: #3498db;
 }
 
-/* Institutions */
-.institutions-section h3 {
-  margin-bottom: 20px;
-  color: #2c3e50;
-}
-
-.institutions-list {
-  display: grid;
-  gap: 15px;
-}
-
 .institution-card {
   border: 1px solid #ddd;
   border-radius: 6px;
-  padding: 20px;
+  padding: 15px; /* Reduced padding for better fit */
   background: white;
   transition: box-shadow 0.2s;
 }
@@ -400,7 +470,7 @@ g[id="region_eletskiy"] polygon.region {
 .institution-card h4 {
   color: #2c3e50;
   margin-bottom: 10px;
-  font-size: 1.1rem;
+  font-size: 1rem; /* Slightly smaller font */
 }
 
 .institution-type {
@@ -409,25 +479,26 @@ g[id="region_eletskiy"] polygon.region {
   background: #3498db;
   color: white;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 11px; /* Smaller font */
   margin-bottom: 10px;
 }
 
 .institution-description {
   color: #666;
   margin-bottom: 15px;
-  line-height: 1.5;
+  line-height: 1.4;
+  font-size: 13px; /* Smaller font */
 }
 
 .institution-details {
   display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
+  flex-direction: column; /* Stack details vertically */
+  gap: 8px;
   margin-bottom: 15px;
 }
 
 .detail-item {
-  font-size: 14px;
+  font-size: 13px; /* Smaller font */
   color: #555;
 }
 
@@ -438,16 +509,16 @@ g[id="region_eletskiy"] polygon.region {
 .institution-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 15px;
 }
 
 .tag {
-  padding: 4px 8px;
+  padding: 3px 6px;
   background: #e8f5e8;
   color: #27ae60;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 11px; /* Smaller font */
 }
 
 .tag.aoop {
@@ -462,17 +533,19 @@ g[id="region_eletskiy"] polygon.region {
 .aoop-section h5 {
   color: #2c3e50;
   margin-bottom: 8px;
+  font-size: 14px; /* Smaller font */
 }
 
 .aoop-list-card {
   list-style-type: disc;
   padding-left: 20px;
-  max-height: 150px;
+  max-height: 120px; /* Reduced height */
   overflow-y: auto;
 }
 
 .aoop-list-card li {
   margin-bottom: 5px;
+  font-size: 12px; /* Smaller font */
 }
 
 .aoop-list-card a {
@@ -489,40 +562,47 @@ g[id="region_eletskiy"] polygon.region {
 }
 
 .contact-item {
-  font-size: 14px;
+  font-size: 13px; /* Smaller font */
   color: #555;
   margin-bottom: 5px;
 }
 
 .institution-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-/* Form */
+.institution-actions .btn {
+  padding: 6px 12px; /* Smaller buttons */
+  font-size: 12px;
+}
+
+/* Institution Form Modal Styles */
 .institution-form {
-  display: grid;
-  gap: 20px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
+  margin-bottom: 20px;
 }
 
 .form-group label {
-  margin-bottom: 5px;
+  display: block;
+  margin-bottom: 8px;
   font-weight: 500;
-  color: #555;
+  color: #333;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
+  width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
+  transition: border-color 0.2s;
 }
 
 .form-group input:focus,
@@ -531,6 +611,11 @@ g[id="region_eletskiy"] polygon.region {
   outline: none;
   border-color: #3498db;
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
 .age-inputs {
@@ -542,16 +627,10 @@ g[id="region_eletskiy"] polygon.region {
   flex: 1;
 }
 
-.aoop-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
 .aoop-field {
   display: flex;
   gap: 10px;
+  margin-bottom: 10px;
   align-items: center;
 }
 
@@ -559,32 +638,252 @@ g[id="region_eletskiy"] polygon.region {
   flex: 1;
 }
 
-.aoop-field .btn-danger {
-  padding: 10px;
-  min-width: 80px;
+.aoop-field .btn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 12px;
 }
 
 .form-actions {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  margin-top: 20px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
 }
 
-/* Utility classes */
+/* Hidden class */
 .hidden {
   display: none !important;
 }
 
-.text-center {
-  text-align: center;
+/* Institution Modal Specific Styles */
+#institutionModal.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 20px;
 }
 
-.text-muted {
-  color: #666;
+#institutionModal .modal-content {
+  background: white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive */
+#institutionModal .modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+}
+
+#institutionModal .modal-header h2 {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+#institutionModal .close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  padding: 5px;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+#institutionModal .close-btn:hover {
+  color: #333;
+  background: #e9ecef;
+}
+
+#institutionModal .modal-body2 {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  /* Custom scrollbar styles */
+  scrollbar-width: thin;
+  scrollbar-color: #bdc3c7 #f1f2f6;
+}
+
+/* Custom scrollbar for webkit browsers */
+#institutionModal .modal-body2::-webkit-scrollbar {
+  width: 8px;
+}
+
+#institutionModal .modal-body2::-webkit-scrollbar-track {
+  background: #f1f2f6;
+  border-radius: 4px;
+}
+
+#institutionModal .modal-body2::-webkit-scrollbar-thumb {
+  background: #bdc3c7;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+#institutionModal .modal-body2::-webkit-scrollbar-thumb:hover {
+  background: #95a5a6;
+}
+
+/* Form styles within institution modal */
+#institutionModal .institution-form {
+  max-width: 100%;
+}
+
+#institutionModal .form-group {
+  margin-bottom: 20px;
+}
+
+#institutionModal .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+#institutionModal .form-group input,
+#institutionModal .form-group select,
+#institutionModal .form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+  background: white;
+}
+
+#institutionModal .form-group input:focus,
+#institutionModal .form-group select:focus,
+#institutionModal .form-group textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+#institutionModal .form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+#institutionModal .age-inputs {
+  display: flex;
+  gap: 15px;
+}
+
+#institutionModal .age-inputs input {
+  flex: 1;
+}
+
+#institutionModal .form-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 2px solid #e9ecef;
+}
+
+#institutionModal .form-actions .btn {
+  padding: 12px 24px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+/* Checkbox styling within institution modal */
+#institutionModal .checkbox-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+#institutionModal .checkbox-group label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+  font-weight: normal;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+#institutionModal .checkbox-group label:hover {
+  background: #f8f9fa;
+}
+
+#institutionModal .checkbox-group input[type="checkbox"] {
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+}
+
+/* Responsive styles for institution modal */
+@media (max-width: 768px) {
+  #institutionModal .modal-content {
+    max-width: 95%;
+    margin: 10px;
+    max-height: 95vh;
+  }
+
+  #institutionModal .modal-header {
+    padding: 15px;
+  }
+
+  #institutionModal .modal-body2 {
+    padding: 15px;
+  }
+
+  #institutionModal .checkbox-group {
+    grid-template-columns: 1fr;
+  }
+
+  #institutionModal .form-actions {
+    flex-direction: column;
+  }
+
+  #institutionModal .age-inputs {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .modal-body {
+    grid-template-columns: 250px 1fr 280px; /* Adjust columns for medium screens */
+  }
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 0 10px;
@@ -619,13 +918,47 @@ g[id="region_eletskiy"] polygon.region {
     margin: 10px;
   }
 
+  /* Stack columns vertically on mobile */
+  .modal-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+  }
+
+  .region-info-section {
+    border-right: none;
+    border-bottom: 1px solid #eee;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+  }
+
+  .region-image {
+    width: 80px;
+    height: 60px;
+    margin-right: 15px;
+    margin-bottom: 0;
+    font-size: 10px;
+  }
+
+  .filters-section {
+    border-left: none;
+    border-top: 1px solid #eee;
+    order: 2;
+  }
+
+  .institutions-section {
+    order: 3;
+  }
+
   .checkbox-group {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: 10px;
   }
 
   .template-buttons {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
   .institution-details {
@@ -648,9 +981,11 @@ g[id="region_eletskiy"] polygon.region {
   }
 
   .modal-body {
-    padding: 15px;
+    padding: 0;
   }
 
+  .region-info-section,
+  .institutions-section,
   .filters-section {
     padding: 15px;
   }
