@@ -248,7 +248,6 @@ class LipetskMap {
       mental_retardation: "Задержка психического развития",
       autism: "Расстройство аутистического спектра",
       multiple_disorders: "Множественные нарушения развития",
-      intellectual_disability: "Интеллектуальные нарушения",
     }
 
     const ageInfo = institution.ageRange
@@ -369,13 +368,6 @@ class LipetskMap {
 
     document.getElementById("resetFilters").addEventListener("click", () => {
       this.resetFilters()
-    })
-
-    // Template buttons
-    document.querySelectorAll(".template-btn").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        this.applyTemplate(e.target.dataset.template)
-      })
     })
 
     // Institution form
@@ -591,8 +583,8 @@ class LipetskMap {
           'input[value="speech_impairment"]:checked, ' +
           'input[value="mental_retardation"]:checked, ' +
           'input[value="autism"]:checked, ' +
-          'input[value="multiple_disorders"]:checked, ' +
-          'input[value="intellectual_disability"]:checked',
+          'input[value="multiple_disorders"]:checked' ,
+          // 'input[value="intellectual_disability"]:checked',
       )
       .forEach((cb) => {
         conditions.add(cb.value)
@@ -688,8 +680,8 @@ class LipetskMap {
           '.filter-group input[value="speech_impairment"]:checked, ' +
           '.filter-group input[value="mental_retardation"]:checked, ' +
           '.filter-group input[value="autism"]:checked, ' +
-          '.filter-group input[value="multiple_disorders"]:checked, ' +
-          '.filter-group input[value="intellectual_disability"]:checked',
+          '.filter-group input[value="multiple_disorders"]:checked'
+          // '.filter-group input[value="intellectual_disability"]:checked',
       )
       .forEach((cb) => {
         conditionFilters.push(cb.value)
@@ -725,42 +717,6 @@ class LipetskMap {
     this.loadInstitutionsForDistrict(districtName)
   }
 
-  applyTemplate(template) {
-    // Reset all filters first
-    document.querySelectorAll('.filter-group input[type="checkbox"]').forEach((cb) => {
-      cb.checked = false
-    })
-
-    // Remove active class from all template buttons
-    document.querySelectorAll(".template-btn").forEach((btn) => {
-      btn.classList.remove("active")
-    })
-
-    // Add active class to clicked button
-    document.querySelector(`[data-template="${template}"]`).classList.add("active")
-
-    // Apply specific template filters
-    switch (template) {
-      case "certificate":
-        document
-          .querySelectorAll(
-            '.filter-group input[value="preschool"], .filter-group input[value="school"], .filter-group input[value="school_internat"]',
-          )
-          .forEach((cb) => (cb.checked = true))
-        break
-      case "hearing":
-        document.querySelector('.filter-group input[value="hearing_impairment"]').checked = true
-        break
-      case "vision":
-        document.querySelector('.filter-group input[value="vision_impairment"]').checked = true
-        break
-      case "aoop":
-        document.querySelector('.filter-group input[value="aoop"]').checked = true
-        break
-    }
-
-    this.applyFilters()
-  }
 
   getInstitutionCountForDistrict(districtName) {
     return this.institutions.filter((inst) => inst.district_id === districtName).length
@@ -809,10 +765,9 @@ class LipetskMap {
           type: "school",
           district_id: "Липецкий район",
           classes: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
-          conditions: ["vision_impairment", "intellectual_disability"],
+          conditions: ["vision_impairment"],
           aoop_programs: [
             { name: "АООП для школьников с нарушениями зрения", url: "https://example.com/aoop3" },
-            { name: "АООП для детей с интеллектуальными нарушениями", url: "https://example.com/aoop4" },
           ],
           director: {
             name: "Петров Алексей Иванович",

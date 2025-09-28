@@ -415,45 +415,6 @@ g[id="region_eletskiy"] polygon.region {
   margin-bottom: 30px;
 }
 
-/* Templates */
-.templates-section {
-  margin-bottom: 20px;
-}
-
-.templates-section h3 {
-  margin-bottom: 15px;
-  color: #2c3e50;
-  font-size: 16px;
-}
-
-.template-buttons {
-  display: flex;
-  flex-direction: column; /* Stack template buttons vertically */
-  gap: 8px;
-}
-
-.template-btn {
-  padding: 8px 12px;
-  background: #ecf0f1;
-  border: 1px solid #bdc3c7;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-  text-align: left;
-}
-
-.template-btn:hover {
-  background: #3498db;
-  color: white;
-  border-color: #3498db;
-}
-
-.template-btn.active {
-  background: #3498db;
-  color: white;
-  border-color: #3498db;
-}
 
 .institution-card {
   border: 1px solid #ddd;
