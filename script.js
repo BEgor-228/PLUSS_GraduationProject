@@ -418,7 +418,6 @@ class LipetskMap {
                   }
                   
                   <div class="institution-actions">
-                      <button class="btn btn-primary">Подробнее</button>
                       ${adminButtons}
                   </div>
               </div>
