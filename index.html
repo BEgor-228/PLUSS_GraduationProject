@@ -47,16 +47,18 @@
                         <div class="region-details">
                             <h3 id="regionName">Название региона</h3>
                         </div>
-                        <h3>Учреждения <span id="institutionCount">(0)</span></h3>
+                        
                     </div>
 
                     <div class="institutions-section">
+                        <button id="toggleFilters" class="btn btn-secondary mobile-only">Фильтры</button>
+                        <h3>Учреждения <span id="institutionCount">(0)</span></h3>
                         <div id="institutionsList" class="institutions-list">
                             <!-- Institutions will be loaded here -->
                         </div>
                     </div>
 
-                    <div class="filters-section">
+                    <div class="filters-section" id="filtersSection">
                         <h3>Фильтры</h3>
                         <div class="filter-group">
                             <label>Тип учреждения:</label>

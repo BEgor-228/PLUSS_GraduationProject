@@ -297,6 +297,10 @@ class LipetskMap {
     }
     // Reset filters
     this.resetFilters()
+
+    if (window.innerWidth <= 768) {
+      document.getElementById("filtersSection").classList.add("hidden");
+    }
   }
 
   loadInstitutionsForDistrict(districtName) {
@@ -485,6 +489,12 @@ class LipetskMap {
         document.getElementById("institutionModal").classList.add("hidden")
       }
     })
+
+    // Toggle filters on mobile
+    document.getElementById("toggleFilters").addEventListener("click", () => {
+      const filtersSection = document.getElementById("filtersSection");
+      filtersSection.classList.toggle("hidden");
+    });
   }
 
   addAoOpField(name = "", url = "") {
@@ -787,6 +797,10 @@ class LipetskMap {
     }
 
     this.displayInstitutions(institutions)
+
+    if (window.innerWidth <= 768) {
+      document.getElementById("filtersSection").classList.add("hidden");
+    }
   }
 
   resetFilters() {
@@ -800,6 +814,10 @@ class LipetskMap {
 
     const districtName = document.getElementById("modalTitle").textContent
     this.loadInstitutionsForDistrict(districtName)
+
+    if (window.innerWidth <= 768) {
+      document.getElementById("filtersSection").classList.add("hidden");
+    }
   }
 
 
