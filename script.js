@@ -206,7 +206,95 @@ class LipetskMap {
     document.getElementById("regionName").textContent = districtName
     document.getElementById("districtModal").classList.remove("hidden")
     this.loadInstitutionsForDistrict(districtName)
+    // Вставка SVG полигона района в модалку
+    const svgModal = document.querySelector('#districtModal .region-image');
+    if (svgModal) {
+      svgModal.innerHTML = ''; // Очищаем содержимое
 
+      const mainSvg = document.querySelector('#mapWrapper svg');
+      if (mainSvg) {
+        // Находим группу района по data-region-name
+        let regionGroup = mainSvg.querySelector(`g[data-region-name="${districtName}"]`);
+        
+        // Специальная обработка для Липецка (город) — используем #lipeck
+        if (!regionGroup && districtName === 'Липецк (город)') {
+          regionGroup = mainSvg.querySelector('#lipeck');
+        }
+        // Для Ельца (город) — используем #elets
+        if (!regionGroup && districtName === 'г. Елец') {
+          regionGroup = mainSvg.querySelector('#elets');
+        }
+
+        if (regionGroup) {
+          const clone = regionGroup.cloneNode(true);
+          const polygon = clone.querySelector('polygon');
+          if (polygon) {
+            // Матрица трансформации (одинаковая для всех групп из map.svg)
+            const a = 1.4420655, b = 0, c = 0, d = 1.4420655, e = -45.179089, f = -121.84611;
+
+            // Парсим points: "x1,y1 x2,y2 ..."
+            const pointsStr = polygon.getAttribute('points');
+            const pointPairs = pointsStr.match(/[0-9.-]+,[0-9.-]+/g) || [];
+            
+            let txs = [], tys = [];
+            pointPairs.forEach(pair => {
+              const [xStr, yStr] = pair.split(',');
+              const x = parseFloat(xStr), y = parseFloat(yStr);
+              const tx = a * x + c * y + e;
+              const ty = b * x + d * y + f;
+              txs.push(tx);
+              tys.push(ty);
+            });
+
+            if (txs.length > 0) {
+              const minX = Math.min(...txs);
+              const maxX = Math.max(...txs);
+              const minY = Math.min(...tys);
+              const maxY = Math.max(...tys);
+              const w = maxX - minX;
+              const h = maxY - minY;
+
+              // Padding 5% для обводки (stroke)
+              const padding = 0.05;
+              const offsetX = padding * w;
+              const offsetY = padding * h;
+              const paddedW = w + 2 * offsetX;
+              const paddedH = h + 2 * offsetY;
+
+              // ViewBox от 0,0 с padding
+              svgModal.setAttribute('viewBox', `0 0 ${paddedW} ${paddedH}`);
+              svgModal.setAttribute('preserveAspectRatio', 'xMidYMid meet'); // Атрибут SVG для центрирования и фита
+
+              // Новые points: нормализованные + offset для padding слева/сверху
+              const newPoints = [];
+              for (let i = 0; i < pointPairs.length; i++) {
+                const nx = (txs[i] - minX) + offsetX;
+                const ny = (tys[i] - minY) + offsetY;
+                newPoints.push(`${nx.toFixed(2)},${ny.toFixed(2)}`);
+              }
+              polygon.setAttribute('points', newPoints.join(' '));
+
+              // Удаляем transform (points уже учитывают матрицу)
+              clone.removeAttribute('transform');
+
+              // Стилизуем: зелёный фон, белая обводка
+              polygon.style.fill = '#27ae60';
+              polygon.style.stroke = '#fff';
+              polygon.style.strokeWidth = '2'; // Фиксированная, SVG масштабирует
+              polygon.classList.add('region');
+
+              svgModal.appendChild(clone);
+              return; // Выходим, если успех
+            }
+          }
+          // Fallback: добавляем оригинальный clone без изменений
+          svgModal.appendChild(clone);
+        } else {
+          // Fallback, если группа не найдена
+          svgModal.innerHTML = '<text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#27ae60" font-size="16">SVG не найден</text>';
+        }
+      }
+    }
     // Reset filters
     this.resetFilters()
   }
@@ -584,7 +672,6 @@ class LipetskMap {
           'input[value="mental_retardation"]:checked, ' +
           'input[value="autism"]:checked, ' +
           'input[value="multiple_disorders"]:checked' ,
-          // 'input[value="intellectual_disability"]:checked',
       )
       .forEach((cb) => {
         conditions.add(cb.value)
@@ -681,7 +768,6 @@ class LipetskMap {
           '.filter-group input[value="mental_retardation"]:checked, ' +
           '.filter-group input[value="autism"]:checked, ' +
           '.filter-group input[value="multiple_disorders"]:checked'
-          // '.filter-group input[value="intellectual_disability"]:checked',
       )
       .forEach((cb) => {
         conditionFilters.push(cb.value)
@@ -706,7 +792,7 @@ class LipetskMap {
 
   resetFilters() {
     document.querySelectorAll('.filter-group input[type="checkbox"]').forEach((cb) => {
-      cb.checked = ["preschool", "school", "school_internat", "spo", "vo", "3-4", "5-6", "7+"].includes(cb.value)
+      cb.checked = false
     })
 
     document.querySelectorAll(".template-btn").forEach((btn) => {
@@ -799,7 +885,6 @@ class LipetskMap {
   }
 }
 
-// Initialize the application
 let lipetskMap
 document.addEventListener("DOMContentLoaded", () => {
   lipetskMap = new LipetskMap()

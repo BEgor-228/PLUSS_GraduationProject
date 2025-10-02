@@ -20,7 +20,7 @@ body {
 /* Header */
 .header {
   background: white;
-  padding: 20px 0;
+  padding: 20px 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
   display: flex;
@@ -196,7 +196,7 @@ body {
 
 .district:focus,
 .region:focus {
-  outline: 2px solid #3498db;
+  outline: none;
   outline-offset: 2px;
 }
 
@@ -306,19 +306,19 @@ g[id="region_eletskiy"] polygon.region {
 .region-image {
   width: 200px;
   height: 150px;
-  background: #27ae60; /* Green square */
   border-radius: 8px;
   margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 18px;
-  font-weight: bold;
+  display: block;
+  overflow: hidden; /* Обрезает любые редкие артефакты */
+
 }
 
 .region-image::before {
   content: "Изображение региона";
+}
+
+.region-image g {
+  transform-origin: center; /* Для правильного масштабирования */
 }
 
 .region-details {
