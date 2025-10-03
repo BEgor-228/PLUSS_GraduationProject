@@ -835,7 +835,8 @@ class LipetskMap {
 
   loadInstitutions() {
     const stored = localStorage.getItem("lipetsk_institutions")
-    return stored ? JSON.parse(stored) : []
+    const parsed = stored ? JSON.parse(stored) : []
+    return parsed
   }
 
   saveInstitutions() {
@@ -847,9 +848,8 @@ class LipetskMap {
       const sampleInstitutions = [
         {
           id: "sample_1",
-          name: 'МБДОУ детский сад №1 "Солнышко"',
-          description:
-            "Детский сад общеразвивающего вида с приоритетным осуществлением деятельности по познавательно-речевому развитию детей",
+          name: 'МБДОУ детский сад №1 \"Солнышко\"',
+          description: "Детский сад общеразвивающего вида с приоритетным осуществлением деятельности по познавательно-речевому развитию детей",
           type: "preschool",
           district_id: "Липецкий район",
           ageRange: { min: 3, max: 6 },
