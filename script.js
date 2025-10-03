@@ -41,21 +41,26 @@ class LipetskMap {
     const originalOrder = Array.from(groups) // Сохраняем исходный порядок групп
 
     const colors = [
-      "#a3c9e2", // Голубой
-      "#d1a3e2", // Фиолетовый
-      "#a3e2a3", // Зелёный
-      "#e2c9a3", // Персиковый
-      "#e2a3a3", // Розовый
-      "#a3e2c9", // Мятный
-      "#c9a3e2", // Лавандовый
-      "#a3a3e2", // Синий
-      "#e2e2a3", // Жёлтый
-      "#c9e2a3", // Лаймовый
-      "#e2a3c9", // Сиреневый
-      "#a3c9e2", // Бирюзовый
-      "#e2a3a3", // Коралловый
-      "#a3e2b5", // Салатовый
-      "#c9e2b5", // Оливковый
+      "#e57878", // Розовый
+      "#d88953", // Оранжевый
+      "#f7dc71", // Жёлтый
+      "#cfe672", // Лаймовый
+      "#8ee157", // Зелёный
+      "#81ec81", // Салатовый
+      "#60e094", // Мятный
+      "#84f2dc", // Бирюзовый
+      "#7cc6d8", // Голубой
+      "#66a2fd", // Синий
+      "#7171f8", // Индиго
+      "#b98cfb", // Фиолетовый
+      "#b956d2", // Лавандовый
+      "#ea7cd4", // Сиреневый
+      "#f14d8f", // Коралловый
+      "#FF6347", // Томатный
+      "#D2B48C", // Тан
+      "#87CEEB", // Небесно-голубой
+      "#9932CC", // Пурпурный
+      "#FF69B4"  // Горячая розовая
     ]
 
     groups.forEach((group, index) => {
@@ -277,9 +282,8 @@ class LipetskMap {
               // Удаляем transform (points уже учитывают матрицу)
               clone.removeAttribute('transform');
 
-              // Стилизуем: зелёный фон, белая обводка
-              polygon.style.fill = '#27ae60';
-              polygon.style.stroke = '#fff';
+              polygon.style.fill = this.districtColors[districtName];
+              polygon.style.stroke = 'black';
               polygon.style.strokeWidth = '2'; // Фиксированная, SVG масштабирует
               polygon.classList.add('region');
 

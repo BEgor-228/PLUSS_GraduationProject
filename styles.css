@@ -790,7 +790,6 @@ g[id="region_eletskiy"] polygon.region {
 /* Checkbox styling within institution modal */
 #institutionModal .checkbox-group {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 12px;
   margin-top: 10px;
 }
