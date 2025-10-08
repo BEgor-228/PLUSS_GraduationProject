@@ -125,11 +125,12 @@ class AccessibilityModule {
         document.getElementById('large-cursor').addEventListener('click', (e) => this.toggleLargeCursor(e.target));
     
         // Чтение вслух
-        document.getElementById('read-aloud').addEventListener('click', () => this.readAloud());
-        document.getElementById('stop-reading').addEventListener('click', () => this.stopReading());
     
         // Сброс
         document.getElementById('reset-accessibility').addEventListener('click', () => this.resetAll());
+
+        document.getElementById('read-aloud').addEventListener('click', () => this.enableTextReading());
+        document.getElementById('stop-reading').addEventListener('click', () => this.disableTextReading());
     }
 
     togglePanel() {
@@ -318,54 +319,163 @@ class AccessibilityModule {
         localStorage.setItem('accessibilityHideImages', 'false');
     }
 
-    readAloud() {
+    // Удалите старые методы readAloud и stopReading
+    // Добавьте новые методы:
+
+    enableTextReading() {
+        // Включаем режим чтения по клику
+        document.body.classList.add('read-aloud-mode');
+        document.getElementById('read-aloud').classList.add('active');
+        document.getElementById('stop-reading').classList.remove('active');
+        
+        // Добавляем обработчик клика на весь документ
+        this.readAloudHandler = (e) => this.handleTextClick(e);
+        document.addEventListener('click', this.readAloudHandler);
+        
+        // Меняем курсор для индикации режима чтения
+        document.body.style.cursor = 'text';
+        
+        // Сохраняем состояние
+        localStorage.setItem('accessibilityReadAloudMode', 'true');
+    }
+
+    disableTextReading() {
+        // Выключаем режим чтения по клику
+        document.body.classList.remove('read-aloud-mode');
+        document.getElementById('read-aloud').classList.remove('active');
+        document.getElementById('stop-reading').classList.add('active');
+        
+        // Убираем обработчик
+        if (this.readAloudHandler) {
+            document.removeEventListener('click', this.readAloudHandler);
+        }
+        
+        // Восстанавливаем курсор
+        document.body.style.cursor = '';
+        
+        // Останавливаем речь
         if (this.speechSynthesis.speaking) {
             this.speechSynthesis.cancel();
         }
-
-        // Собираем весь текст со страницы, исключая элементы доступности
-        const elements = document.querySelectorAll('body *:not(.accessibility-module *):not(script):not(style)');
-        let textContent = '';
         
-        elements.forEach(element => {
-            if (element.children.length === 0 && element.textContent.trim()) {
-                textContent += element.textContent + '. ';
-            }
-        });
+        // Сбрасываем состояние
+        localStorage.setItem('accessibilityReadAloudMode', 'false');
+    }
 
-        if (!textContent.trim()) {
-            alert('Не найден текст для чтения');
+    handleTextClick(event) {
+        // Предотвращаем стандартное поведение
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Останавливаем предыдущее чтение
+        if (this.speechSynthesis.speaking) {
+            this.speechSynthesis.cancel();
+        }
+        
+        // Получаем элемент, на который кликнули
+        const target = event.target;
+        
+        // Пропускаем клики по элементам доступности
+        if (target.closest('.accessibility-module')) {
             return;
         }
-
-        this.speechUtterance = new SpeechSynthesisUtterance(textContent);
         
-        // Пытаемся найти русский голос
+        // Получаем текст для чтения
+        let textToRead = this.extractTextFromElement(target);
+        
+        if (textToRead && textToRead.trim()) {
+            this.speakText(textToRead, target);
+        }
+    }
+
+    extractTextFromElement(element) {
+        // Если элемент уже содержит текст (например, span, p, div с текстом)
+        if (element.children.length === 0 && element.textContent.trim()) {
+            return element.textContent.trim();
+        }
+        
+        // Если это заголовок
+        if (['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(element.tagName)) {
+            return element.textContent.trim();
+        }
+        
+        // Если это параграф
+        if (element.tagName === 'P') {
+            return element.textContent.trim();
+        }
+        
+        // Если это кнопка или ссылка
+        if (['BUTTON', 'A'].includes(element.tagName)) {
+            return element.textContent.trim() || element.getAttribute('aria-label') || element.title;
+        }
+        
+        // Если это элемент с атрибутом aria-label
+        if (element.getAttribute('aria-label')) {
+            return element.getAttribute('aria-label');
+        }
+        
+        // Ищем текстовый контент в родительских элементах
+        let parent = element;
+        for (let i = 0; i < 3; i++) { // Проверяем до 3 уровней вверх
+            if (parent.textContent && parent.textContent.trim()) {
+                return parent.textContent.trim();
+            }
+            parent = parent.parentElement;
+            if (!parent) break;
+        }
+        
+        return null;
+    }
+
+    speakText(text, element) {
+        if (!text || !text.trim()) return;
+        
+        // Подсвечиваем элемент на время чтения
+        this.highlightElement(element);
+        
+        // Создаем utterance
+        this.speechUtterance = new SpeechSynthesisUtterance(text);
+        
+        // Настройки голоса
         const voices = this.speechSynthesis.getVoices();
         const russianVoice = voices.find(voice => voice.lang.includes('ru'));
         if (russianVoice) {
             this.speechUtterance.voice = russianVoice;
         }
-
+        
         this.speechUtterance.rate = 0.8;
         this.speechUtterance.pitch = 1;
         this.speechUtterance.volume = 1;
-
+        
+        // Обработчики событий
         this.speechUtterance.onend = () => {
-            document.getElementById('read-aloud').classList.remove('active');
+            this.removeHighlight(element);
         };
-
+        
+        this.speechUtterance.onerror = () => {
+            this.removeHighlight(element);
+        };
+        
+        // Начинаем чтение
         this.speechSynthesis.speak(this.speechUtterance);
-        document.getElementById('read-aloud').classList.add('active');
-        document.getElementById('stop-reading').classList.remove('active');
     }
 
-    stopReading() {
-        if (this.speechSynthesis.speaking) {
-            this.speechSynthesis.cancel();
-            document.getElementById('read-aloud').classList.remove('active');
-            document.getElementById('stop-reading').classList.add('active');
+    highlightElement(element) {
+        // Убираем предыдущее выделение
+        if (this.currentHighlightedElement) {
+            this.removeHighlight(this.currentHighlightedElement);
         }
+        
+        // Добавляем выделение
+        element.classList.add('accessibility-reading-highlight');
+        this.currentHighlightedElement = element;
+    }
+
+    removeHighlight(element) {
+        if (element) {
+            element.classList.remove('accessibility-reading-highlight');
+        }
+        this.currentHighlightedElement = null;
     }
 
     updateHeaderFontSize(scale) {
@@ -418,15 +528,14 @@ class AccessibilityModule {
         });
     
         // Останавливаем чтение
-        this.stopReading();
-    
+        this.disableTextReading();
         // Очищаем localStorage
         const keys = [
             'accessibilityColorScheme',
             'accessibilityFontSizePercent',
             'accessibilityGrayscale',
-            'accessibilityLargeCursor'
-            // Убрали 'accessibilityInvert' и 'accessibilityHideImages'
+            'accessibilityLargeCursor',
+            'accessibilityReadAloudMode'
         ];
         
         keys.forEach(key => localStorage.removeItem(key));
@@ -462,7 +571,9 @@ class AccessibilityModule {
             document.getElementById('large-cursor').setAttribute('aria-pressed', 'true');
         }
     
-        // Убрали загрузку настроек изображений
+        if (localStorage.getItem('accessibilityReadAloudMode') === 'true') {
+            this.enableTextReading();
+        }
     }
 
     loadGrayscale() {
