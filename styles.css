@@ -1174,10 +1174,10 @@ body.accessibility-white-on-black.large-cursor {
 }
 
 .accessibility-reading-highlight {
-  background-color: yellow !important;
+  border: 1px solid #ff0000;
   color: black !important;
   transition: all 0.3s ease;
-  box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
 }
 
 /* Индикатор режима чтения */
