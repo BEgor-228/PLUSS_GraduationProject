@@ -335,7 +335,7 @@ class LipetskMap {
       spo: "СПО",
       vo: "ВО",
     }
-
+  
     const conditionNames = {
       hearing_impairment: "Нарушения слуха",
       vision_impairment: "Нарушения зрения",
@@ -345,35 +345,39 @@ class LipetskMap {
       autism: "Расстройство аутистического спектра",
       multiple_disorders: "Множественные нарушения развития",
     }
-
+  
     const admissionNames = {
       certificate: "Свидетельство",
       attestat: "Аттестат",
     }
-
-    const ageInfo = institution.ageRange
-      ? `${institution.ageRange.min}-${institution.ageRange.max} лет`
-      : institution.classes
-        ? `${institution.classes.join(", ")} классы`
-        : ""
-
+  
+    // Универсальное отображение диапазона
+    let rangeInfo = ""
+    if (institution.range) {
+      if (institution.type === "preschool") {
+        rangeInfo = `${institution.range.min}-${institution.range.max} лет`
+      } else if (institution.type === "school" || institution.type === "school_internat") {
+        rangeInfo = `${institution.range.min}-${institution.range.max} классы`
+      }
+    }
+  
     const uniqueConditions = [...new Set(institution.conditions)]
     const tags = []
-
+  
     const uniqueAdmission = institution.conditionsAdmission ? [...new Set(institution.conditionsAdmission)] : []
     const admissionTags = uniqueAdmission.map((condition) => `<span class="tag admission-tag">${admissionNames[condition] || condition}</span>`).join("")
-
+  
     uniqueConditions.forEach((condition) => {
       tags.push(`<span class="tag">${conditionNames[condition] || condition}</span>`)
     })
-
+  
     const conditionsSection = tags.length > 0 
       ? `<div class="conditions-section">
           <h5>Особые условия:</h5>
           <div class="institution-tags">${tags.join("")}</div>
         </div>`
       : ""
-
+  
     const aoopList =
       institution.aoop_programs && institution.aoop_programs.length > 0
         ? `<div class="aoop-section">
@@ -398,7 +402,7 @@ class LipetskMap {
             <div class="admission-tags institution-tags">${admissionTags}</div>
           </div>`
       : ""
-
+  
     const adminButtons = this.isAdminMode
       ? `
               <button class="btn btn-secondary" onclick="lipetskMap.editInstitution('${institution.id}')">
@@ -409,7 +413,7 @@ class LipetskMap {
               </button>
           `
       : ""
-
+  
       return `
         <div class="institution-card">
             <h4>${institution.name}</h4>
@@ -418,7 +422,7 @@ class LipetskMap {
             ${institution.description ? `<p class="institution-description">${institution.description}</p>` : ""}
             
             <div class="institution-details">
-                ${ageInfo ? `<div class="detail-item"><strong>Возраст/Классы:</strong> ${ageInfo}</div>` : ""}
+                ${rangeInfo ? `<div class="detail-item"><strong>${institution.type === "preschool" ? "Возраст:" : "Классы:"}</strong> ${rangeInfo}</div>` : ""}
                 <div class="detail-item"><strong>Район:</strong> ${institution.district_id}</div>
             </div>
             
@@ -608,19 +612,15 @@ class LipetskMap {
     document.getElementById("districtId").value = institution.district_id
     document.getElementById("institutionDescription").value = institution.description || ""
     document.getElementById("institutionType").value = institution.type
-
-    if (institution.ageRange) {
-      document.getElementById("ageMin").value = institution.ageRange.min
-      document.getElementById("ageMax").value = institution.ageRange.max
+  
+    // Универсальная обработка диапазона
+    if (institution.range) {
+      document.getElementById("ageMin").value = institution.range.min
+      document.getElementById("ageMax").value = institution.range.max
     }
-
-    if (institution.classes) {
-      institution.classes.forEach((cls) => {
-        const checkbox = document.querySelector(`#classesGroup input[value="${cls}"]`)
-        if (checkbox) checkbox.checked = true
-      })
-    }
-
+  
+    // Убираем обработку classes, так как теперь используем универсальный range
+  
     // Reset and populate conditions
     document.querySelectorAll('.form-group input[type="checkbox"][value]').forEach((cb) => {
       cb.checked = false
@@ -629,7 +629,7 @@ class LipetskMap {
       const checkbox = document.querySelector(`.form-group input[value="${condition}"]`)
       if (checkbox) checkbox.checked = true
     })
-
+  
     document.querySelectorAll('input[name="admission"]').forEach((cb) => {
       cb.checked = false
     })
@@ -639,38 +639,40 @@ class LipetskMap {
         if (checkbox) checkbox.checked = true
       })
     }
-
+  
     // Populate AOOP programs
     if (institution.aoop_programs) {
       institution.aoop_programs.forEach((prog) => {
         this.addAoOpField(prog.name, prog.url)
       })
     }
-
+  
     if (institution.director) {
       document.getElementById("directorName").value = institution.director.name || ""
       document.getElementById("directorPhone").value = institution.director.phone || ""
       document.getElementById("directorEmail").value = institution.director.email || ""
     }
-
+  
     document.getElementById("institutionWebsite").value = institution.website || ""
-
+  
     this.toggleFormFields(institution.type)
   }
 
   toggleFormFields(type) {
     const ageGroup = document.getElementById("ageRangeGroup")
-    const classesGroup = document.getElementById("classesGroup")
-
+  
     if (type === "preschool") {
       ageGroup.classList.remove("hidden")
-      classesGroup.classList.add("hidden")
+      ageGroup.querySelector("label").textContent = "Возрастной диапазон"
+      document.getElementById("ageMin").placeholder = "От (лет)"
+      document.getElementById("ageMax").placeholder = "До (лет)"
     } else if (type === "school" || type === "school_internat") {
-      ageGroup.classList.add("hidden")
-      classesGroup.classList.remove("hidden")
+      ageGroup.classList.remove("hidden")
+      ageGroup.querySelector("label").textContent = "Диапазон классов"
+      document.getElementById("ageMin").placeholder = "От (класс)"
+      document.getElementById("ageMax").placeholder = "До (класс)"
     } else {
       ageGroup.classList.add("hidden")
-      classesGroup.classList.add("hidden")
     }
   }
 
@@ -694,20 +696,17 @@ class LipetskMap {
       website: document.getElementById("institutionWebsite").value,
     }
 
-    // Handle age range or classes
-    if (institution.type === "preschool") {
-      const ageMin = document.getElementById("ageMin").value
-      const ageMax = document.getElementById("ageMax").value
-      if (ageMin && ageMax) {
-        institution.ageRange = { min: Number.parseInt(ageMin), max: Number.parseInt(ageMax) }
+    // Универсальная обработка диапазона
+    const rangeMin = document.getElementById("ageMin").value
+    const rangeMax = document.getElementById("ageMax").value
+    if (rangeMin && rangeMax) {
+      institution.range = { 
+        min: Number.parseInt(rangeMin), 
+        max: Number.parseInt(rangeMax) 
       }
-    } else if (institution.type === "school" || institution.type === "school_internat") {
-      const classes = []
-      document.querySelectorAll("#classesGroup input:checked").forEach((cb) => {
-        classes.push(cb.value)
-      })
-      institution.classes = classes
     }
+
+    // Убираем обработку classes, так как теперь используем универсальный range
 
     // Handle conditions
     const conditions = new Set()
@@ -890,11 +889,11 @@ class LipetskMap {
       const sampleInstitutions = [
         {
           id: "sample_1",
-          name: 'МБДОУ детский сад №1 \"Солнышко\"',
+          name: 'МБДОУ детский сад №1 "Солнышко"',
           description: "Детский сад общеразвивающего вида с приоритетным осуществлением деятельности по познавательно-речевому развитию детей",
           type: "preschool",
           district_id: "Липецкий район",
-          ageRange: { min: 3, max: 6 },
+          range: { min: 3, max: 6 }, // Универсальный диапазон для дошкольного
           conditions: ["hearing_impairment"],
           aoop_programs: [
             { name: "АООП для детей с нарушениями слуха", url: "https://example.com/aoop1" },
@@ -914,7 +913,7 @@ class LipetskMap {
           description: "Средняя общеобразовательная школа с углубленным изучением математики и информатики",
           type: "school",
           district_id: "Липецкий район",
-          classes: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
+          range: { min: 1, max: 11 }, // Универсальный диапазон для школы
           conditions: ["vision_impairment"],
           aoop_programs: [
             { name: "АООП для школьников с нарушениями зрения", url: "https://example.com/aoop3" },
@@ -944,7 +943,7 @@ class LipetskMap {
           website: "https://elets-college.ru",
         },
       ]
-
+  
       this.institutions = sampleInstitutions
       this.saveInstitutions()
     }
