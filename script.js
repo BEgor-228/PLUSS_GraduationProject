@@ -346,6 +346,11 @@ class LipetskMap {
       multiple_disorders: "Множественные нарушения развития",
     }
 
+    const admissionNames = {
+      certificate: "Свидетельство",
+      attestat: "Аттестат",
+    }
+
     const ageInfo = institution.ageRange
       ? `${institution.ageRange.min}-${institution.ageRange.max} лет`
       : institution.classes
@@ -354,9 +359,20 @@ class LipetskMap {
 
     const uniqueConditions = [...new Set(institution.conditions)]
     const tags = []
+
+    const uniqueAdmission = institution.conditionsAdmission ? [...new Set(institution.conditionsAdmission)] : []
+    const admissionTags = uniqueAdmission.map((condition) => `<span class="tag admission-tag">${admissionNames[condition] || condition}</span>`).join("")
+
     uniqueConditions.forEach((condition) => {
       tags.push(`<span class="tag">${conditionNames[condition] || condition}</span>`)
     })
+
+    const conditionsSection = tags.length > 0 
+      ? `<div class="conditions-section">
+          <h5>Особые условия:</h5>
+          <div class="institution-tags">${tags.join("")}</div>
+        </div>`
+      : ""
 
     const aoopList =
       institution.aoop_programs && institution.aoop_programs.length > 0
@@ -375,6 +391,13 @@ class LipetskMap {
              </ul>
            </div>`
         : ""
+    
+    const admissionSection = uniqueAdmission.length > 0 
+      ? `<div class="admission-section">
+            <h5>Условия приема:</h5>
+            <div class="admission-tags institution-tags">${admissionTags}</div>
+          </div>`
+      : ""
 
     const adminButtons = this.isAdminMode
       ? `
@@ -387,49 +410,51 @@ class LipetskMap {
           `
       : ""
 
-    return `
-              <div class="institution-card">
-                  <h4>${institution.name}</h4>
-                  <span class="institution-type">${typeNames[institution.type]}</span>
-                  
-                  ${institution.description ? `<p class="institution-description">${institution.description}</p>` : ""}
-                  
-                  <div class="institution-details">
-                      ${ageInfo ? `<div class="detail-item"><strong>Возраст/Классы:</strong> ${ageInfo}</div>` : ""}
-                      <div class="detail-item"><strong>Район:</strong> ${institution.district_id}</div>
+      return `
+        <div class="institution-card">
+            <h4>${institution.name}</h4>
+            <span class="institution-type">${typeNames[institution.type]}</span>
+            
+            ${institution.description ? `<p class="institution-description">${institution.description}</p>` : ""}
+            
+            <div class="institution-details">
+                ${ageInfo ? `<div class="detail-item"><strong>Возраст/Классы:</strong> ${ageInfo}</div>` : ""}
+                <div class="detail-item"><strong>Район:</strong> ${institution.district_id}</div>
+            </div>
+            
+            ${conditionsSection}
+            
+            ${aoopList}
+            
+            ${admissionSection}
+            
+            ${
+              institution.director
+                ? `
+                  <div class="institution-contacts">
+                      <div class="contact-item"><strong>Руководитель:</strong> ${institution.director.name}</div>
+                      ${institution.director.phone ? `<div class="contact-item"><strong>Телефон:</strong> ${institution.director.phone}</div>` : ""}
+                      ${institution.director.email ? `<div class="contact-item"><strong>Email:</strong> ${institution.director.email}</div>` : ""}
                   </div>
-                  
-                  ${tags.length > 0 ? `<div class="institution-tags">${tags.join("")}</div>` : ""}
-                  
-                  ${aoopList}
-                  
-                  ${
-                    institution.director
-                      ? `
-                      <div class="institution-contacts">
-                          <div class="contact-item"><strong>Руководитель:</strong> ${institution.director.name}</div>
-                          ${institution.director.phone ? `<div class="contact-item"><strong>Телефон:</strong> ${institution.director.phone}</div>` : ""}
-                          ${institution.director.email ? `<div class="contact-item"><strong>Email:</strong> ${institution.director.email}</div>` : ""}
-                      </div>
-                  `
-                      : ""
-                  }
-                  
-                  ${
-                    institution.website
-                      ? `
-                      <div class="contact-item">
-                          <strong>Перейти на сайт:</strong> <a href="${institution.website}" target="_blank">${institution.website}</a>
-                      </div>
-                  `
-                      : ""
-                  }
-                  
-                  <div class="institution-actions">
-                      ${adminButtons}
+              `
+                : ""
+            }
+            
+            ${
+              institution.website
+                ? `
+                  <div class="contact-item">
+                      <strong>Перейти на сайт:</strong> <a href="${institution.website}" target="_blank">${institution.website}</a>
                   </div>
-              </div>
-          `
+              `
+                : ""
+            }
+            
+            <div class="institution-actions">
+                ${adminButtons}
+            </div>
+        </div>
+      `
   }
 
   bindEvents() {
@@ -605,6 +630,16 @@ class LipetskMap {
       if (checkbox) checkbox.checked = true
     })
 
+    document.querySelectorAll('input[name="admission"]').forEach((cb) => {
+      cb.checked = false
+    })
+    if (institution.conditionsAdmission) {
+      institution.conditionsAdmission.forEach((condition) => {
+        const checkbox = document.querySelector(`input[name="admission"][value="${condition}"]`)
+        if (checkbox) checkbox.checked = true
+      })
+    }
+
     // Populate AOOP programs
     if (institution.aoop_programs) {
       institution.aoop_programs.forEach((prog) => {
@@ -690,6 +725,13 @@ class LipetskMap {
         conditions.add(cb.value)
       })
     institution.conditions = [...conditions]
+
+    // Handle admission conditions
+    const admissionConditions = new Set()
+    document.querySelectorAll('input[name="admission"]:checked').forEach((cb) => {
+      admissionConditions.add(cb.value)
+    })
+    institution.conditionsAdmission = [...admissionConditions]
 
     // Handle AOOP programs
     document.querySelectorAll(".aoop-field").forEach((field) => {
@@ -858,6 +900,7 @@ class LipetskMap {
             { name: "АООП для детей с нарушениями слуха", url: "https://example.com/aoop1" },
             { name: "АООП для дошкольников с ЗПР", url: "https://example.com/aoop2" },
           ],
+          conditionsAdmission: ["certificate"],
           director: {
             name: "Иванова Мария Петровна",
             phone: "+7 (4742) 12-34-56",
@@ -876,6 +919,7 @@ class LipetskMap {
           aoop_programs: [
             { name: "АООП для школьников с нарушениями зрения", url: "https://example.com/aoop3" },
           ],
+          conditionsAdmission: ["attestat"],
           director: {
             name: "Петров Алексей Иванович",
             phone: "+7 (4742) 23-45-67",
@@ -891,6 +935,7 @@ class LipetskMap {
           district_id: "Елецкий район",
           conditions: [],
           aoop_programs: [],
+          conditionsAdmission: [],
           director: {
             name: "Сидорова Елена Владимировна",
             phone: "+7 (47467) 34-56-78",
