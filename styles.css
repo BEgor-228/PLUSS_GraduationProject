@@ -1,3 +1,7 @@
+:root {
+  --accessibility-font-scale: 1; /* Обязательно определите по умолчанию */
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -9,6 +13,19 @@ body {
   line-height: 1.6;
   color: #333;
   background-color: #f8f9fa;
+}
+
+.modal{
+    font-size: inherit !important;
+}
+
+.modal-content,
+.modal-body,
+.modal-header,
+.institutions-section,
+.filters-section,
+.region-info-section {
+    font-size: inherit !important;
 }
 
 .container {
@@ -29,9 +46,13 @@ body {
   flex-wrap: wrap;
 }
 
+.header{
+    font-size: inherit !important;
+}
+
 .header h1 {
   color: #2c3e50;
-  font-size: 1.8rem;
+  font-size: calc(1.8rem * var(--accessibility-font-scale)) !important;
   margin-bottom: 10px;
 }
 
@@ -46,17 +67,26 @@ body {
   gap: 10px;
 }
 
+.header-controls,
+.admin-panel {
+    font-size: inherit !important;
+}
+
 /* Buttons */
 .btn {
   padding: 10px 20px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--accessibility-font-scale)) !important;
   font-weight: 500;
   transition: all 0.2s;
   text-decoration: none;
   display: inline-block;
+}
+
+.header .btn {
+  font-size: inherit !important;
 }
 
 .btn-primary {
@@ -439,7 +469,25 @@ g[id="region_eletskiy"] polygon.region {
 .institution-card h4 {
   color: #2c3e50;
   margin-bottom: 10px;
-  font-size: 1rem; /* Slightly smaller font */
+  font-size: calc(1.1em * var(--accessibility-font-scale)) !important;
+}
+
+.institution-card,
+.institution-card *:not(script):not(style) {
+    font-size: inherit !important;
+}
+
+.institution-card .institution-type {
+  font-size: calc(0.8em * var(--accessibility-font-scale)) !important;
+}
+
+.filter-group,
+.filter-group * {
+    font-size: inherit !important;
+}
+
+.checkbox-group label {
+    font-size: calc(0.9em * var(--accessibility-font-scale)) !important;
 }
 
 .institution-type {
@@ -831,6 +879,317 @@ g[id="region_eletskiy"] polygon.region {
   margin-right: 8px;
   width: 16px;
   height: 16px;
+}
+
+/* Стили для модуля доступности */
+.accessibility-module {
+  position: relative;
+  z-index: 10000;
+}
+
+.accessibility-toggle {
+  position: fixed;
+  top: 120px;
+  right: 0;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px 0 0 5px;
+  padding: 12px;
+  cursor: pointer;
+  z-index: 10001;
+  transition: all 0.3s ease;
+}
+
+.accessibility-toggle:hover {
+  background: #2980b9;
+  transform: translateX(-5px);
+}
+
+.accessibility-toggle:focus {
+  outline: 3px solid #ff6b00;
+}
+
+.accessibility-panel {
+  position: fixed;
+  top: 50%;
+  right: -320px;
+  width: 300px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: white;
+  color: #333;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  transition: right 0.3s ease;
+  z-index: 10000;
+  border-radius: 10px 0 0 10px;
+  border: 1px solid #ddd;
+  transform: translateY(-50%);
+}
+
+.accessibility-panel.open {
+  right: 0;
+}
+
+.accessibility-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.accessibility-panel::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.accessibility-panel::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.accessibility-panel::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+#accessibility-title {
+  margin-bottom: 20px;
+  font-weight: bold;
+  font-size: 18px;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.option-group {
+  margin-bottom: 25px;
+}
+
+.option-group-title {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.color-scheme-btn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.color-scheme-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.color-scheme-btn.active {
+  border-color: #3498db;
+  font-weight: bold;
+}
+
+.color-scheme-btn:focus {
+  outline: 2px solid #3498db;
+  outline-offset: 2px;
+}
+
+.black-on-white {
+  background: white;
+  color: black;
+  border: 1px solid #ddd;
+}
+
+.white-on-black {
+  background: black;
+  color: white;
+  border: 1px solid #555;
+}
+
+.brown-on-beige {
+  background: #f5f5dc;
+  color: #8b4513;
+  border: 1px solid #d2b48c;
+}
+
+.dark-blue-on-blue {
+  background: #add8e6;
+  color: #00008b;
+  border: 1px solid #87ceeb;
+}
+
+.font-size-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.font-size-btn {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f8f9fa;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.font-size-btn:hover {
+  background: #e9ecef;
+}
+
+.font-size-btn.active {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f8f9fa;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: #e9ecef;
+}
+
+.filter-btn.active {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.filter-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  background: #ddd;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.filter-btn.active .filter-icon {
+  background: rgba(255,255,255,0.3);
+}
+
+#reset-accessibility {
+  width: 100%;
+  padding: 12px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+#reset-accessibility:hover {
+  background: #c0392b;
+}
+
+/* Стили для режимов доступности */
+body.accessibility-black-on-white {
+  background: white !important;
+  color: black !important;
+}
+
+body.accessibility-black-on-white *:not(.accessibility-module *):not(.accessibility-toggle) {
+  background: white !important;
+  color: black !important;
+  border-color: black !important;
+}
+
+body.accessibility-white-on-black {
+  background: black !important;
+  color: white !important;
+}
+
+body.accessibility-white-on-black *:not(.accessibility-module *):not(.accessibility-toggle) {
+  background: black !important;
+  color: white !important;
+  border-color: white !important;
+}
+
+body.accessibility-brown-on-beige {
+  background: #f5f5dc !important;
+  color: #8b4513 !important;
+}
+
+body.accessibility-brown-on-beige *:not(.accessibility-module *):not(.accessibility-toggle) {
+  background: #f5f5dc !important;
+  color: #8b4513 !important;
+  border-color: #8b4513 !important;
+}
+
+body.accessibility-dark-blue-on-blue {
+  background: #add8e6 !important;
+  color: #00008b !important;
+}
+
+body.accessibility-dark-blue-on-blue *:not(.accessibility-module *):not(.accessibility-toggle) {
+  background: #add8e6 !important;
+  color: #00008b !important;
+  border-color: #00008b !important;
+}
+
+body.accessibility-grayscale {
+  filter: grayscale(100%) !important;
+}
+
+body.accessibility-grayscale .accessibility-module * {
+  filter: none !important;
+}
+
+.large-cursor {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='transparent' stroke='%23000' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%23000'/%3E%3C/svg%3E") 16 16, auto !important;
+}
+
+body.accessibility-white-on-black.large-cursor {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='transparent' stroke='%23fff' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%23fff'/%3E%3C/svg%3E") 16 16, auto !important;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .accessibility-panel {
+      width: 280px;
+      right: -280px;
+  }
+  
+  .accessibility-toggle {
+      top: 80px;
+      padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .accessibility-panel {
+      width: 100%;
+      height: 100%;
+      top: 0;
+      right: -100%;
+      border-radius: 0;
+      transform: none;
+  }
+  
+  .accessibility-panel.open {
+      right: 0;
+  }
 }
 
 /* Responsive styles for institution modal */
