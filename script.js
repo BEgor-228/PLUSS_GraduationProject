@@ -615,8 +615,8 @@ class LipetskMap {
   
     // Универсальная обработка диапазона
     if (institution.range) {
-      document.getElementById("ageMin").value = institution.range.min
-      document.getElementById("ageMax").value = institution.range.max
+      document.getElementById("rangeMin").value = institution.range.min
+      document.getElementById("rangeMax").value = institution.range.max
     }
   
     // Убираем обработку classes, так как теперь используем универсальный range
@@ -659,20 +659,20 @@ class LipetskMap {
   }
 
   toggleFormFields(type) {
-    const ageGroup = document.getElementById("ageRangeGroup")
+    const group = document.getElementById("rangeGroup")
   
     if (type === "preschool") {
-      ageGroup.classList.remove("hidden")
-      ageGroup.querySelector("label").textContent = "Возрастной диапазон"
-      document.getElementById("ageMin").placeholder = "От (лет)"
-      document.getElementById("ageMax").placeholder = "До (лет)"
+      group.classList.remove("hidden")
+      group.querySelector("label").textContent = "Возрастной диапазон"
+      document.getElementById("rangeMin").placeholder = "От (лет)"
+      document.getElementById("rangeMax").placeholder = "До (лет)"
     } else if (type === "school" || type === "school_internat") {
-      ageGroup.classList.remove("hidden")
-      ageGroup.querySelector("label").textContent = "Диапазон классов"
-      document.getElementById("ageMin").placeholder = "От (класс)"
-      document.getElementById("ageMax").placeholder = "До (класс)"
+      group.classList.remove("hidden")
+      group.querySelector("label").textContent = "Диапазон классов"
+      document.getElementById("rangeMin").placeholder = "От (класс)"
+      document.getElementById("rangeMax").placeholder = "До (класс)"
     } else {
-      ageGroup.classList.add("hidden")
+      group.classList.add("hidden")
     }
   }
 
@@ -697,8 +697,8 @@ class LipetskMap {
     }
 
     // Универсальная обработка диапазона
-    const rangeMin = document.getElementById("ageMin").value
-    const rangeMax = document.getElementById("ageMax").value
+    const rangeMin = document.getElementById("rangeMin").value
+    const rangeMax = document.getElementById("rangeMax").value
     if (rangeMin && rangeMax) {
       institution.range = { 
         min: Number.parseInt(rangeMin), 

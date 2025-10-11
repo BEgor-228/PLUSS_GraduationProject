@@ -647,12 +647,12 @@ g[id="region_eletskiy"] polygon.region {
   min-height: 80px;
 }
 
-.age-inputs {
+.range-inputs {
   display: flex;
   gap: 10px;
 }
 
-.age-inputs input {
+.range-inputs input {
   flex: 1;
 }
 
@@ -827,12 +827,12 @@ g[id="region_eletskiy"] polygon.region {
   font-family: inherit;
 }
 
-#institutionModal .age-inputs {
+#institutionModal .range-inputs {
   display: flex;
   gap: 15px;
 }
 
-#institutionModal .age-inputs input {
+#institutionModal .range-inputs input {
   flex: 1;
 }
 
@@ -1261,7 +1261,7 @@ body.accessibility-white-on-black.large-cursor {
     flex-direction: column;
   }
 
-  #institutionModal .age-inputs {
+  #institutionModal .range-inputs {
     flex-direction: column;
     gap: 10px;
   }
