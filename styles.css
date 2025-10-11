@@ -1208,86 +1208,6 @@ body.accessibility-white-on-black.large-cursor {
   display: block;
 }
 
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .accessibility-panel {
-      width: 280px;
-      right: -280px;
-  }
-  
-  .accessibility-toggle {
-      top: 80px;
-      padding: 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  .accessibility-panel {
-      width: 100%;
-      height: 100%;
-      top: 0;
-      right: -100%;
-      border-radius: 0;
-      transform: none;
-  }
-  
-  .accessibility-panel.open {
-      right: 0;
-  }
-}
-
-/* Responsive styles for institution modal */
-@media (max-width: 825px) {
-  #institutionModal .modal-content {
-    max-width: 95%;
-    margin: 10px;
-    max-height: 95vh;
-  }
-
-  #institutionModal .modal-header {
-    padding: 15px;
-  }
-
-  #institutionModal .modal-body2 {
-    padding: 15px;
-  }
-
-  #institutionModal .checkbox-group {
-    grid-template-columns: 1fr;
-  }
-
-  #institutionModal .form-actions {
-    flex-direction: column;
-  }
-
-  #institutionModal .range-inputs {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .mobile-only {
-      display: block; /* Показываем кнопку на мобильных */
-  }
-
-  #toggleFilters {
-      display: block;
-      width: 100%;
-      margin-bottom: 15px;
-      justify-content: center;
-  }
-
-  #filtersSection {
-      display: none; /* По умолчанию скрываем панель фильтров на мобильных */
-  }
-
-  #filtersSection:not(.hidden) {
-      display: block; /* Показываем, когда не hidden */
-      height: 24rem;
-  }
-  
-}
-
 @media (max-width: 1024px) {
   .modal-body {
     grid-template-columns: 250px 1fr 280px; /* Adjust columns for medium screens */
@@ -1383,6 +1303,65 @@ body.accessibility-white-on-black.large-cursor {
   .aoop-field {
     flex-direction: column;
   }
+
+  #institutionModal .modal-content {
+    max-width: 95%;
+    margin: 10px;
+    max-height: 95vh;
+  }
+
+  #institutionModal .modal-header {
+    padding: 15px;
+  }
+
+  #institutionModal .modal-body2 {
+    padding: 15px;
+  }
+
+  #institutionModal .checkbox-group {
+    grid-template-columns: 1fr;
+  }
+
+  #institutionModal .form-actions {
+    flex-direction: column;
+  }
+
+  #institutionModal .range-inputs {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .mobile-only {
+      display: block; /* Показываем кнопку на мобильных */
+  }
+
+  #toggleFilters {
+      display: block;
+      width: 100%;
+      margin-bottom: 15px;
+      justify-content: center;
+  }
+
+  #filtersSection {
+      display: none; /* По умолчанию скрываем панель фильтров на мобильных */
+  }
+
+  #filtersSection:not(.hidden) {
+      display: block; /* Показываем, когда не hidden */
+      height: 24rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .accessibility-panel {
+      width: 280px;
+      right: -280px;
+  }
+  
+  .accessibility-toggle {
+      top: 80px;
+      padding: 10px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1398,5 +1377,18 @@ body.accessibility-white-on-black.large-cursor {
   .institutions-section,
   .filters-section {
     padding: 15px;
+  }
+
+  .accessibility-panel {
+    width: 100%;
+    height: 100%;
+    top: 0;
+    right: -100%;
+    border-radius: 0;
+    transform: none;
+  }
+
+  .accessibility-panel.open {
+      right: 0;
   }
 }
