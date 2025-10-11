@@ -21,10 +21,8 @@ class LipetskMap {
     try {
       const response = await fetch("map.svg")
       const svgText = await response.text()
-
       const mapWrapper = document.getElementById("mapWrapper")
       mapWrapper.innerHTML = svgText
-
       this.setupMapInteractivity()
       this.populateLegend()
     } catch (error) {
@@ -38,29 +36,29 @@ class LipetskMap {
     if (!svg) return
 
     const groups = svg.querySelectorAll("g[id][data-region-name]")
-    const originalOrder = Array.from(groups) // Сохраняем исходный порядок групп
+    const originalOrder = Array.from(groups)
 
     const colors = [
-      "#e57878", // Розовый
-      "#d88953", // Оранжевый
-      "#f7dc71", // Жёлтый
-      "#cfe672", // Лаймовый
-      "#8ee157", // Зелёный
-      "#81ec81", // Салатовый
-      "#60e094", // Мятный
-      "#84f2dc", // Бирюзовый
-      "#7cc6d8", // Голубой
-      "#66a2fd", // Синий
-      "#7171f8", // Индиго
-      "#b98cfb", // Фиолетовый
-      "#b956d2", // Лавандовый
-      "#ea7cd4", // Сиреневый
-      "#f14d8f", // Коралловый
-      "#FF6347", // Томатный
-      "#D2B48C", // Тан
-      "#87CEEB", // Небесно-голубой
-      "#9932CC", // Пурпурный
-      "#FF69B4"  // Горячая розовая
+      "#e57878",
+      "#d88953",
+      "#f7dc71",
+      "#cfe672",
+      "#8ee157",
+      "#81ec81",
+      "#60e094",
+      "#84f2dc",
+      "#7cc6d8",
+      "#66a2fd",
+      "#7171f8",
+      "#b98cfb",
+      "#b956d2",
+      "#ea7cd4",
+      "#f14d8f",
+      "#FF6347",
+      "#D2B48C",
+      "#87CEEB",
+      "#9932CC",
+      "#FF69B4"
     ]
 
     groups.forEach((group, index) => {
@@ -68,24 +66,20 @@ class LipetskMap {
       const regionName = group.getAttribute("data-region-name") || this.getDistrictName(regionId)
       const color = colors[index % colors.length]
       this.districtColors[regionName] = color
-
       const polygons = group.querySelectorAll("polygon, path, circle, rect")
       polygons.forEach((polygon) => {
         if (!polygon.id) {
           polygon.id = `${regionId}-shape-${index}`
         }
-
         polygon.classList.add("district")
         polygon.style.fill = color
         polygon.setAttribute("tabindex", "0")
         polygon.setAttribute("role", "button")
-
         this.districts[polygon.id] = {
           name: regionName,
           element: polygon,
           group: group,
         }
-
         polygon.addEventListener("click", (e) => {
           e.stopPropagation()
           this.handleDistrictClick(e, polygon.id)
@@ -117,8 +111,6 @@ class LipetskMap {
         })
       })
     })
-
-    // Дополнительно поднимаем город поверх всех при инициализации
     const eletsGroup = svg.querySelector("#elets")
     if (eletsGroup) {
       svg.appendChild(eletsGroup)
@@ -141,7 +133,6 @@ class LipetskMap {
         `
       })
       .join("")
-
     document.querySelectorAll(".legend-item").forEach((item) => {
       item.addEventListener("click", () => {
         const name = item.dataset.districtName
@@ -172,14 +163,12 @@ class LipetskMap {
       "district-16": "Воловский район",
       "district-17": "Липецк (город)",
     }
-
     return districtNames[districtId] || `Район ${districtId}`
   }
 
   showTooltip(event, districtName) {
     const tooltip = document.getElementById("tooltip")
     const institutionCount = this.getInstitutionCountForDistrict(districtName)
-
     tooltip.innerHTML = `
               <strong>${districtName}</strong><br>
               Учреждений: ${institutionCount}
@@ -191,7 +180,6 @@ class LipetskMap {
   updateTooltipPosition(event) {
     const tooltip = document.getElementById("tooltip")
     const rect = document.getElementById("mapWrapper").getBoundingClientRect()
-
     tooltip.style.left = event.clientX - rect.left + 10 + "px"
     tooltip.style.top = event.clientY - rect.top - 10 + "px"
   }
@@ -211,36 +199,25 @@ class LipetskMap {
     document.getElementById("regionName").textContent = districtName
     document.getElementById("districtModal").classList.remove("hidden")
     this.loadInstitutionsForDistrict(districtName)
-    // Вставка SVG полигона района в модалку
     const svgModal = document.querySelector('#districtModal .region-image');
     if (svgModal) {
-      svgModal.innerHTML = ''; // Очищаем содержимое
-
+      svgModal.innerHTML = '';
       const mainSvg = document.querySelector('#mapWrapper svg');
       if (mainSvg) {
-        // Находим группу района по data-region-name
         let regionGroup = mainSvg.querySelector(`g[data-region-name="${districtName}"]`);
-        
-        // Специальная обработка для Липецка (город) — используем #lipeck
         if (!regionGroup && districtName === 'Липецк (город)') {
           regionGroup = mainSvg.querySelector('#lipeck');
         }
-        // Для Ельца (город) — используем #elets
         if (!regionGroup && districtName === 'г. Елец') {
           regionGroup = mainSvg.querySelector('#elets');
         }
-
         if (regionGroup) {
           const clone = regionGroup.cloneNode(true);
           const polygon = clone.querySelector('polygon');
           if (polygon) {
-            // Матрица трансформации (одинаковая для всех групп из map.svg)
             const a = 1.4420655, b = 0, c = 0, d = 1.4420655, e = -45.179089, f = -121.84611;
-
-            // Парсим points: "x1,y1 x2,y2 ..."
             const pointsStr = polygon.getAttribute('points');
             const pointPairs = pointsStr.match(/[0-9.-]+,[0-9.-]+/g) || [];
-            
             let txs = [], tys = [];
             pointPairs.forEach(pair => {
               const [xStr, yStr] = pair.split(',');
@@ -250,7 +227,6 @@ class LipetskMap {
               txs.push(tx);
               tys.push(ty);
             });
-
             if (txs.length > 0) {
               const minX = Math.min(...txs);
               const maxX = Math.max(...txs);
@@ -258,19 +234,13 @@ class LipetskMap {
               const maxY = Math.max(...tys);
               const w = maxX - minX;
               const h = maxY - minY;
-
-              // Padding 5% для обводки (stroke)
               const padding = 0.05;
               const offsetX = padding * w;
               const offsetY = padding * h;
               const paddedW = w + 2 * offsetX;
               const paddedH = h + 2 * offsetY;
-
-              // ViewBox от 0,0 с padding
               svgModal.setAttribute('viewBox', `0 0 ${paddedW} ${paddedH}`);
-              svgModal.setAttribute('preserveAspectRatio', 'xMidYMid meet'); // Атрибут SVG для центрирования и фита
-
-              // Новые points: нормализованные + offset для padding слева/сверху
+              svgModal.setAttribute('preserveAspectRatio', 'xMidYMid meet');
               const newPoints = [];
               for (let i = 0; i < pointPairs.length; i++) {
                 const nx = (txs[i] - minX) + offsetX;
@@ -278,30 +248,23 @@ class LipetskMap {
                 newPoints.push(`${nx.toFixed(2)},${ny.toFixed(2)}`);
               }
               polygon.setAttribute('points', newPoints.join(' '));
-
-              // Удаляем transform (points уже учитывают матрицу)
               clone.removeAttribute('transform');
-
               polygon.style.fill = this.districtColors[districtName];
               polygon.style.stroke = 'black';
-              polygon.style.strokeWidth = '2'; // Фиксированная, SVG масштабирует
+              polygon.style.strokeWidth = '2';
               polygon.classList.add('region');
 
               svgModal.appendChild(clone);
-              return; // Выходим, если успех
+              return;
             }
           }
-          // Fallback: добавляем оригинальный clone без изменений
           svgModal.appendChild(clone);
         } else {
-          // Fallback, если группа не найдена
           svgModal.innerHTML = '<text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#27ae60" font-size="16">SVG не найден</text>';
         }
       }
     }
-    // Reset filters
     this.resetFilters()
-
     if (window.innerWidth <= 768) {
       document.getElementById("filtersSection").classList.add("hidden");
     }
@@ -309,21 +272,17 @@ class LipetskMap {
 
   loadInstitutionsForDistrict(districtName) {
     const districtInstitutions = this.institutions.filter((inst) => inst.district_id === districtName)
-
     this.displayInstitutions(districtInstitutions)
   }
 
   displayInstitutions(institutions) {
     const container = document.getElementById("institutionsList")
     const count = document.getElementById("institutionCount")
-
     count.textContent = `(${institutions.length})`
-
     if (institutions.length === 0) {
       container.innerHTML = '<p class="text-muted text-center">Учреждения не найдены</p>'
       return
     }
-
     container.innerHTML = institutions.map((inst) => this.createInstitutionCard(inst)).join("")
   }
 
@@ -335,7 +294,6 @@ class LipetskMap {
       spo: "СПО",
       vo: "ВО",
     }
-  
     const conditionNames = {
       hearing_impairment: "Нарушения слуха",
       vision_impairment: "Нарушения зрения",
@@ -345,13 +303,10 @@ class LipetskMap {
       autism: "Расстройство аутистического спектра",
       multiple_disorders: "Множественные нарушения развития",
     }
-  
     const admissionNames = {
       certificate: "Свидетельство",
       attestat: "Аттестат",
     }
-  
-    // Универсальное отображение диапазона
     let rangeInfo = ""
     if (institution.range) {
       if (institution.type === "preschool") {
@@ -360,17 +315,14 @@ class LipetskMap {
         rangeInfo = `${institution.range.min}-${institution.range.max} классы`
       }
     }
-  
     const uniqueConditions = [...new Set(institution.conditions)]
     const tags = []
-  
     const uniqueAdmission = institution.conditionsAdmission ? [...new Set(institution.conditionsAdmission)] : []
     const admissionTags = uniqueAdmission.map((condition) => `<span class="tag admission-tag">${admissionNames[condition] || condition}</span>`).join("")
-  
     uniqueConditions.forEach((condition) => {
       tags.push(`<span class="tag">${conditionNames[condition] || condition}</span>`)
     })
-  
+
     const conditionsSection = tags.length > 0 
       ? `<div class="conditions-section">
           <h5>Особые условия:</h5>
@@ -462,30 +414,21 @@ class LipetskMap {
   }
 
   bindEvents() {
-    // Admin toggle
     document.getElementById("adminToggle").addEventListener("click", () => {
       this.toggleAdminMode()
     })
-
-    // Add institution
     document.getElementById("addInstitution").addEventListener("click", () => {
       this.openInstitutionForm()
     })
-
-    // Modal close buttons
     document.getElementById("closeModal").addEventListener("click", () => {
       document.getElementById("districtModal").classList.add("hidden")
     })
-
     document.getElementById("closeInstitutionModal").addEventListener("click", () => {
       document.getElementById("institutionModal").classList.add("hidden")
     })
-
     document.getElementById("cancelInstitution").addEventListener("click", () => {
       document.getElementById("institutionModal").classList.add("hidden")
     })
-
-    // Filter controls
     document.getElementById("applyFilters").addEventListener("click", () => {
       this.applyFilters()
     })
@@ -493,37 +436,26 @@ class LipetskMap {
     document.getElementById("resetFilters").addEventListener("click", () => {
       this.resetFilters()
     })
-
-    // Institution form
     document.getElementById("institutionForm").addEventListener("submit", (e) => {
       e.preventDefault()
       this.saveInstitution()
     })
-
-    // Institution type change
     document.getElementById("institutionType").addEventListener("change", (e) => {
       this.toggleFormFields(e.target.value)
     })
-
-    // Add AOOP program
     document.getElementById("addAoOp").addEventListener("click", () => {
       this.addAoOpField()
     })
-
-    // Close modals on backdrop click
     document.getElementById("districtModal").addEventListener("click", (e) => {
       if (e.target.id === "districtModal") {
         document.getElementById("districtModal").classList.add("hidden")
       }
     })
-
     document.getElementById("institutionModal").addEventListener("click", (e) => {
       if (e.target.id === "institutionModal") {
         document.getElementById("institutionModal").classList.add("hidden")
       }
     })
-
-    // Toggle filters on mobile
     document.getElementById("toggleFilters").addEventListener("click", () => {
       const filtersSection = document.getElementById("filtersSection");
       filtersSection.classList.toggle("hidden");
@@ -533,7 +465,6 @@ class LipetskMap {
   addAoOpField(name = "", url = "") {
     const aoopList = document.getElementById("aoopList")
     const id = this.aoopCounter++
-
     const field = document.createElement("div")
     field.classList.add("aoop-field")
     field.innerHTML = `
@@ -545,7 +476,6 @@ class LipetskMap {
     field.querySelector(".remove-aoop").addEventListener("click", () => {
       field.remove()
     })
-
     aoopList.appendChild(field)
   }
 
@@ -562,7 +492,6 @@ class LipetskMap {
     this.isAdminMode = !this.isAdminMode
     const toggle = document.getElementById("adminToggle")
     const panel = document.getElementById("adminPanel")
-
     if (this.isAdminMode) {
       toggle.textContent = "Обычный режим"
       toggle.classList.remove("btn-secondary")
@@ -574,8 +503,6 @@ class LipetskMap {
       toggle.classList.add("btn-secondary")
       panel.classList.add("hidden")
     }
-
-    // Refresh current view if modal is open
     if (!document.getElementById("districtModal").classList.contains("hidden")) {
       const districtName = document.getElementById("modalTitle").textContent
       this.loadInstitutionsForDistrict(districtName)
@@ -590,12 +517,8 @@ class LipetskMap {
     const form = document.getElementById("institutionForm")
     const aoopList = document.getElementById("aoopList")
     aoopList.innerHTML = ""
-
     title.textContent = institution ? "Редактировать учреждение" : "Добавить учреждение"
-
-    // Populate district select
     this.populateDistrictSelect()
-
     if (institution) {
       this.populateForm(institution)
     } else {
@@ -603,7 +526,6 @@ class LipetskMap {
       document.getElementById("districtId").value = this.currentDistrictName || ""
       this.toggleFormFields("")
     }
-
     modal.classList.remove("hidden")
   }
 
@@ -612,16 +534,10 @@ class LipetskMap {
     document.getElementById("districtId").value = institution.district_id
     document.getElementById("institutionDescription").value = institution.description || ""
     document.getElementById("institutionType").value = institution.type
-  
-    // Универсальная обработка диапазона
     if (institution.range) {
       document.getElementById("rangeMin").value = institution.range.min
       document.getElementById("rangeMax").value = institution.range.max
     }
-  
-    // Убираем обработку classes, так как теперь используем универсальный range
-  
-    // Reset and populate conditions
     document.querySelectorAll('.form-group input[type="checkbox"][value]').forEach((cb) => {
       cb.checked = false
     })
@@ -629,7 +545,6 @@ class LipetskMap {
       const checkbox = document.querySelector(`.form-group input[value="${condition}"]`)
       if (checkbox) checkbox.checked = true
     })
-  
     document.querySelectorAll('input[name="admission"]').forEach((cb) => {
       cb.checked = false
     })
@@ -639,28 +554,22 @@ class LipetskMap {
         if (checkbox) checkbox.checked = true
       })
     }
-  
-    // Populate AOOP programs
     if (institution.aoop_programs) {
       institution.aoop_programs.forEach((prog) => {
         this.addAoOpField(prog.name, prog.url)
       })
     }
-  
     if (institution.director) {
       document.getElementById("directorName").value = institution.director.name || ""
       document.getElementById("directorPhone").value = institution.director.phone || ""
       document.getElementById("directorEmail").value = institution.director.email || ""
     }
-  
     document.getElementById("institutionWebsite").value = institution.website || ""
-  
     this.toggleFormFields(institution.type)
   }
 
   toggleFormFields(type) {
     const group = document.getElementById("rangeGroup")
-  
     if (type === "preschool") {
       group.classList.remove("hidden")
       group.querySelector("label").textContent = "Возрастной диапазон"
@@ -678,8 +587,6 @@ class LipetskMap {
 
   saveInstitution() {
     const form = document.getElementById("institutionForm")
-    const formData = new FormData(form)
-
     const institution = {
       id: this.editingInstitution ? this.editingInstitution.id : this.generateId(),
       name: document.getElementById("institutionName").value,
@@ -695,8 +602,6 @@ class LipetskMap {
       },
       website: document.getElementById("institutionWebsite").value,
     }
-
-    // Универсальная обработка диапазона
     const rangeMin = document.getElementById("rangeMin").value
     const rangeMax = document.getElementById("rangeMax").value
     if (rangeMin && rangeMax) {
@@ -705,10 +610,6 @@ class LipetskMap {
         max: Number.parseInt(rangeMax) 
       }
     }
-
-    // Убираем обработку classes, так как теперь используем универсальный range
-
-    // Handle conditions
     const conditions = new Set()
     document
       .querySelectorAll(
@@ -724,15 +625,11 @@ class LipetskMap {
         conditions.add(cb.value)
       })
     institution.conditions = [...conditions]
-
-    // Handle admission conditions
     const admissionConditions = new Set()
     document.querySelectorAll('input[name="admission"]:checked').forEach((cb) => {
       admissionConditions.add(cb.value)
     })
     institution.conditionsAdmission = [...admissionConditions]
-
-    // Handle AOOP programs
     document.querySelectorAll(".aoop-field").forEach((field) => {
       const name = field.querySelector(".aoop-name").value.trim()
       const url = field.querySelector(".aoop-url").value.trim()
@@ -740,25 +637,18 @@ class LipetskMap {
         institution.aoop_programs.push({ name, url })
       }
     })
-
-    // Validate required fields
     if (!institution.name || !institution.type || !institution.district_id) {
       alert("Пожалуйста, заполните обязательные поля: Название, Тип учреждения и Район")
       return
     }
-
-    // Save institution
     if (this.editingInstitution) {
       const index = this.institutions.findIndex((inst) => inst.id === this.editingInstitution.id)
       this.institutions[index] = institution
     } else {
       this.institutions.push(institution)
     }
-
     this.saveInstitutions()
     document.getElementById("institutionModal").classList.add("hidden")
-
-    // Refresh current view
     if (!document.getElementById("districtModal").classList.contains("hidden")) {
       const districtName = document.getElementById("modalTitle").textContent
       this.loadInstitutionsForDistrict(districtName)
@@ -776,8 +666,6 @@ class LipetskMap {
     if (confirm("Вы уверены, что хотите удалить это учреждение?")) {
       this.institutions = this.institutions.filter((inst) => inst.id !== id)
       this.saveInstitutions()
-
-      // Refresh current view
       if (!document.getElementById("districtModal").classList.contains("hidden")) {
         const districtName = document.getElementById("modalTitle").textContent
         this.loadInstitutionsForDistrict(districtName)
@@ -788,20 +676,17 @@ class LipetskMap {
   applyFilters() {
     const districtName = document.getElementById("modalTitle").textContent
     let institutions = this.institutions.filter((inst) => inst.district_id === districtName)
-
-    // Type filters
     const typeFilters = []
+
     document.querySelectorAll('.filter-group input[type="checkbox"]:checked').forEach((cb) => {
       if (["preschool", "school", "school_internat", "spo", "vo"].includes(cb.value)) {
         typeFilters.push(cb.value)
       }
     })
-
     if (typeFilters.length > 0) {
       institutions = institutions.filter((inst) => typeFilters.includes(inst.type))
     }
 
-    // Age filters
     const ageFilters = []
     document
       .querySelectorAll(
@@ -811,7 +696,6 @@ class LipetskMap {
         ageFilters.push(cb.value)
       })
 
-    // Condition filters
     const conditionFilters = []
     document
       .querySelectorAll(
@@ -834,15 +718,11 @@ class LipetskMap {
         })
       })
     }
-
-    // AOOP filter
     const aoopFilter = document.querySelector('.filter-group input[value="aoop"]:checked')
     if (aoopFilter) {
       institutions = institutions.filter((inst) => inst.aoop_programs && inst.aoop_programs.length > 0)
     }
-
     this.displayInstitutions(institutions)
-
     if (window.innerWidth <= 768) {
       document.getElementById("filtersSection").classList.add("hidden");
     }
@@ -852,14 +732,11 @@ class LipetskMap {
     document.querySelectorAll('.filter-group input[type="checkbox"]').forEach((cb) => {
       cb.checked = false
     })
-
     document.querySelectorAll(".template-btn").forEach((btn) => {
       btn.classList.remove("active")
     })
-
     const districtName = document.getElementById("modalTitle").textContent
     this.loadInstitutionsForDistrict(districtName)
-
     if (window.innerWidth <= 768) {
       document.getElementById("filtersSection").classList.add("hidden");
     }
@@ -893,7 +770,7 @@ class LipetskMap {
           description: "Детский сад общеразвивающего вида с приоритетным осуществлением деятельности по познавательно-речевому развитию детей",
           type: "preschool",
           district_id: "Липецкий район",
-          range: { min: 3, max: 6 }, // Универсальный диапазон для дошкольного
+          range: { min: 3, max: 6 },
           conditions: ["hearing_impairment"],
           aoop_programs: [
             { name: "АООП для детей с нарушениями слуха", url: "https://example.com/aoop1" },
@@ -913,7 +790,7 @@ class LipetskMap {
           description: "Средняя общеобразовательная школа с углубленным изучением математики и информатики",
           type: "school",
           district_id: "Липецкий район",
-          range: { min: 1, max: 11 }, // Универсальный диапазон для школы
+          range: { min: 1, max: 11 },
           conditions: ["vision_impairment"],
           aoop_programs: [
             { name: "АООП для школьников с нарушениями зрения", url: "https://example.com/aoop3" },
