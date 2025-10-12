@@ -1,0 +1,49 @@
+services:
+  web:
+    build: .
+    container_name: lipetsk_web_apache
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+    networks:
+      - app-network
+
+  db:
+    image: postgres:17-alpine
+    container_name: lipetsk_postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: lipetsk_institutions_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: lipetsk_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.ru
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
