@@ -39,26 +39,13 @@ class LipetskMap {
     const originalOrder = Array.from(groups)
 
     const colors = [
-      "#e57878",
-      "#d88953",
-      "#f7dc71",
-      "#cfe672",
-      "#8ee157",
-      "#81ec81",
-      "#60e094",
-      "#84f2dc",
-      "#7cc6d8",
-      "#66a2fd",
-      "#7171f8",
-      "#b98cfb",
-      "#b956d2",
-      "#ea7cd4",
-      "#f14d8f",
-      "#FF6347",
-      "#D2B48C",
-      "#87CEEB",
-      "#9932CC",
-      "#FF69B4"
+      "#e57878","#d88953","#f7dc71",
+      "#cfe672","#8ee157","#81ec81",
+      "#60e094","#84f2dc","#7cc6d8",
+      "#66a2fd","#7171f8","#b98cfb",
+      "#b956d2","#ea7cd4","#f14d8f",
+      "#FF6347","#D2B48C","#87CEEB",
+      "#9932CC","#FF69B4"
     ]
 
     groups.forEach((group, index) => {
