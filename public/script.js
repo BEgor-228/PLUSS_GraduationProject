@@ -594,23 +594,72 @@ class LipetskMap {
   }
 
   applyFilters() {
-    // Basic filter implementation - can be overridden by admin
     const districtName = document.getElementById("modalTitle").textContent;
-    this.loadInstitutionsForDistrict(districtName);
+    const districtId = this.districtIdMap[districtName];
+    if (!districtId) return;
+
+    const params = new URLSearchParams({ district_id: districtId });
+
+    // Фильтрация по типу учреждения
+    document.querySelectorAll('.filter-group input[type="checkbox"]:checked').forEach((cb) => {
+        if (["preschool", "school", "school_internat", "spo", "vo"].includes(cb.value)) {
+            params.append('type[]', cb.value);
+        }
+    });
+
+    // Фильтрация по возрастным группам
+    const ageCheckboxes = document.querySelectorAll('.filter-group input[value^="3-"], .filter-group input[value^="5-"], .filter-group input[value^="7+"]');
+    ageCheckboxes.forEach((cb) => {
+        if (cb.checked) {
+            params.append('age[]', cb.value);
+        }
+    });
+
+    // Фильтрация по особым условиям
+    const conditionCheckboxes = document.querySelectorAll('.filter-group input[value="hearing_impairment"], .filter-group input[value="vision_impairment"], .filter-group input[value="musculoskeletal_impairment"], .filter-group input[value="speech_impairment"], .filter-group input[value="mental_retardation"], .filter-group input[value="autism"], .filter-group input[value="multiple_disorders"]');
+    conditionCheckboxes.forEach((cb) => {
+        if (cb.checked) {
+            params.append('condition[]', cb.value);
+        }
+    });
+
+    // Фильтрация по АООП
+    if (document.querySelector('.filter-group input[value="aoop"]:checked')) {
+        params.append('aoop', '1');
+    }
+
+    // Загрузка отфильтрованных данных
+    this.loadFilteredInstitutions(params);
+  }
+
+  async loadFilteredInstitutions(params) {
+      try {
+          const response = await fetch(`/api/get_institutions.php?${params}`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          if (data.error) throw new Error(data.error);
+          this.displayInstitutions(data.institutions);
+          if (window.innerWidth <= 768) {
+              document.getElementById("filtersSection").classList.add("hidden");
+          }
+      } catch (error) {
+          console.error('Error applying filters:', error);
+          // Для обычных пользователей не показываем alert, просто логируем ошибку
+      }
   }
 
   resetFilters() {
-    document
-      .querySelectorAll('.filter-group input[type="checkbox"]')
-      .forEach((cb) => {
+    document.querySelectorAll('.filter-group input[type="checkbox"]').forEach((cb) => {
         cb.checked = false;
-      });
+    });
+    
     const districtName = document.getElementById("modalTitle").textContent;
     this.loadInstitutionsForDistrict(districtName);
+    
     if (window.innerWidth <= 768) {
-      document.getElementById("filtersSection").classList.add("hidden");
+        document.getElementById("filtersSection").classList.add("hidden");
     }
-  }
+}
 }
 
 let lipetskMap;
