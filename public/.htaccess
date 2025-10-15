@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Перенаправляем /admin (и подпути) на index.html
+RewriteRule ^admin(/.*)?$ /index.html [L]
+
+# Опционально: для всех других путей (если нужно SPA-подобное поведение)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^.*$ /index.html [L]
