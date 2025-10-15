@@ -135,6 +135,29 @@ CREATE INDEX idx_aoop_institution ON aoop_programs(institution_id);
 
 COMMENT ON TABLE aoop_programs IS 'АООП программы учреждений';
 
+-- Таблица администраторов
+CREATE TABLE IF NOT EXISTS administrators (
+    id SERIAL PRIMARY KEY,
+    login VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(150) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица журнала действий
+CREATE TABLE IF NOT EXISTS action_log (
+    id SERIAL PRIMARY KEY,
+    administrator_id INTEGER NOT NULL REFERENCES administrators(id),
+    action VARCHAR(20) NOT NULL, -- CREATE, UPDATE, DELETE
+    entity VARCHAR(50) NOT NULL, -- Таблица
+    record_id INTEGER,
+    old_data JSONB,
+    new_data JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- ============================================================
 -- ТРИГГЕРЫ для автоматического обновления updated_at
