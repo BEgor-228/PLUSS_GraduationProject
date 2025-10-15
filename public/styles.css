@@ -1342,6 +1342,10 @@ body.accessibility-white-on-black.large-cursor {
     padding: 10px;
   }
 
+  .header h1 {
+    font-size: calc(1.2rem * var(--accessibility-font-scale)) !important;
+  }
+
   .modal-body {
     padding: 0;
   }
