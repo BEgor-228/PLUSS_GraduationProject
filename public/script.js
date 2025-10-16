@@ -759,9 +759,11 @@ class LipetskMap {
 
   updateTooltipPosition(e) {
     const tooltip = document.getElementById("tooltip");
-    tooltip.style.left = e.pageX - 65 + "px";
-    tooltip.style.top = e.pageY - 165 + "px";
-  }
+    if (!tooltip) return;
+    
+    tooltip.style.left = (e.pageX + 20) + "px";
+    tooltip.style.top = (e.pageY - 50) + "px";
+}
 
   clearInstitutionForm() {
     document.getElementById("institutionForm").reset();

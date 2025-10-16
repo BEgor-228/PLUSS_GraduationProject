@@ -233,7 +233,7 @@ g[id="region_eletskiy"] polygon.region {
 }
 
 .tooltip {
-  position: absolute;
+  position: fixed;
   background: rgba(0, 0, 0, 0.8);
   color: white;
   padding: 8px 12px;
