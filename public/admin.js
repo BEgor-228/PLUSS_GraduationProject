@@ -378,6 +378,16 @@ class AdminManager {
         alert('Ошибка применения фильтров: ' + error.message);
       }
     }
+
+    displayInstitutions(institutions) {
+      // Вызываем родительский метод
+      this.map.displayInstitutions(institutions);
+      
+      // Дополнительная логика для админа
+      if (this.map.isAdmin) {
+          this.map.bindAdminActions();
+      }
+  }
   
     resetFilters() {
       document.querySelectorAll('.filter-group input[type="checkbox"]').forEach((cb) => {
