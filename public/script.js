@@ -9,7 +9,7 @@ class LipetskMap {
     this.districtColors = {};
     this.aoopCounter = 0;
     this.isAdmin = false;
-
+    this.animationPlayed = false;
     // Пагинация
     this.currentPage = 1;
     this.itemsPerPage = 10;
@@ -17,13 +17,60 @@ class LipetskMap {
     this.allInstitutions = [];
     this.displayedInstitutions = [];
 
+    this.loaderTimeout = null;
+    this.pageLoaderTimeout = null;
+
     this.init();
   }
 
   async init() {
-    await this.loadMap();
-    this.bindEvents();
-    await this.loadDistricts();
+    // Показываем загрузчик страницы
+    this.showPageLoader();
+    
+    try {
+        await this.loadMap();
+        this.bindEvents();
+        await this.loadDistricts();
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    } finally {
+        // Скрываем загрузчик страницы
+        this.hidePageLoader();
+    }
+}
+
+    // Методы для загрузчика страницы
+    showPageLoader() {
+      const pageLoader = document.getElementById("pageLoader");
+      if (pageLoader) {
+          pageLoader.style.display = 'flex';
+      }
+  }
+
+  hidePageLoader() {
+      const pageLoader = document.getElementById("pageLoader");
+      if (pageLoader) {
+          // Плавное исчезновение
+          pageLoader.style.opacity = '0';
+          setTimeout(() => {
+              pageLoader.style.display = 'none';
+          }, 300);
+      }
+  }
+
+  // Методы для загрузчика модального окна
+  showModalLoader() {
+      const modalLoader = document.getElementById("modalLoader");
+      if (modalLoader) {
+          modalLoader.classList.remove("hidden");
+      }
+  }
+
+  hideModalLoader() {
+      const modalLoader = document.getElementById("modalLoader");
+      if (modalLoader) {
+          modalLoader.classList.add("hidden");
+      }
   }
 
   async loadDistricts() {
@@ -48,18 +95,18 @@ class LipetskMap {
 
   async loadMap() {
     try {
-      const response = await fetch("map.svg");
-      const svgText = await response.text();
-      const mapWrapper = document.getElementById("mapWrapper");
-      mapWrapper.innerHTML = svgText;
-      this.setupMapInteractivity();
+        const response = await fetch("map.svg");
+        const svgText = await response.text();
+        const mapWrapper = document.getElementById("mapWrapper");
+        mapWrapper.innerHTML = svgText;
+        this.setupMapInteractivity();
     } catch (error) {
-      console.error("Error loading map:", error);
-      document.getElementById("mapWrapper").innerHTML =
-        '<p class="text-center text-muted">Ошибка загрузки карты</p>';
+        console.error("Error loading map:", error);
+        document.getElementById("mapWrapper").innerHTML = '<p class="text-center text-muted">Ошибка загрузки карты</p>';
     }
-  }
+}
 
+  // В методе setupMapInteractivity() замените код:
   setupMapInteractivity() {
     const svg = document.querySelector("#mapWrapper svg");
     if (!svg) return;
@@ -83,6 +130,7 @@ class LipetskMap {
       const color = colors[index % colors.length];
       this.districtColors[regionName] = color;
       const polygons = group.querySelectorAll("polygon, path, circle, rect");
+
       polygons.forEach((polygon) => {
         if (!polygon.id) {
           polygon.id = `${regionId}-shape-${index}`;
@@ -91,15 +139,25 @@ class LipetskMap {
         polygon.style.fill = color;
         polygon.setAttribute("tabindex", "0");
         polygon.setAttribute("role", "button");
+
+        // Добавляем начальные стили для анимации
+        if (!this.animationPlayed) {
+          polygon.style.transform = "scale(0)";
+          polygon.style.opacity = "0";
+          polygon.style.transition = "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease-out";
+        }
+
         this.districts[polygon.id] = {
           name: regionName,
           element: polygon,
           group: group,
         };
+
         polygon.addEventListener("click", (e) => {
           e.stopPropagation();
           this.handleDistrictClick(e, regionName);
         });
+
         polygon.addEventListener("mouseenter", (e) => {
           e.stopPropagation();
           if (hideTimeout) clearTimeout(hideTimeout);
@@ -112,6 +170,7 @@ class LipetskMap {
             }
           }
         });
+
         polygon.addEventListener("mouseout", (e) => {
           e.stopPropagation();
           hideTimeout = setTimeout(() => {
@@ -121,10 +180,12 @@ class LipetskMap {
             );
           }, 100);
         });
+
         polygon.addEventListener("mousemove", (e) => {
           e.stopPropagation();
           this.updateTooltipPosition(e);
         });
+
         polygon.addEventListener("keydown", (e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -134,10 +195,62 @@ class LipetskMap {
         });
       });
     });
+
     const eletsGroup = svg.querySelector("#elets");
     if (eletsGroup) {
       svg.appendChild(eletsGroup);
     }
+
+    // Запускаем анимацию после небольшой задержки
+    if (!this.animationPlayed) {
+      setTimeout(() => {
+        this.animateDistrictsAppearance();
+        this.animationPlayed = true;
+      }, 300);
+    }
+  }
+
+  // Добавьте новый метод для анимации:
+  animateDistrictsAppearance() {
+    const svg = document.querySelector("#mapWrapper svg");
+    if (!svg) return;
+
+    const districts = svg.querySelectorAll(".district");
+    const centerX = svg.viewBox.baseVal.width / 2;
+    const centerY = svg.viewBox.baseVal.height / 2;
+
+    districts.forEach((district, index) => {
+      // Получаем центр района для расчета направления анимации
+      const bbox = district.getBBox();
+      const districtCenterX = bbox.x + bbox.width / 2;
+      const districtCenterY = bbox.y + bbox.height / 2;
+
+      // Рассчитываем направление от центра карты к центру района
+      const deltaX = districtCenterX - centerX;
+      const deltaY = districtCenterY - centerY;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      const directionX = deltaX / distance;
+      const directionY = deltaY / distance;
+
+      // Начальное смещение (чем дальше район, тем больше смещение)
+      const startOffset = Math.min(distance * 0.1, 50);
+
+      // Устанавливаем начальную позицию с отдельным transition для анимации появления
+      district.style.transition = 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease-out';
+      district.style.transform = `translate(${directionX * startOffset}px, ${directionY * startOffset}px) scale(0.8)`;
+      district.style.opacity = "0";
+
+      // Запускаем анимацию с задержкой для создания волнового эффекта
+      setTimeout(() => {
+        district.style.transform = "translate(0, 0) scale(1)";
+        district.style.opacity = "1";
+
+        // После завершения анимации появления возвращаем стандартные transition для hover
+        setTimeout(() => {
+          district.style.transition = 'transform 0.3s ease-out, filter 0.3s ease-out, stroke-width 0.3s ease-out';
+        }, 800);
+      }, 100 + index * 40);
+    });
   }
 
   populateLegend() {
@@ -191,82 +304,90 @@ class LipetskMap {
     if (!districtId) return;
 
     try {
-      const params = new URLSearchParams({ district_id: districtId });
-      const response = await fetch(`/api/get_institutions.php?${params}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-
-      console.log("Loaded institutions from API:", data.institutions.length);
-      this.displayInstitutions(data.institutions);
+        // Показываем загрузчик модального окна с задержкой
+        this.loaderTimeout = setTimeout(() => {
+            this.showModalLoader();
+        }, 200);
+        
+        const params = new URLSearchParams({ district_id: districtId });
+        const response = await fetch(`/api/get_institutions.php?${params}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+        
+        this.displayInstitutions(data.institutions);
+        
     } catch (error) {
-      console.error("Error loading institutions:", error);
-      document.getElementById("institutionsList").innerHTML =
-        "<p>Ошибка загрузки учреждений</p>";
+        console.error('Error loading institutions:', error);
+        document.getElementById("institutionsList").innerHTML = '<p>Ошибка загрузки учреждений</p>';
+    } finally {
+        if (this.loaderTimeout) {
+            clearTimeout(this.loaderTimeout);
+        }
+        this.hideModalLoader();
     }
-  }
+}
 
   displayInstitutions(institutions) {
     this.allInstitutions = institutions;
     this.totalPages = Math.ceil(institutions.length / this.itemsPerPage);
     this.currentPage = 1;
 
-    document.getElementById(
-      "institutionCount"
-    ).textContent = `(${institutions.length})`;
+    const debugInfo = document.getElementById("debugInfo");
+    const institutionCount = document.getElementById("institutionCount");
+
+    if (institutionCount) {
+      institutionCount.textContent = `(${institutions.length})`;
+    }
 
     if (institutions.length === 0) {
-      document.getElementById("institutionsList").innerHTML =
-        '<p class="text-muted">Учреждения не найдены</p>';
-      document.getElementById("pagination").classList.add("hidden");
+      document.getElementById("institutionsList").innerHTML = '<p class="text-muted">Учреждения не найдены</p>';
+
+      // Скрываем пагинацию и debugInfo
+      const paginationTop = document.getElementById("paginationTop");
+      const paginationBottom = document.getElementById("paginationBottom");
+      if (paginationTop) paginationTop.classList.add("hidden");
+      if (paginationBottom) paginationBottom.classList.add("hidden");
+      if (debugInfo) debugInfo.style.display = 'none';
       return;
     }
 
+    // Показываем debugInfo когда есть учреждения
+    if (debugInfo) {
+      debugInfo.style.display = 'block';
+    }
+
     this.showCurrentPage();
-    this.updatePagination(); // Сначала показываем учреждения, потом обновляем пагинацию
+    this.updatePagination();
   }
 
   showCurrentPage() {
-    console.log(
-      "Showing page:",
-      this.currentPage,
-      "Total institutions:",
-      this.allInstitutions.length
-    );
+    console.log('Showing page:', this.currentPage, 'Total institutions:', this.allInstitutions.length);
 
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
-    this.displayedInstitutions = this.allInstitutions.slice(
-      startIndex,
-      endIndex
-    );
+    this.displayedInstitutions = this.allInstitutions.slice(startIndex, endIndex);
 
-    console.log(
-      "Displaying institutions:",
-      this.displayedInstitutions.length,
-      "from",
-      startIndex,
-      "to",
-      endIndex
-    );
+    console.log('Displaying institutions:', this.displayedInstitutions.length, 'from', startIndex, 'to', endIndex);
 
     const list = document.getElementById("institutionsList");
+    const debugInfo = document.getElementById("debugInfo");
+
     if (this.displayedInstitutions.length === 0) {
       list.innerHTML = '<p class="text-muted">Учреждения не найдены</p>';
+      if (debugInfo) debugInfo.style.display = 'none';
     } else {
-      list.innerHTML = this.displayedInstitutions
-        .map((inst) => this.createInstitutionCard(inst))
-        .join("");
+      list.innerHTML = this.displayedInstitutions.map((inst) => this.createInstitutionCard(inst)).join('');
+      if (debugInfo) debugInfo.style.display = 'block';
+
+      // Обновляем информацию о пагинации
+      if (debugInfo) {
+        const start = (this.currentPage - 1) * this.itemsPerPage + 1;
+        const end = Math.min(this.currentPage * this.itemsPerPage, this.allInstitutions.length);
+        debugInfo.textContent = `Показано ${start}-${end} из ${this.allInstitutions.length} учреждений (Страница ${this.currentPage} из ${this.totalPages})`;
+      }
     }
-    const debugInfo = document.getElementById("debugInfo");
-    if (debugInfo) {
-      const start = (this.currentPage - 1) * this.itemsPerPage + 1;
-      const end = Math.min(
-        this.currentPage * this.itemsPerPage,
-        this.allInstitutions.length
-      );
-      debugInfo.innerHTML = `Показано ${start}-${end} из ${this.allInstitutions.length} учреждений (Страница ${this.currentPage} из ${this.totalPages})`;
-    }
+
     // Обновляем кнопки действий для админа
     if (this.isAdmin) {
       this.bindAdminActions();
@@ -274,40 +395,43 @@ class LipetskMap {
   }
 
   updatePagination() {
-    const pagination = document.getElementById("pagination");
-    const numbersContainer = document.getElementById("paginationNumbers");
+    const paginationTop = document.getElementById("paginationTop");
+    const paginationBottom = document.getElementById("paginationBottom");
+    const numbersTop = document.getElementById("paginationNumbersTop");
+    const numbersBottom = document.getElementById("paginationNumbersBottom");
 
-    console.log(
-      "Updating pagination. Total pages:",
-      this.totalPages,
-      "Current page:",
-      this.currentPage
-    );
-
-    if (!pagination || !numbersContainer) {
-      console.error("Pagination elements not found!");
+    // Проверяем существование элементов перед работой с ними
+    if (!paginationTop || !paginationBottom || !numbersTop || !numbersBottom) {
+      console.error('Pagination elements not found');
       return;
     }
 
     if (this.totalPages <= 1) {
-      pagination.classList.add("hidden");
-      console.log("Hiding pagination - only 1 page");
+      paginationTop.classList.add("hidden");
+      paginationBottom.classList.add("hidden");
       return;
     }
 
-    pagination.classList.remove("hidden");
-    console.log("Showing pagination with", this.totalPages, "pages");
+    paginationTop.classList.remove("hidden");
+    paginationBottom.classList.remove("hidden");
 
-    // Обновляем состояние кнопок вперед/назад
-    const prevBtn = document.getElementById("prevPage");
-    const nextBtn = document.getElementById("nextPage");
+    numbersTop.innerHTML = this.generatePaginationNumbers();
+    numbersBottom.innerHTML = this.generatePaginationNumbers();
 
-    if (prevBtn) prevBtn.disabled = this.currentPage === 1;
-    if (nextBtn) nextBtn.disabled = this.currentPage === this.totalPages;
+    this.updatePaginationButtons();
+  }
 
-    // Генерируем номера страниц
-    numbersContainer.innerHTML = this.generatePaginationNumbers();
-    console.log("Generated pagination numbers");
+  updatePaginationButtons() {
+    const prevButtons = document.querySelectorAll('.pagination-prev');
+    const nextButtons = document.querySelectorAll('.pagination-next');
+
+    prevButtons.forEach(btn => {
+      if (btn) btn.disabled = this.currentPage === 1;
+    });
+
+    nextButtons.forEach(btn => {
+      if (btn) btn.disabled = this.currentPage === this.totalPages;
+    });
   }
 
   generatePaginationNumbers() {
@@ -585,21 +709,29 @@ class LipetskMap {
       this.resetFilters();
     });
 
-    // Обработчики для кнопок "вперед/назад" - привязываем один раз при инициализации
-    document.getElementById("prevPage")?.addEventListener("click", () => {
+    // Обработчики для верхней пагинации
+    document.getElementById("prevPageTop")?.addEventListener("click", () => {
       this.handlePrevPage();
     });
-
-    document.getElementById("nextPage")?.addEventListener("click", () => {
+    document.getElementById("nextPageTop")?.addEventListener("click", () => {
       this.handleNextPage();
     });
 
-    // Обработчик для клика по номерам страниц (делегирование событий)
-    document.getElementById("pagination")?.addEventListener("click", (e) => {
-      if (e.target.classList.contains("pagination-number")) {
-        const page = parseInt(e.target.dataset.page);
-        this.handlePageClick(page);
-      }
+    // Обработчики для нижней пагинации
+    document.getElementById("prevPageBottom")?.addEventListener("click", () => {
+      this.handlePrevPage();
+    });
+    document.getElementById("nextPageBottom")?.addEventListener("click", () => {
+      this.handleNextPage();
+    });
+
+    document.querySelectorAll('.pagination').forEach(pagination => {
+      pagination.addEventListener("click", (e) => {
+        if (e.target.classList.contains('pagination-number')) {
+          const page = parseInt(e.target.dataset.page);
+          this.handlePageClick(page);
+        }
+      });
     });
   }
 
@@ -762,7 +894,7 @@ class LipetskMap {
     if (!tooltip) return;
     
     tooltip.style.left = (e.pageX + 20) + "px";
-    tooltip.style.top = (e.pageY - 50) + "px";
+    tooltip.style.top = (e.pageY - 20) + "px";
 }
 
   clearInstitutionForm() {
@@ -794,49 +926,53 @@ class LipetskMap {
     const districtName = document.getElementById("modalTitle").textContent;
     const districtId = this.districtIdMap[districtName];
     if (!districtId) return;
+    try {
+      this.showModalLoader();
+      const params = new URLSearchParams({ district_id: districtId });
 
-    const params = new URLSearchParams({ district_id: districtId });
+      // Фильтрация по типу учреждения
+      document
+        .querySelectorAll('.filter-group input[type="checkbox"]:checked')
+        .forEach((cb) => {
+          if (
+            ["preschool", "school", "school_internat", "spo", "vo"].includes(
+              cb.value
+            )
+          ) {
+            params.append("type[]", cb.value);
+          }
+        });
 
-    // Фильтрация по типу учреждения
-    document
-      .querySelectorAll('.filter-group input[type="checkbox"]:checked')
-      .forEach((cb) => {
-        if (
-          ["preschool", "school", "school_internat", "spo", "vo"].includes(
-            cb.value
-          )
-        ) {
-          params.append("type[]", cb.value);
+      // Фильтрация по возрастным группам
+      const ageCheckboxes = document.querySelectorAll(
+        '.filter-group input[value^="3-"], .filter-group input[value^="5-"], .filter-group input[value^="7+"]'
+      );
+      ageCheckboxes.forEach((cb) => {
+        if (cb.checked) {
+          params.append("age[]", cb.value);
         }
       });
 
-    // Фильтрация по возрастным группам
-    const ageCheckboxes = document.querySelectorAll(
-      '.filter-group input[value^="3-"], .filter-group input[value^="5-"], .filter-group input[value^="7+"]'
-    );
-    ageCheckboxes.forEach((cb) => {
-      if (cb.checked) {
-        params.append("age[]", cb.value);
-      }
-    });
+      // Фильтрация по особым условиям
+      const conditionCheckboxes = document.querySelectorAll(
+        '.filter-group input[value="hearing_impairment"], .filter-group input[value="vision_impairment"], .filter-group input[value="musculoskeletal_impairment"], .filter-group input[value="speech_impairment"], .filter-group input[value="mental_retardation"], .filter-group input[value="autism"], .filter-group input[value="multiple_disorders"]'
+      );
+      conditionCheckboxes.forEach((cb) => {
+        if (cb.checked) {
+          params.append("condition[]", cb.value);
+        }
+      });
 
-    // Фильтрация по особым условиям
-    const conditionCheckboxes = document.querySelectorAll(
-      '.filter-group input[value="hearing_impairment"], .filter-group input[value="vision_impairment"], .filter-group input[value="musculoskeletal_impairment"], .filter-group input[value="speech_impairment"], .filter-group input[value="mental_retardation"], .filter-group input[value="autism"], .filter-group input[value="multiple_disorders"]'
-    );
-    conditionCheckboxes.forEach((cb) => {
-      if (cb.checked) {
-        params.append("condition[]", cb.value);
+      // Фильтрация по АООП
+      if (document.querySelector('.filter-group input[value="aoop"]:checked')) {
+        params.append("aoop", "1");
       }
-    });
-
-    // Фильтрация по АООП
-    if (document.querySelector('.filter-group input[value="aoop"]:checked')) {
-      params.append("aoop", "1");
+      this.currentPage = 1;
+      // Загрузка отфильтрованных данных
+      this.loadFilteredInstitutions(params);
+    } finally {
+      this.hideModalLoader();
     }
-    this.currentPage = 1;
-    // Загрузка отфильтрованных данных
-    this.loadFilteredInstitutions(params);
   }
 
   async loadFilteredInstitutions(params) {
@@ -869,9 +1005,67 @@ class LipetskMap {
       document.getElementById("filtersSection").classList.add("hidden");
     }
   }
+
+  showLoader() {
+    const loader = document.getElementById("modalLoader");
+    const institutionsSection = document.querySelector('.institutions-section');
+    if (loader) {
+        loader.classList.remove("hidden");
+    }
+    if (institutionsSection) {
+        institutionsSection.style.opacity = "0.5";
+    }
+  }
+
+  hideLoader() {
+      const loader = document.getElementById("modalLoader");
+      const institutionsSection = document.querySelector('.institutions-section');
+      if (loader) {
+          loader.classList.add("hidden");
+      }
+      if (institutionsSection) {
+          institutionsSection.style.opacity = "1";
+      }
+  }
+
+  
 }
 
 let lipetskMap;
 document.addEventListener("DOMContentLoaded", () => {
   lipetskMap = new LipetskMap();
+});
+
+// В конец script.js
+document.addEventListener('DOMContentLoaded', () => {
+  // Обработчик ошибок загрузки страницы
+  window.addEventListener('error', () => {
+      const pageLoader = document.getElementById("pageLoader");
+      if (pageLoader) {
+          pageLoader.innerHTML = `
+              <div style="text-align: center; color: #e74c3c;">
+                  <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
+                  <p>Ошибка загрузки страницы</p>
+                  <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 10px;">
+                      Обновить страницу
+                  </button>
+              </div>
+          `;
+      }
+  });
+
+  // Скрываем загрузчик страницы если что-то пошло не так
+  setTimeout(() => {
+      const pageLoader = document.getElementById("pageLoader");
+      if (pageLoader && pageLoader.style.display !== 'none') {
+          pageLoader.innerHTML = `
+              <div style="text-align: center; color: #e74c3c;">
+                  <p>Загрузка занимает больше времени чем ожидалось</p>
+                  <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 10px;">
+                      Обновить страницу
+                  </button>
+              </div>
+          `;
+      }
+  }, 10000); // 10 секунд
 });
