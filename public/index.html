@@ -1,269 +1,315 @@
 <!DOCTYPE html>
 <html lang="ru">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Интерактивная карта образовательных учреждений Липецкой области</title>
-        <link rel="stylesheet" href="styles.css">
-    </head>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивная карта образовательных учреждений Липецкой области</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
 <body>
-<div class="container">
-    <header class="header">
-        <h1>Образовательные учреждения Липецкой области</h1>
-        <div class="header-controls">
-            <button id="adminLogin" class="btn btn-secondary hidden">Вход администратора</button>
-            <div id="adminPanel" class="admin-panel hidden">
-                <button id="addInstitution" class="btn btn-primary">Добавить учреждение</button>
-                <button id="logout" class="btn btn-secondary">Выход</button>
-            </div>
-        </div>
-    </header>
-
-    <main class="main">
-        <div class="map-legend-wrapper">
-            <div class="map-container">
-                <div id="mapWrapper" class="map-wrapper">
-                    <!-- SVG map will be loaded here -->
+    <div class="container">
+        <header class="header">
+            <h1>Образовательные учреждения Липецкой области</h1>
+            <div class="header-controls">
+                <button id="adminLogin" class="btn btn-secondary hidden">Вход администратора</button>
+                <div id="adminPanel" class="admin-panel hidden">
+                    <button id="addInstitution" class="btn btn-primary">Добавить учреждение</button>
+                    <button id="logout" class="btn btn-secondary">Выход</button>
                 </div>
-                <div id="tooltip" class="tooltip hidden"></div>
             </div>
-            <div class="legend-container">
-                <h3>Легенда</h3>
-                <ul id="legendList" class="legend-list"></ul>
+        </header>
+
+        <main class="main">
+            <div class="map-legend-wrapper">
+                <div class="map-container">
+                    <div id="mapWrapper" class="map-wrapper">
+                        <!-- SVG map will be loaded here -->
+                    </div>
+                    <div id="tooltip" class="tooltip hidden"></div>
+                </div>
+                <div class="legend-container">
+                    <h3>Легенда</h3>
+                    <ul id="legendList" class="legend-list"></ul>
+                </div>
+            </div>
+        </main>
+        <div id="pageLoader" class="page-loader">
+            <div class="loader"></div>
+            <p>Загрузка карты...</p>
+        </div>
+        <!-- District Modal -->
+        <div id="districtModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">Район</h2>
+                    <button id="closeModal" class="close-btn">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <div id="modalLoader" class="modal-loader hidden">
+                        <div class="loader"></div>
+                        <p>Загрузка данных...</p>
+                    </div>
+
+                    <div class="region-info-section">
+                        <svg class="region-image" xmlns="http://www.w3.org/2000/svg"></svg>
+                        <div class="region-details">
+                            <h3 id="regionName">Название региона</h3>
+                        </div>
+
+                    </div>
+
+                    <div class="institutions-section">
+                        <button id="toggleFilters" class="btn btn-secondary mobile-only">Фильтры</button>
+                        <div class="institutions-header">
+                            <h3>Учреждения <span id="institutionCount">(0)</span></h3>
+                            <div id="paginationTop" class="pagination hidden">
+                                <button id="prevPageTop" class="pagination-btn pagination-prev"
+                                    type="button">&lt;</button>
+                                <div id="paginationNumbersTop" class="pagination-numbers"></div>
+                                <button id="nextPageTop" class="pagination-btn pagination-next"
+                                    type="button">&gt;</button>
+                            </div>
+                        </div>
+                        <div id="institutionsList" class="institutions-list">
+                            <!-- Institutions will be loaded here -->
+                        </div>
+                        <div id="paginationBottom" class="pagination hidden">
+                            <button id="prevPageBottom" class="pagination-btn pagination-prev"
+                                type="button">&lt;</button>
+                            <div id="paginationNumbersBottom" class="pagination-numbers"></div>
+                            <button id="nextPageBottom" class="pagination-btn pagination-next"
+                                type="button">&gt;</button>
+                        </div>
+                        <div id="debugInfo" style="text-align: center; color: #666; font-size: 12px; margin-top: 10px;">
+                        </div>
+                    </div>
+
+                    <div class="filters-section" id="filtersSection">
+                        <h3>Фильтры</h3>
+                        <div class="filter-group">
+                            <label>Тип учреждения:</label>
+                            <div class="checkbox-group">
+                                <label class="lab-check"><input type="checkbox" value="preschool"> Дошкольные</label>
+                                <label class="lab-check"><input type="checkbox" value="school"> Школы</label>
+                                <label class="lab-check"><input type="checkbox" value="school_internat">
+                                    Школы-интернаты</label>
+                                <label class="lab-check"><input type="checkbox" value="spo"> СПО</label>
+                                <label class="lab-check"><input type="checkbox" value="vo"> ВО</label>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <label>Возрастные группы:</label>
+                            <div class="checkbox-group">
+                                <label class="lab-check"><input type="checkbox" value="3-4"> 3-4 года</label>
+                                <label class="lab-check"><input type="checkbox" value="5-6"> 5-6 лет</label>
+                                <label class="lab-check"><input type="checkbox" value="7+"> 7+ лет</label>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <label>Особые условия:</label>
+                            <div class="checkbox-group">
+                                <label class="lab-check"><input type="checkbox" value="hearing_impairment"> Нарушения
+                                    слуха</label>
+                                <label class="lab-check"><input type="checkbox" value="vision_impairment"> Нарушения
+                                    зрения</label>
+                                <label class="lab-check"><input type="checkbox" value="musculoskeletal_impairment">
+                                    Нарушения опорно-двигательного аппарата</label>
+                                <label class="lab-check"><input type="checkbox" value="speech_impairment"> Нарушения
+                                    речи</label>
+                                <label class="lab-check"><input type="checkbox" value="mental_retardation"> Задержка
+                                    психического развития</label>
+                                <label class="lab-check"><input type="checkbox" value="autism"> Расстройство
+                                    аутистического спектра</label>
+                                <label class="lab-check"><input type="checkbox" value="multiple_disorders">
+                                    Множественные нарушения развития</label>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <label>АООП:</label>
+                            <div class="checkbox-group">
+                                <label class="lab-check"><input type="checkbox" value="aoop"> Реализует АООП</label>
+                            </div>
+                        </div>
+
+                        <div class="filter-actions">
+                            <button id="applyFilters" class="btn btn-primary">Применить</button>
+                            <button id="resetFilters" class="btn btn-secondary">Сбросить</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </main>
-    <div id="pageLoader" class="page-loader">
-        <div class="loader"></div>
-        <p>Загрузка карты...</p>
+
+        <!-- Login Modal -->
+        <div id="loginModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Вход администратора</h2>
+                    <button id="closeLoginModal" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="adminLoginInput">Логин</label>
+                            <input type="text" id="adminLoginInput" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminPassword">Пароль</label>
+                            <input type="password" id="adminPassword" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Войти</button>
+                            <button type="button" id="cancelLogin" class="btn btn-secondary">Отмена</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Institution Form Modal -->
+        <div id="institutionModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="institutionModalTitle">Добавить учреждение</h2>
+                    <button id="closeInstitutionModal" class="close-btn">&times;</button>
+                </div>
+
+                <div class="modal-body2">
+                    <form id="institutionForm" class="institution-form">
+                        <div class="form-group">
+                            <label for="institutionName">Название учреждения *</label>
+                            <input type="text" id="institutionName" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="districtId">Район *</label>
+                            <select id="districtId" required>
+                                <option value="">Выберите район</option>
+                                <!-- District options will be populated dynamically -->
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="institutionDescription">Описание</label>
+                            <textarea id="institutionDescription" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="institutionType">Тип учреждения *</label>
+                            <select id="institutionType" required>
+                                <option value="">Выберите тип</option>
+                                <option value="preschool">Дошкольное</option>
+                                <option value="school">Школа</option>
+                                <option value="school_internat">Школа-интернат</option>
+                                <option value="spo">СПО</option>
+                                <option value="vo">ВО</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Условия приема:</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" value="certificate" name="admission">
+                                    Свидетельство</label>
+                                <label><input type="checkbox" value="attestat" name="admission"> Аттестат</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="rangeGroup">
+                            <label>Возрастной диапазон</label>
+                            <div class="range-inputs">
+                                <input type="number" id="rangeMin" placeholder="От" min="1" max="18">
+                                <input type="number" id="rangeMax" placeholder="До" min="1" max="18">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Особые условия</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" value="hearing_impairment"> Нарушения слуха</label>
+                                <label><input type="checkbox" value="vision_impairment"> Нарушения зрения</label>
+                                <label><input type="checkbox" value="musculoskeletal_impairment"> Нарушения
+                                    опорно-двигательного аппарата</label>
+                                <label><input type="checkbox" value="speech_impairment"> Нарушения речи</label>
+                                <label><input type="checkbox" value="mental_retardation"> Задержка психического
+                                    развития</label>
+                                <label><input type="checkbox" value="autism"> Расстройство аутистического
+                                    спектра</label>
+                                <label><input type="checkbox" value="multiple_disorders"> Множественные нарушения
+                                    развития</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="aoopGroup">
+                            <label>Реализуемые АООП</label>
+                            <div id="aoopList" class="aoop-list"></div>
+                            <button type="button" id="addAoOp" class="btn btn-secondary">Добавить программу</button>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="directorName">ФИО руководителя</label>
+                            <div id="directorFields">
+                                <input type="text" id="directorName">
+                            </div>
+                            <button type="button" id="selectExistingDirector" class="btn btn-secondary"
+                                style="margin-top: 8px;">
+                                Выбрать существующего директора
+                            </button>
+
+                            <!-- Панель выбора директора -->
+                            <div id="directorSelection" class="hidden">
+                                <div class="form-group">
+                                    <label for="directorSearch">Поиск директора</label>
+                                    <input type="text" id="directorSearch" placeholder="Введите ФИО для поиска">
+                                </div>
+
+                                <div id="directorsList" class="directors-list">
+                                    <!-- Список директоров будет здесь -->
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" id="saveDirectorSelection" class="btn btn-primary">Сохранить
+                                        выбор</button>
+                                    <button type="button" id="cancelDirectorSelection"
+                                        class="btn btn-secondary">Отмена</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="directorPhone">Телефон руководителя</label>
+                            <input type="tel" id="directorPhone">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="directorEmail">Email руководителя</label>
+                            <input type="email" id="directorEmail">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="institutionWebsite">Сайт учреждения</label>
+                            <input type="url" id="institutionWebsite">
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                            <button type="button" id="cancelInstitution" class="btn btn-secondary">Отмена</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-    <!-- District Modal -->
-    <div id="districtModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Район</h2>
-                <button id="closeModal" class="close-btn">&times;</button>
-            </div>
-            
-            <div class="modal-body">
-                <div id="modalLoader" class="modal-loader hidden">
-                    <div class="loader"></div>
-                    <p>Загрузка данных...</p>
-                </div>
 
-                <div class="region-info-section">
-                    <svg class="region-image" xmlns="http://www.w3.org/2000/svg"></svg>
-                    <div class="region-details">
-                        <h3 id="regionName">Название региона</h3>
-                    </div>
-                    
-                </div>
-
-                <div class="institutions-section">
-                    <button id="toggleFilters" class="btn btn-secondary mobile-only">Фильтры</button>
-                    <div class="institutions-header">
-                        <h3>Учреждения <span id="institutionCount">(0)</span></h3>
-                        <div id="paginationTop" class="pagination hidden">
-                            <button id="prevPageTop" class="pagination-btn pagination-prev" type="button">&lt;</button>
-                            <div id="paginationNumbersTop" class="pagination-numbers"></div>
-                            <button id="nextPageTop" class="pagination-btn pagination-next" type="button">&gt;</button>
-                        </div>
-                    </div>
-                    <div id="institutionsList" class="institutions-list">
-                        <!-- Institutions will be loaded here -->
-                    </div>
-                    <div id="paginationBottom" class="pagination hidden">
-                        <button id="prevPageBottom" class="pagination-btn pagination-prev" type="button">&lt;</button>
-                        <div id="paginationNumbersBottom" class="pagination-numbers"></div>
-                        <button id="nextPageBottom" class="pagination-btn pagination-next" type="button">&gt;</button>
-                    </div>
-                    <div id="debugInfo" style="text-align: center; color: #666; font-size: 12px; margin-top: 10px;"></div>
-                </div>
-
-                <div class="filters-section" id="filtersSection">
-                    <h3>Фильтры</h3>
-                    <div class="filter-group">
-                        <label>Тип учреждения:</label>
-                        <div class="checkbox-group">
-                            <label class="lab-check"><input type="checkbox" value="preschool"> Дошкольные</label>
-                            <label class="lab-check"><input type="checkbox" value="school"> Школы</label>
-                            <label class="lab-check"><input type="checkbox" value="school_internat"> Школы-интернаты</label>
-                            <label class="lab-check"><input type="checkbox" value="spo"> СПО</label>
-                            <label class="lab-check"><input type="checkbox" value="vo"> ВО</label>
-                        </div>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label>Возрастные группы:</label>
-                        <div class="checkbox-group">
-                            <label class="lab-check"><input type="checkbox" value="3-4"> 3-4 года</label>
-                            <label class="lab-check"><input type="checkbox" value="5-6"> 5-6 лет</label>
-                            <label class="lab-check"><input type="checkbox" value="7+"> 7+ лет</label>
-                        </div>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label>Особые условия:</label>
-                        <div class="checkbox-group">
-                            <label class="lab-check"><input type="checkbox" value="hearing_impairment"> Нарушения слуха</label>
-                            <label class="lab-check"><input type="checkbox" value="vision_impairment"> Нарушения зрения</label>
-                            <label class="lab-check"><input type="checkbox" value="musculoskeletal_impairment"> Нарушения опорно-двигательного аппарата</label>
-                            <label class="lab-check"><input type="checkbox" value="speech_impairment"> Нарушения речи</label>
-                            <label class="lab-check"><input type="checkbox" value="mental_retardation"> Задержка психического развития</label>
-                            <label class="lab-check"><input type="checkbox" value="autism"> Расстройство аутистического спектра</label>
-                            <label class="lab-check"><input type="checkbox" value="multiple_disorders"> Множественные нарушения развития</label>
-                        </div>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label>АООП:</label>
-                        <div class="checkbox-group">
-                            <label class="lab-check"><input type="checkbox" value="aoop"> Реализует АООП</label>
-                        </div>
-                    </div>
-                    
-                    <div class="filter-actions">
-                        <button id="applyFilters" class="btn btn-primary">Применить</button>
-                        <button id="resetFilters" class="btn btn-secondary">Сбросить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Вход администратора</h2>
-                <button id="closeLoginModal" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="adminLoginInput">Логин</label>
-                        <input type="text" id="adminLoginInput" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="adminPassword">Пароль</label>
-                        <input type="password" id="adminPassword" required>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Войти</button>
-                        <button type="button" id="cancelLogin" class="btn btn-secondary">Отмена</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Institution Form Modal -->
-    <div id="institutionModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="institutionModalTitle">Добавить учреждение</h2>
-                <button id="closeInstitutionModal" class="close-btn">&times;</button>
-            </div>
-            
-            <div class="modal-body2">
-                <form id="institutionForm" class="institution-form">
-                    <div class="form-group">
-                        <label for="institutionName">Название учреждения *</label>
-                        <input type="text" id="institutionName" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="districtId">Район *</label>
-                        <select id="districtId" required>
-                            <option value="">Выберите район</option>
-                            <!-- District options will be populated dynamically -->
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="institutionDescription">Описание</label>
-                        <textarea id="institutionDescription" rows="3"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="institutionType">Тип учреждения *</label>
-                        <select id="institutionType" required>
-                            <option value="">Выберите тип</option>
-                            <option value="preschool">Дошкольное</option>
-                            <option value="school">Школа</option>
-                            <option value="school_internat">Школа-интернат</option>
-                            <option value="spo">СПО</option>
-                            <option value="vo">ВО</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Условия приема:</label>
-                        <div class="checkbox-group">
-                            <label><input type="checkbox" value="certificate" name="admission"> Свидетельство</label>
-                            <label><input type="checkbox" value="attestat" name="admission"> Аттестат</label>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group" id="rangeGroup">
-                        <label>Возрастной диапазон</label>
-                        <div class="range-inputs">
-                            <input type="number" id="rangeMin" placeholder="От" min="1" max="18">
-                            <input type="number" id="rangeMax" placeholder="До" min="1" max="18">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Особые условия</label>
-                        <div class="checkbox-group">
-                            <label><input type="checkbox" value="hearing_impairment"> Нарушения слуха</label>
-                            <label><input type="checkbox" value="vision_impairment"> Нарушения зрения</label>
-                            <label><input type="checkbox" value="musculoskeletal_impairment"> Нарушения опорно-двигательного аппарата</label>
-                            <label><input type="checkbox" value="speech_impairment"> Нарушения речи</label>
-                            <label><input type="checkbox" value="mental_retardation"> Задержка психического развития</label>
-                            <label><input type="checkbox" value="autism"> Расстройство аутистического спектра</label>
-                            <label><input type="checkbox" value="multiple_disorders"> Множественные нарушения развития</label>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group" id="aoopGroup">
-                        <label>Реализуемые АООП</label>
-                        <div id="aoopList" class="aoop-list"></div>
-                        <button type="button" id="addAoOp" class="btn btn-secondary">Добавить программу</button>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="directorName">ФИО руководителя</label>
-                        <input type="text" id="directorName">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="directorPhone">Телефон руководителя</label>
-                        <input type="tel" id="directorPhone">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="directorEmail">Email руководителя</label>
-                        <input type="email" id="directorEmail">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="institutionWebsite">Сайт учреждения</label>
-                        <input type="url" id="institutionWebsite">
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Сохранить</button>
-                        <button type="button" id="cancelInstitution" class="btn btn-secondary">Отмена</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="script.js"></script>
-<script src="admin.js"></script>
-<script src="accessibility.js"></script>
+    <script src="script.js"></script>
+    <script src="admin.js"></script>
+    <script src="accessibility.js"></script>
 </body>
+
 </html>

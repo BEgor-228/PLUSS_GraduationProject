@@ -26,12 +26,16 @@ try {
     $pdo = Database::getInstance();
     $directorId = null;
     if (!empty($input['director']['name'])) {
-        $directorSql = "INSERT INTO directors (full_name, phone, email) VALUES (?, ?, ?) RETURNING id";
-        $directorId = Database::fetchOne($directorSql, [
-            $input['director']['name'],
-            $input['director']['phone'] ?? null,
-            $input['director']['email'] ?? null
-        ]);
+        if (isset($input['director']['id'])) {
+            $directorId = $input['director']['id'];
+        }else{
+            $directorSql = "INSERT INTO directors (full_name, phone, email) VALUES (?, ?, ?) RETURNING id";
+            $directorId = Database::fetchOne($directorSql, [
+                $input['director']['name'],
+                $input['director']['phone'] ?? null,
+                $input['director']['email'] ?? null
+            ]);
+        }
     }
     $instSql = "
         INSERT INTO institutions (name, district_id, type_code, director_id, description, range_min, range_max, website)

@@ -895,15 +895,20 @@ class LipetskMap {
     
     tooltip.style.left = (e.pageX + 20) + "px";
     tooltip.style.top = (e.pageY - 20) + "px";
-}
+  }
 
   clearInstitutionForm() {
-    document.getElementById("institutionForm").reset();
-    document.getElementById("aoopList").innerHTML = "";
+    document.getElementById('institutionForm').reset();
+    document.getElementById('aoopList').innerHTML = '';
     this.aoopCounter = 0;
-    document.getElementById("institutionModalTitle").textContent =
-      "Добавить учреждение";
+    
+    // Сбрасываем блокировку полей директора
+    if (window.adminManager) {
+        window.adminManager.lockDirectorFields(false);
+    }
+    
     this.editingInstitution = null;
+    document.getElementById('institutionModalTitle').textContent = 'Добавить учреждение';
   }
 
   addAoOpField() {
