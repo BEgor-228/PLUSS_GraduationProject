@@ -362,7 +362,6 @@ g[id="region_eletskiy"] polygon.region {
   margin-bottom: 15px;
   color: #2c3e50;
   top: 0;
-  background: #f8f9fa;
   padding-bottom: 10px;
 }
 
@@ -398,11 +397,18 @@ g[id="region_eletskiy"] polygon.region {
 }
 
 .filter-actions {
+  align-items: flex-end;
+  background: linear-gradient(to top, rgb(255, 255, 255) 75%, rgba(255, 255, 255, 0) 100%);
+  bottom: 0px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
-  margin-bottom: 30px;
+  height: 150px;
+  -webkit-box-pack: justify;
+  justify-content: space-between;
+  overflow-y: hidden;
+  padding: 16px 32px 32px;
+  position: absolute;
+  right: 0px;
+  width: inherit;
 }
 
 .institution-card {
@@ -1450,9 +1456,222 @@ input[readonly] {
   font-size: 12px;
 }
 
+.filters-header {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--primary-color, #0066cc);
+  margin-bottom: 1rem;
+}
+
+.filter-group-accordion {
+  border-bottom: 1px solid #eee;
+  margin-bottom: 10px;
+}
+
+.accordion-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  font-weight: 500;
+  text-align: left;
+  font-size: 1rem;
+  padding: 20px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #333;
+  transition: color 0.2s;
+}
+
+.accordion-toggle:hover {
+  color: var(--primary-color, #0066cc);
+}
+
+.accordion-toggle::after {
+  content: "⌃";
+  transform: rotate(180deg);
+  transition: transform 0.3s;
+  font-size: 14px;
+}
+
+.accordion-toggle.active::after {
+  transform: rotate(0);
+}
+
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  padding-left: 5px;
+}
+
+.accordion-content.open {
+  max-height: 500px;
+  margin-bottom: 10px;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 12px;
+  font-size: 0.95rem;
+  color: #444;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.filter-option:hover {
+  background: rgba(0, 102, 204, 0.05);
+  border-radius: 4px;
+}
+
+.filter-option input {
+  accent-color: var(--primary-color, #0066cc);
+}
+
+.filter-btn1 {
+  background: var(--primary-color, #0066cc);
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.filter-btn1:hover {
+  background: #0055aa;
+}
+
+.filter-btn1.reset {
+  background: #f3f3f3;
+  color: #333;
+}
+
+.filter-btn1.reset:hover {
+  background: #e0e0e0;
+}
+
+.filters-toggle-btn {
+  display: none;
+  background: var(--primary-color, #0066cc);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background 0.2s;
+}
+
+.filters-toggle-btn:hover {
+  background: #0055aa;
+}
+
+#filtersSection {
+  background: #fff;
+  border-left: 1px solid #e0e0e0;
+  padding: 20px;
+  border-radius: 0 8px 8px 0;
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  width: 320px;
+  padding-bottom: 125px;
+}
+
+.filters-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 99998;
+  transition: opacity 0.3s ease;
+}
+.filters-overlay.active {
+  display: block;
+  opacity: 1;
+}
+.inst-head{
+  display: flex;
+  justify-content: space-between;
+}
+.filters{
+  height: 100%;
+  overflow-y: auto;
+}
+
 @media (max-width: 1024px) {
   .modal-body {
-    grid-template-columns: 250px 1fr 280px;
+    grid-template-columns: 2fr 40rem;
+  }
+  .filters-toggle-btn {
+    display: block;
+    background: var(--primary-color, #0066cc);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.2s;
+  }
+
+  .filters-toggle-btn:hover {
+    background: #0055aa;
+  }
+
+  #filtersSection {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    max-width: 375px;
+    width: 100%;
+    transform: translateX(100%);
+    background: #fff;
+    border-left: none;
+    border-radius: 0;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+    z-index: 99999;
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    padding-top: 50px;
+  }
+
+  #filtersSection.active {
+    transform: translateX(0);
+  }
+
+  .filter-actions {
+    bottom: 0;
+    padding: 20px 20px 40px 20px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .filter-btn1 {
+    flex: 1;
+  }
+
+  #toggleFilters {
+    display: block;
+    margin-bottom: 15px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 920px) {
+  .modal-body {
+    grid-template-columns: 2fr 30rem;
   }
 }
 
@@ -1578,19 +1797,19 @@ input[readonly] {
 
   #toggleFilters {
     display: block;
-    width: 100%;
     margin-bottom: 15px;
     justify-content: center;
   }
 
   #filtersSection {
-    display: none;
+    border-left: none;
+    border-top: 1px solid #eee;
+    border-radius: 0;
+    box-shadow: none;
+    padding-top: 50px;
   }
 
-  #filtersSection:not(.hidden) {
-    display: block;
-    height: 24rem;
-  }
+
 }
 
 @media (max-width: 768px) {
@@ -1617,6 +1836,38 @@ input[readonly] {
   .pagination-btn {
     padding: 6px 10px;
     font-size: 14px;
+  }
+
+  #filtersSection {
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    top: 0;
+    right: 0;
+    left: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    z-index: 99999;
+    padding: 50px 32px 128px;
+  }
+
+  #filtersSection.active {
+    transform: translateY(0);
+  }
+
+  .filters-overlay.active {
+    display: block;
+  }
+
+  .filter-actions {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    justify-content: space-around;
   }
 }
 
@@ -1650,5 +1901,26 @@ input[readonly] {
 
   .accessibility-panel.open {
     right: 0;
+  }
+
+  .inst-head{
+    display:block;
+  }
+  .inst-head h3{
+    margin: 0px;
+  }
+  .inst-head button{
+    width: 100%;
+  }
+
+  .filter-actions{
+    padding: 0px 32px 40px;
+  }
+
+  .filters{
+    height: 100%;
+    overflow: hidden auto;
+    padding: 0px 32px 40px;
+    width: 100%;
   }
 }

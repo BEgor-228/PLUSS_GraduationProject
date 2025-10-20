@@ -561,27 +561,27 @@ class AdminManager {
 
     const params = new URLSearchParams({ district_id: districtId });
 
-    document.querySelectorAll('.filter-group input[type="checkbox"]:checked').forEach((cb) => {
+    document.querySelectorAll('.filter-group-accordion input[type="checkbox"]:checked').forEach((cb) => {
       if (["preschool", "school", "school_internat", "spo", "vo"].includes(cb.value)) {
         params.append('type[]', cb.value);
       }
     });
 
-    const ageCheckboxes = document.querySelectorAll('.filter-group input[value^="3-"], .filter-group input[value^="5-"], .filter-group input[value^="7+"]');
+    const ageCheckboxes = document.querySelectorAll('.filter-group-accordion input[value^="3-"], .filter-group-accordion input[value^="5-"], .filter-group-accordion input[value^="7+"]');
     ageCheckboxes.forEach((cb) => {
       if (cb.checked) {
         params.append('age[]', cb.value);
       }
     });
 
-    const conditionCheckboxes = document.querySelectorAll('.filter-group input[value="hearing_impairment"], .filter-group input[value="vision_impairment"], .filter-group input[value="musculoskeletal_impairment"], .filter-group input[value="speech_impairment"], .filter-group input[value="mental_retardation"], .filter-group input[value="autism"], .filter-group input[value="multiple_disorders"]');
+    const conditionCheckboxes = document.querySelectorAll('.filter-group-accordion input[value="hearing_impairment"], .filter-group-accordion input[value="vision_impairment"], .filter-group-accordion input[value="musculoskeletal_impairment"], .filter-group-accordion input[value="speech_impairment"], .filter-group-accordion input[value="mental_retardation"], .filter-group-accordion input[value="autism"], .filter-group-accordion input[value="multiple_disorders"]');
     conditionCheckboxes.forEach((cb) => {
       if (cb.checked) {
         params.append('condition[]', cb.value);
       }
     });
 
-    if (document.querySelector('.filter-group input[value="aoop"]:checked')) {
+    if (document.querySelector('.filter-group-accordion input[value="aoop"]:checked')) {
       params.append('aoop', '1');
     }
 
@@ -611,7 +611,7 @@ class AdminManager {
   }
 
   resetFilters() {
-    document.querySelectorAll('.filter-group input[type="checkbox"]').forEach((cb) => {
+    document.querySelectorAll('.filter-group-accordion input[type="checkbox"]').forEach((cb) => {
       cb.checked = false;
     });
     document.querySelectorAll(".template-btn").forEach((btn) => {
