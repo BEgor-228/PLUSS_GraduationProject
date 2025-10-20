@@ -26,51 +26,51 @@ class LipetskMap {
   async init() {
     // Показываем загрузчик страницы
     this.showPageLoader();
-    
-    try {
-        await this.loadMap();
-        this.bindEvents();
-        await this.loadDistricts();
-    } catch (error) {
-        console.error('Error during initialization:', error);
-    } finally {
-        // Скрываем загрузчик страницы
-        this.hidePageLoader();
-    }
-}
 
-    // Методы для загрузчика страницы
-    showPageLoader() {
-      const pageLoader = document.getElementById("pageLoader");
-      if (pageLoader) {
-          pageLoader.style.display = 'flex';
-      }
+    try {
+      await this.loadMap();
+      this.bindEvents();
+      await this.loadDistricts();
+    } catch (error) {
+      console.error('Error during initialization:', error);
+    } finally {
+      // Скрываем загрузчик страницы
+      this.hidePageLoader();
+    }
+  }
+
+  // Методы для загрузчика страницы
+  showPageLoader() {
+    const pageLoader = document.getElementById("pageLoader");
+    if (pageLoader) {
+      pageLoader.style.display = 'flex';
+    }
   }
 
   hidePageLoader() {
-      const pageLoader = document.getElementById("pageLoader");
-      if (pageLoader) {
-          // Плавное исчезновение
-          pageLoader.style.opacity = '0';
-          setTimeout(() => {
-              pageLoader.style.display = 'none';
-          }, 300);
-      }
+    const pageLoader = document.getElementById("pageLoader");
+    if (pageLoader) {
+      // Плавное исчезновение
+      pageLoader.style.opacity = '0';
+      setTimeout(() => {
+        pageLoader.style.display = 'none';
+      }, 300);
+    }
   }
 
   // Методы для загрузчика модального окна
   showModalLoader() {
-      const modalLoader = document.getElementById("modalLoader");
-      if (modalLoader) {
-          modalLoader.classList.remove("hidden");
-      }
+    const modalLoader = document.getElementById("modalLoader");
+    if (modalLoader) {
+      modalLoader.classList.remove("hidden");
+    }
   }
 
   hideModalLoader() {
-      const modalLoader = document.getElementById("modalLoader");
-      if (modalLoader) {
-          modalLoader.classList.add("hidden");
-      }
+    const modalLoader = document.getElementById("modalLoader");
+    if (modalLoader) {
+      modalLoader.classList.add("hidden");
+    }
   }
 
   async loadDistricts() {
@@ -100,10 +100,10 @@ class LipetskMap {
       this.displayInstitutions(this.allInstitutions || []);
       return;
     }
-  
+
     const numberMatch = (searchTerm || '').match(/\d+/);
     const queryNumber = numberMatch ? numberMatch[0] : null;
-  
+
     const synonyms = {
       preschool: ['детсад', 'детскийсад', 'садик', 'дс', 'сад', "дет сад", "дет.сад", "дет. сад", "дет садик", "дет.садик", "дет. садик"],
       school: ['школа', 'шк', 'сош'],
@@ -111,7 +111,7 @@ class LipetskMap {
       spo: ['спо', 'техникум', 'колледж', 'училище'],
       vo: ['во', 'вуз', 'университет', 'институт', 'академия']
     };
-  
+
     const source = Array.isArray(this.allInstitutions) ? this.allInstitutions : [];
     const results = source.filter(inst => {
       const name = this.normalizeString(inst.name || '');
@@ -121,10 +121,10 @@ class LipetskMap {
       );
       const website = this.normalizeString(inst.website || '');
       const instNumber = (inst.name || '').match(/\d+/)?.[0] || null;
-  
+
       if (name.includes(q) || desc.includes(q) || director.includes(q) || website.includes(q)) return true;
       if (queryNumber && instNumber && instNumber === queryNumber) return true;
-  
+
       for (const [type, words] of Object.entries(synonyms)) {
         for (const w of words) {
           if (this.normalizeString(searchTerm).includes(w) && inst.type === type) {
@@ -135,36 +135,36 @@ class LipetskMap {
       }
       return false;
     });
-  
+
     // Отрисовываем результаты поиска (не меняем this.allInstitutions)
     this.displayInstitutions(results);
   }
-  
+
   applyCombinedFilters() {
     const searchInput = document.getElementById("institutionSearch");
     const searchTerm = searchInput ? searchInput.value.trim() : "";
     const q = this.normalizeString(searchTerm);
-  
+
     const selectedTypes = Array.from(
       document.querySelectorAll('.filter-group-accordion input[value^="preschool"], .filter-group-accordion input[value^="school"], .filter-group-accordion input[value^="spo"], .filter-group-accordion input[value^="vo"]')
     )
       .filter(cb => cb.checked)
       .map(cb => cb.value);
-  
+
     const selectedAges = Array.from(
       document.querySelectorAll('.filter-group-accordion input[value^="3-"], .filter-group-accordion input[value^="5-"], .filter-group-accordion input[value^="7+"]')
     )
       .filter(cb => cb.checked)
       .map(cb => cb.value);
-  
+
     const selectedConditions = Array.from(
       document.querySelectorAll('.filter-group-accordion input[value="hearing_impairment"], .filter-group-accordion input[value="vision_impairment"], .filter-group-accordion input[value="musculoskeletal_impairment"], .filter-group-accordion input[value="speech_impairment"], .filter-group-accordion input[value="mental_retardation"], .filter-group-accordion input[value="autism"], .filter-group-accordion input[value="multiple_disorders"]')
     )
       .filter(cb => cb.checked)
       .map(cb => cb.value);
-  
+
     const aoopSelected = document.querySelector('.filter-group-accordion input[value="aoop"]:checked');
-  
+
     const synonyms = {
       preschool: ['детсад', 'детскийсад', 'садик', 'дс', 'сад'],
       school: ['школа', 'шк', 'сош', 'лицей', 'гимназия'],
@@ -172,16 +172,16 @@ class LipetskMap {
       spo: ['спо', 'техникум', 'колледж', 'училище'],
       vo: ['во', 'вуз', 'университет', 'институт', 'академия']
     };
-  
+
     const numberMatch = (searchTerm || '').match(/\d+/);
     const queryNumber = numberMatch ? numberMatch[0] : null;
-  
+
     const source = Array.isArray(this.allInstitutions) ? this.allInstitutions : [];
-  
+
     const filtered = source.filter(inst => {
       // --- фильтрация по типу учреждения ---
       if (selectedTypes.length && !selectedTypes.includes(inst.type)) return false;
-  
+
       // --- фильтрация по возрасту / диапазону ---
       if (selectedAges.length && inst.range_min && inst.range_max) {
         const matchAge = selectedAges.some(age => {
@@ -196,28 +196,28 @@ class LipetskMap {
         });
         if (!matchAge) return false;
       }
-  
+
       // --- фильтрация по условиям (ОВЗ) ---
       if (selectedConditions.length) {
         const hasCond = inst.conditions?.some(c => selectedConditions.includes(c));
         if (!hasCond) return false;
       }
-  
+
       // --- фильтрация по АООП ---
       if (aoopSelected && (!inst.aoop_programs || inst.aoop_programs.length === 0)) return false;
-  
+
       // --- теперь поиск ---
       if (!q) return true; // если строка пустая — только фильтры
-  
+
       const name = this.normalizeString(inst.name || '');
       const desc = this.normalizeString(inst.description || '');
       const director = this.normalizeString((inst.director && (inst.director.name || inst.director.full_name)) || '');
       const website = this.normalizeString(inst.website || '');
       const instNumber = (inst.name || '').match(/\d+/)?.[0] || null;
-  
+
       if (name.includes(q) || desc.includes(q) || director.includes(q) || website.includes(q)) return true;
       if (queryNumber && instNumber && instNumber === queryNumber) return true;
-  
+
       for (const [type, words] of Object.entries(synonyms)) {
         for (const w of words) {
           if (this.normalizeString(searchTerm).includes(w) && inst.type === type) {
@@ -228,43 +228,43 @@ class LipetskMap {
       }
       return false;
     });
-  
+
     this.displayInstitutions(filtered);
   }
-  
+
   // Нормализация строки для сравнения
-normalizeString(str) {
-  if (!str) return '';
-  return String(str)
-    .toLowerCase()
-    .replace(/ё/g, 'е')
-    .replace(/№/g, '')
-    .replace(/[^a-zа-я0-9]/gi, '');
-}
+  normalizeString(str) {
+    if (!str) return '';
+    return String(str)
+      .toLowerCase()
+      .replace(/ё/g, 'е')
+      .replace(/№/g, '')
+      .replace(/[^a-zа-я0-9]/gi, '');
+  }
 
-// Дебаунс (чтобы не дергать фильтр на каждую букву моментально)
-debounce(fn, delay = 250) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
+  // Дебаунс (чтобы не дергать фильтр на каждую букву моментально)
+  debounce(fn, delay = 250) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
 
-  
+
 
   async loadMap() {
     try {
-        const response = await fetch("map.svg");
-        const svgText = await response.text();
-        const mapWrapper = document.getElementById("mapWrapper");
-        mapWrapper.innerHTML = svgText;
-        this.setupMapInteractivity();
+      const response = await fetch("map.svg");
+      const svgText = await response.text();
+      const mapWrapper = document.getElementById("mapWrapper");
+      mapWrapper.innerHTML = svgText;
+      this.setupMapInteractivity();
     } catch (error) {
-        console.error("Error loading map:", error);
-        document.getElementById("mapWrapper").innerHTML = '<p class="text-center text-muted">Ошибка загрузки карты</p>';
+      console.error("Error loading map:", error);
+      document.getElementById("mapWrapper").innerHTML = '<p class="text-center text-muted">Ошибка загрузки карты</p>';
     }
-}
+  }
 
   // В методе setupMapInteractivity() замените код:
   setupMapInteractivity() {
@@ -462,25 +462,25 @@ debounce(fn, delay = 250) {
   async loadInstitutionsForDistrict(districtName) {
     const districtId = this.districtIdMap[districtName];
     if (!districtId) return;
-  
+
     try {
       // Показываем загрузчик модального окна с задержкой
       this.loaderTimeout = setTimeout(() => {
         this.showModalLoader();
       }, 200);
-  
+
       const params = new URLSearchParams({ district_id: districtId });
       const response = await fetch(`/api/get_institutions.php?${params}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       if (data.error) throw new Error(data.error);
-  
+
       // Сохраняем "мастер"-список учреждений для данного района
       this.allInstitutions = Array.isArray(data.institutions) ? data.institutions : [];
-  
+
       // Отображаем (displayInstitutions больше this.allInstitutions не перезаписывает)
       this.displayInstitutions(this.allInstitutions);
-  
+
     } catch (error) {
       console.error('Error loading institutions:', error);
       document.getElementById("institutionsList").innerHTML = '<p>Ошибка загрузки учреждений</p>';
@@ -491,79 +491,79 @@ debounce(fn, delay = 250) {
       this.hideModalLoader();
     }
   }
-  
-
-displayInstitutions(institutions) {
-  // НЕ перезаписываем this.allInstitutions здесь!
-  // this.allInstitutions должен быть установлен только при загрузке с сервера / при применении серверных фильтров.
-
-  // institutions — массив, который хотим сейчас отрисовать (может быть filtered от поиска)
-  this.totalPages = Math.ceil(institutions.length / this.itemsPerPage);
-  this.currentPage = 1;
-
-  const debugInfo = document.getElementById("debugInfo");
-  const institutionCount = document.getElementById("institutionCount");
-
-  if (institutionCount) {
-    institutionCount.textContent = `(${institutions.length})`;
-  }
-
-  if (institutions.length === 0) {
-    document.getElementById("institutionsList").innerHTML = '<p class="text-muted">Учреждения не найдены</p>';
-
-    // Скрываем пагинацию и debugInfo
-    const paginationTop = document.getElementById("paginationTop");
-    const paginationBottom = document.getElementById("paginationBottom");
-    if (paginationTop) paginationTop.classList.add("hidden");
-    if (paginationBottom) paginationBottom.classList.add("hidden");
-    if (debugInfo) debugInfo.style.display = 'none';
-    return;
-  }
-
-  // Показываем debugInfo когда есть учреждения
-  if (debugInfo) {
-    debugInfo.style.display = 'block';
-  }
-
-  // Сохраним текущий набор, который отображается (не путать с this.allInstitutions)
-  this.displayedInstitutionsFull = institutions.slice(); // полный набор для пагинации
-  this.totalPages = Math.ceil(this.displayedInstitutionsFull.length / this.itemsPerPage);
-  this.currentPage = 1;
-
-  this.showCurrentPage();
-  this.updatePagination();
-}
 
 
-showCurrentPage() {
-  const source = Array.isArray(this.displayedInstitutionsFull) ? this.displayedInstitutionsFull : [];
-  const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-  const endIndex = startIndex + this.itemsPerPage;
-  this.displayedInstitutions = source.slice(startIndex, endIndex);
+  displayInstitutions(institutions) {
+    // НЕ перезаписываем this.allInstitutions здесь!
+    // this.allInstitutions должен быть установлен только при загрузке с сервера / при применении серверных фильтров.
 
-  const list = document.getElementById("institutionsList");
-  const debugInfo = document.getElementById("debugInfo");
+    // institutions — массив, который хотим сейчас отрисовать (может быть filtered от поиска)
+    this.totalPages = Math.ceil(institutions.length / this.itemsPerPage);
+    this.currentPage = 1;
 
-  if (this.displayedInstitutions.length === 0) {
-    list.innerHTML = '<p class="text-muted">Учреждения не найдены</p>';
-    if (debugInfo) debugInfo.style.display = 'none';
-  } else {
-    list.innerHTML = this.displayedInstitutions.map((inst) => this.createInstitutionCard(inst)).join('');
-    if (debugInfo) debugInfo.style.display = 'block';
+    const debugInfo = document.getElementById("debugInfo");
+    const institutionCount = document.getElementById("institutionCount");
 
-    // Обновляем информацию о пагинации
+    if (institutionCount) {
+      institutionCount.textContent = `(${institutions.length})`;
+    }
+
+    if (institutions.length === 0) {
+      document.getElementById("institutionsList").innerHTML = '<p class="text-muted">Учреждения не найдены</p>';
+
+      // Скрываем пагинацию и debugInfo
+      const paginationTop = document.getElementById("paginationTop");
+      const paginationBottom = document.getElementById("paginationBottom");
+      if (paginationTop) paginationTop.classList.add("hidden");
+      if (paginationBottom) paginationBottom.classList.add("hidden");
+      if (debugInfo) debugInfo.style.display = 'none';
+      return;
+    }
+
+    // Показываем debugInfo когда есть учреждения
     if (debugInfo) {
-      const start = startIndex + 1;
-      const end = Math.min(endIndex, source.length);
-      debugInfo.textContent = `Показано ${start}-${end} из ${source.length} учреждений (Страница ${this.currentPage} из ${this.totalPages})`;
+      debugInfo.style.display = 'block';
+    }
+
+    // Сохраним текущий набор, который отображается (не путать с this.allInstitutions)
+    this.displayedInstitutionsFull = institutions.slice(); // полный набор для пагинации
+    this.totalPages = Math.ceil(this.displayedInstitutionsFull.length / this.itemsPerPage);
+    this.currentPage = 1;
+
+    this.showCurrentPage();
+    this.updatePagination();
+  }
+
+
+  showCurrentPage() {
+    const source = Array.isArray(this.displayedInstitutionsFull) ? this.displayedInstitutionsFull : [];
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    this.displayedInstitutions = source.slice(startIndex, endIndex);
+
+    const list = document.getElementById("institutionsList");
+    const debugInfo = document.getElementById("debugInfo");
+
+    if (this.displayedInstitutions.length === 0) {
+      list.innerHTML = '<p class="text-muted">Учреждения не найдены</p>';
+      if (debugInfo) debugInfo.style.display = 'none';
+    } else {
+      list.innerHTML = this.displayedInstitutions.map((inst) => this.createInstitutionCard(inst)).join('');
+      if (debugInfo) debugInfo.style.display = 'block';
+
+      // Обновляем информацию о пагинации
+      if (debugInfo) {
+        const start = startIndex + 1;
+        const end = Math.min(endIndex, source.length);
+        debugInfo.textContent = `Показано ${start}-${end} из ${source.length} учреждений (Страница ${this.currentPage} из ${this.totalPages})`;
+      }
+    }
+
+    // Обновляем кнопки действий для админа
+    if (this.isAdmin) {
+      this.bindAdminActions();
     }
   }
-
-  // Обновляем кнопки действий для админа
-  if (this.isAdmin) {
-    this.bindAdminActions();
-  }
-}
 
 
   updatePagination() {
@@ -869,9 +869,9 @@ showCurrentPage() {
           this.applyCombinedFilters(); // теперь поиск всегда связан с фильтрами
         }, 250));
       }
-      
+
     });
-    
+
     document
       .getElementById("closeInstitutionModal")
       .addEventListener("click", () => {
@@ -895,10 +895,10 @@ showCurrentPage() {
       document
         .querySelectorAll('.filter-group-accordion input[type="checkbox"]')
         .forEach(cb => (cb.checked = false));
-    
+
       const searchInput = document.getElementById("institutionSearch");
       if (searchInput) searchInput.value = '';
-    
+
       this.displayInstitutions(this.allInstitutions);
     });
 
@@ -937,6 +937,8 @@ showCurrentPage() {
     const toggleFiltersBtn = document.getElementById("toggleFilters");
     const filtersPanel = document.getElementById("filtersSection");
     const filtersOverlay = document.getElementById("filtersOverlay");
+    const applyFiltersBtn = document.getElementById("applyFilters");
+    const resetFiltersBtn = document.getElementById("resetFilters");
 
     if (toggleFiltersBtn && filtersPanel && filtersOverlay) {
       toggleFiltersBtn.addEventListener("click", () => {
@@ -951,17 +953,31 @@ showCurrentPage() {
         document.body.style.overflow = "";
       });
     }
+    if (applyFiltersBtn) {
+      applyFiltersBtn.addEventListener("click", () => {
+        filtersPanel.classList.remove("active");
+        filtersOverlay.classList.remove("active");
+        document.body.style.overflow = "";
+      });
+    }
 
+    if (resetFiltersBtn) {
+      resetFiltersBtn.addEventListener("click", () => {
+        filtersPanel.classList.remove("active");
+        filtersOverlay.classList.remove("active");
+        document.body.style.overflow = "";
+      });
+    }
   }
 
   closeAllAccordions() {
     const accordionToggles = document.querySelectorAll(".accordion-toggle");
     const accordionContents = document.querySelectorAll(".accordion-content");
-    
+
     accordionToggles.forEach(toggle => {
       toggle.classList.remove("active");
     });
-    
+
     accordionContents.forEach(content => {
       content.classList.remove("open");
     });
@@ -1136,7 +1152,7 @@ showCurrentPage() {
   updateTooltipPosition(e) {
     const tooltip = document.getElementById("tooltip");
     if (!tooltip) return;
-    
+
     tooltip.style.left = (e.pageX + 20) + "px";
     tooltip.style.top = (e.pageY - 20) + "px";
   }
@@ -1145,12 +1161,12 @@ showCurrentPage() {
     document.getElementById('institutionForm').reset();
     document.getElementById('aoopList').innerHTML = '';
     this.aoopCounter = 0;
-    
+
     // Сбрасываем блокировку полей директора
     if (window.adminManager) {
-        window.adminManager.lockDirectorFields(false);
+      window.adminManager.lockDirectorFields(false);
     }
-    
+
     this.editingInstitution = null;
     document.getElementById('institutionModalTitle').textContent = 'Добавить учреждение';
   }
@@ -1230,13 +1246,13 @@ showCurrentPage() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       if (data.error) throw new Error(data.error);
-  
+
       // Обновляем "мастер"-список — фильтры с сервера изменяют набор
       this.allInstitutions = Array.isArray(data.institutions) ? data.institutions : [];
-  
+
       // И отрисовываем этот набор
       this.displayInstitutions(this.allInstitutions);
-  
+
       if (window.innerWidth <= 768) {
         document.getElementById("filtersSection").classList.add("hidden");
       }
@@ -1244,7 +1260,7 @@ showCurrentPage() {
       console.error("Error applying filters:", error);
     }
   }
-  
+
 
   resetFilters() {
     document
@@ -1265,25 +1281,25 @@ showCurrentPage() {
     const loader = document.getElementById("modalLoader");
     const institutionsSection = document.querySelector('.institutions-section');
     if (loader) {
-        loader.classList.remove("hidden");
+      loader.classList.remove("hidden");
     }
     if (institutionsSection) {
-        institutionsSection.style.opacity = "0.5";
+      institutionsSection.style.opacity = "0.5";
     }
   }
 
   hideLoader() {
-      const loader = document.getElementById("modalLoader");
-      const institutionsSection = document.querySelector('.institutions-section');
-      if (loader) {
-          loader.classList.add("hidden");
-      }
-      if (institutionsSection) {
-          institutionsSection.style.opacity = "1";
-      }
+    const loader = document.getElementById("modalLoader");
+    const institutionsSection = document.querySelector('.institutions-section');
+    if (loader) {
+      loader.classList.add("hidden");
+    }
+    if (institutionsSection) {
+      institutionsSection.style.opacity = "1";
+    }
   }
 
-  
+
 }
 
 let lipetskMap;
@@ -1295,9 +1311,9 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener('DOMContentLoaded', () => {
   // Обработчик ошибок загрузки страницы
   window.addEventListener('error', () => {
-      const pageLoader = document.getElementById("pageLoader");
-      if (pageLoader) {
-          pageLoader.innerHTML = `
+    const pageLoader = document.getElementById("pageLoader");
+    if (pageLoader) {
+      pageLoader.innerHTML = `
               <div style="text-align: center; color: #e74c3c;">
                   <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
                   <p>Ошибка загрузки страницы</p>
@@ -1306,14 +1322,14 @@ document.addEventListener('DOMContentLoaded', () => {
                   </button>
               </div>
           `;
-      }
+    }
   });
 
   // Скрываем загрузчик страницы если что-то пошло не так
   setTimeout(() => {
-      const pageLoader = document.getElementById("pageLoader");
-      if (pageLoader && pageLoader.style.display !== 'none') {
-          pageLoader.innerHTML = `
+    const pageLoader = document.getElementById("pageLoader");
+    if (pageLoader && pageLoader.style.display !== 'none') {
+      pageLoader.innerHTML = `
               <div style="text-align: center; color: #e74c3c;">
                   <p>Загрузка занимает больше времени чем ожидалось</p>
                   <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 10px;">
@@ -1321,6 +1337,6 @@ document.addEventListener('DOMContentLoaded', () => {
                   </button>
               </div>
           `;
-      }
+    }
   }, 10000); // 10 секунд
 });
