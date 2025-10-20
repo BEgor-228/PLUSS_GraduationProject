@@ -283,6 +283,74 @@ g[id="region_eletskiy"] polygon.region {
   height: 100%;
 }
 
+.login-modal-body {
+    padding: 32px 24px;
+    background: #f3f6fb;
+    border-radius: 16px;
+    box-shadow: 0 6px 36px rgba(52,152,219,0.10);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-width: 370px;
+    margin: 0 auto;
+}
+
+#loginModal .modal-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 16px;
+    padding: 0;
+    box-shadow: 0 4px 32px rgba(44, 62, 80, 0.13);
+    max-width: 430px;
+    margin: 0 auto;
+    background: #fff;
+}
+
+#loginModal .form-group {
+    width: 100%;
+    margin-bottom: 18px;
+    text-align: left;
+}
+
+#loginModal .form-group input {
+    width: 100%;
+    background: #fff;
+    border: 2px solid #e1e6eb;
+    padding: 12px 12px;
+    border-radius: 8px;
+    transition: border-color 0.2s;
+    font-size: 16px;
+    margin-bottom: 5px;
+    box-sizing: border-box;
+}
+
+#loginModal .form-group label {
+    display: block;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 7px;
+    font-size: 15px;
+}
+
+#loginModal .form-actions {
+    display: flex;
+    gap: 14px;
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+#loginModal .btn-primary, #loginModal .btn-secondary {
+    font-size: 16px;
+    border-radius: 8px;
+    padding: 10px 0;
+    width: 48%;
+    font-weight: 700;
+}
+
+
 .modal-body2 {
   padding: 20px;
   overflow-y: auto;
