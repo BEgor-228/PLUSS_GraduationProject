@@ -869,7 +869,6 @@ class LipetskMap {
           this.applyCombinedFilters(); // теперь поиск всегда связан с фильтрами
         }, 250));
       }
-
     });
 
     document
@@ -931,6 +930,19 @@ class LipetskMap {
         btn.classList.toggle("active");
         const content = btn.nextElementSibling;
         content.classList.toggle("open");
+      });
+    });
+
+    document.querySelectorAll('.type-filter-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const type = e.target.dataset.type;
+        this.handleTypeFilter(type);
+
+        // Обновляем активные кнопки
+        document.querySelectorAll('.type-filter-btn').forEach(b => {
+          b.classList.remove('active');
+        });
+        e.target.classList.add('active');
       });
     });
 
@@ -1037,8 +1049,14 @@ class LipetskMap {
 
   openDistrictModal(districtName) {
     document.getElementById("districtModal").classList.remove("hidden");
-    document.getElementById("modalTitle").textContent = districtName;
     document.getElementById("regionName").textContent = districtName;
+
+    // Сбрасываем фильтр типов
+    document.querySelectorAll('.type-filter-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelector('.type-filter-btn[data-type="all"]').classList.add('active');
+
     this.loadInstitutionsForDistrict(districtName);
     const searchInput = document.getElementById("institutionSearch");
     this.resetFiltersUI();
@@ -1183,7 +1201,7 @@ class LipetskMap {
   }
 
   applyFilters() {
-    const districtName = document.getElementById("modalTitle").textContent;
+    const districtName = document.getElementById("regionName").textContent;
     const districtId = this.districtIdMap[districtName];
     if (!districtId) return;
     try {
@@ -1256,17 +1274,34 @@ class LipetskMap {
     }
   }
 
+  // Добавить в класс LipetskMap
+  handleTypeFilter(type) {
+    if (type === 'all') {
+      // Показываем все учреждения
+      this.displayInstitutions(this.allInstitutions);
+    } else {
+      // Фильтруем по типу
+      const filtered = this.allInstitutions.filter(inst => inst.type === type);
+      this.displayInstitutions(filtered);
+    }
+
+    // Прокручиваем к началу списка
+    this.scrollToInstitutions();
+  }
+
 
   resetFilters() {
-    document
-      .querySelectorAll('.filter-group-accordion input[type="checkbox"]')
-      .forEach((cb) => {
-        cb.checked = false;
-      });
+    document.querySelectorAll('.filter-group-accordion input[type="checkbox"]').forEach((cb) => {
+      cb.checked = false;
+    });
+    // Сбрасываем фильтр типов
+    document.querySelectorAll('.type-filter-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelector('.type-filter-btn[data-type="all"]').classList.add('active');
     this.currentPage = 1;
-    const districtName = document.getElementById("modalTitle").textContent;
+    const districtName = document.getElementById("regionName").textContent;
     this.loadInstitutionsForDistrict(districtName);
-
     if (window.innerWidth <= 768) {
       document.getElementById("filtersSection").classList.add("hidden");
     }

@@ -23,7 +23,7 @@ class AdminManager {
         this.showAdminPanel();
         // Перезагружаем текущий район, если открыт
         if (!document.getElementById("districtModal").classList.contains("hidden")) {
-          const districtName = document.getElementById("modalTitle").textContent;
+          const districtName = document.getElementById("regionName").textContent;
           await this.map.loadInstitutionsForDistrict(districtName);
         }
       }
@@ -101,7 +101,7 @@ class AdminManager {
       document.getElementById('adminLogin').classList.remove('hidden');
       // Reload current district if open
       if (!document.getElementById("districtModal").classList.contains("hidden")) {
-        const districtName = document.getElementById("modalTitle").textContent;
+        const districtName = document.getElementById("regionName").textContent;
         await this.map.loadInstitutionsForDistrict(districtName);
       }
     } catch (error) {
@@ -230,7 +230,7 @@ class AdminManager {
       const result = await response.json();
       if (result.error) throw new Error(result.error);
       if (!document.getElementById("districtModal").classList.contains("hidden")) {
-        const districtName = document.getElementById("modalTitle").textContent;
+        const districtName = document.getElementById("regionName").textContent;
         await this.map.loadInstitutionsForDistrict(districtName);
       }
     } catch (error) {
@@ -261,7 +261,7 @@ class AdminManager {
       if (result.error) throw new Error(result.error);
       document.getElementById("institutionModal").classList.add("hidden");
       if (!document.getElementById("districtModal").classList.contains("hidden")) {
-        const districtName = document.getElementById("modalTitle").textContent;
+        const districtName = document.getElementById("regionName").textContent;
         await this.map.loadInstitutionsForDistrict(districtName);
       }
     } catch (error) {
@@ -326,7 +326,7 @@ class AdminManager {
   }
 
   async applyFilters() {
-    const districtName = document.getElementById("modalTitle").textContent;
+    const districtName = document.getElementById("regionName").textContent;
     const districtId = this.map.districtIdMap[districtName];
     if (!districtId) return;
 
@@ -388,7 +388,7 @@ class AdminManager {
     document.querySelectorAll(".template-btn").forEach((btn) => {
       btn.classList.remove("active");
     });
-    const districtName = document.getElementById("modalTitle").textContent;
+    const districtName = document.getElementById("regionName").textContent;
     this.map.loadInstitutionsForDistrict(districtName);
     if (window.innerWidth <= 768) {
       document.getElementById("filtersSection").classList.add("hidden");

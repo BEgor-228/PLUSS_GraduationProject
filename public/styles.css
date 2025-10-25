@@ -240,7 +240,7 @@ g[id="region_eletskiy"] polygon.region {
   padding: 20px;
   border-bottom: 1px solid #eee;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
 }
 
@@ -1779,6 +1779,47 @@ input[readonly] {
   opacity: 0.7;
 }
 
+/* Добавить в конец файла styles.css */
+
+.institution-type-filter {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.type-filter-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.type-filter-btn {
+    padding: 8px 16px;
+    border: 2px solid #3498db;
+    background: white;
+    color: #3498db;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.type-filter-btn:hover {
+    background: #3498db;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+.type-filter-btn.active {
+    background: #3498db;
+    color: white;
+    border-color: #2980b9;
+}
+
+
 @media (max-width: 1024px) {
   .modal-body {
     grid-template-columns: 2fr 40rem;
@@ -2072,6 +2113,17 @@ input[readonly] {
     justify-content: flex-start;
     flex-direction: row;
   }
+
+  .type-filter-buttons {
+        gap: 6px;
+    }
+    
+    .type-filter-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+        flex: 1;
+        min-width: 0;
+    }
 }
 
 @media (max-width: 480px) {
@@ -2126,4 +2178,18 @@ input[readonly] {
     padding: 0px 32px 40px;
     width: 100%;
   }
+
+  .institution-type-filter {
+        padding: 10px 15px;
+    }
+    
+    .type-filter-buttons {
+        gap: 4px;
+    }
+    
+    .type-filter-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
 }
+

@@ -43,15 +43,31 @@
         <div id="districtModal" class="modal hidden">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2 id="modalTitle" class="hidden">Район</h2>
+                    <div style="width: 30px;">
+
+                    </div>
+                    <div class="institution-type-filter">
+                        <div class="type-filter-buttons">
+                            <button class="type-filter-btn active" data-type="all">Все</button>
+                            <button class="type-filter-btn" data-type="preschool">Детские сады</button>
+                            <button class="type-filter-btn" data-type="school">Школы</button>
+                            <button class="type-filter-btn" data-type="school_internat">Интернаты</button>
+                            <button class="type-filter-btn" data-type="spo">СПО</button>
+                            <button class="type-filter-btn" data-type="vo">ВО</button>
+                        </div>
+                    </div>
                     <button id="closeModal" class="close-btn">&times;</button>
                 </div>
+
+
 
                 <div class="modal-body">
                     <div id="modalLoader" class="modal-loader hidden">
                         <div class="loader"></div>
                         <p>Загрузка данных...</p>
                     </div>
+
+
 
                     <div class="region-info-section">
                         <svg class="region-image" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -66,10 +82,11 @@
                                 <h3>Учреждения <span id="institutionCount">(0)</span></h3>
                                 <button id="toggleFilters" class="filters-toggle-btn">Фильтры</button>
                             </div>
-                            
+
 
                             <div class="search-bar">
-                                <input type="text" id="institutionSearch" placeholder="Поиск учреждения..." style="width:100%; padding:8px; box-sizing:border-box;">
+                                <input type="text" id="institutionSearch" placeholder="Поиск учреждения..."
+                                    style="width:100%; padding:8px; box-sizing:border-box;">
                             </div>
                             <div id="paginationTop" class="pagination hidden">
                                 <button id="prevPageTop" class="pagination-btn pagination-prev"
@@ -98,48 +115,62 @@
                     <div class="filters-section" id="filtersSection">
                         <div class="filters">
                             <h3 class="filters-header">Фильтры</h3>
-                        
+
                             <div class="filter-group-accordion">
                                 <button class="accordion-toggle">Тип учреждения</button>
                                 <div class="accordion-content">
-                                    <label class="filter-option lab-check"><input type="checkbox" value="preschool"> Детские сады</label>
-                                    <label class="filter-option lab-check"><input type="checkbox" value="school"> Школы</label>
-                                    <label class="filter-option lab-check"><input type="checkbox" value="spo"> СПО</label>
+                                    <label class="filter-option lab-check"><input type="checkbox" value="preschool">
+                                        Детские сады</label>
+                                    <label class="filter-option lab-check"><input type="checkbox" value="school">
+                                        Школы</label>
+                                    <label class="filter-option lab-check"><input type="checkbox" value="spo">
+                                        СПО</label>
                                     <label class="filter-option lab-check"><input type="checkbox" value="vo"> ВО</label>
-                                    <label class="filter-option lab-check"><input type="checkbox" value="school_internat"> Интернаты</label>
+                                    <label class="filter-option lab-check"><input type="checkbox"
+                                            value="school_internat"> Интернаты</label>
                                 </div>
                             </div>
-                        
+
                             <div class="filter-group-accordion">
                                 <button class="accordion-toggle">Возраст</button>
                                 <div class="accordion-content">
-                                    <label class="filter-option lab-check"><input type="checkbox" value="3-5"> 3–5 лет</label>
-                                    <label class="filter-option lab-check"><input type="checkbox" value="5-7"> 5–7 лет</label>
-                                    <label class="filter-option lab-check"><input type="checkbox" value="7+"> 7+ лет</label>
+                                    <label class="filter-option lab-check"><input type="checkbox" value="3-5"> 3–5
+                                        лет</label>
+                                    <label class="filter-option lab-check"><input type="checkbox" value="5-7"> 5–7
+                                        лет</label>
+                                    <label class="filter-option lab-check"><input type="checkbox" value="7+"> 7+
+                                        лет</label>
                                 </div>
                             </div>
-                        
+
                             <div class="filter-group-accordion">
                                 <button class="accordion-toggle">Условия обучения (ОВЗ)</button>
                                 <div class="accordion-content">
-                                    <label class="filter-option lab-check"><input type="checkbox" value="hearing_impairment"> Нарушение слуха</label>
-                                    <label class="filter-option lab-check"><input type="checkbox" value="vision_impairment"> Нарушение зрения</label>
-                                    <label class="filter-option lab-check"><input type="checkbox" value="speech_impairment"> Нарушение речи</label>
-                                    <label class="filter-option lab-check"><input type="checkbox" value="autism"> РАС</label>
-                                    <label class="filter-option lab-check"><input type="checkbox" value="mental_retardation"> ЗПР</label>
-                                    <label class="filter-option lab-check"><input type="checkbox" value="multiple_disorders"> Множественные
+                                    <label class="filter-option lab-check"><input type="checkbox"
+                                            value="hearing_impairment"> Нарушение слуха</label>
+                                    <label class="filter-option lab-check"><input type="checkbox"
+                                            value="vision_impairment"> Нарушение зрения</label>
+                                    <label class="filter-option lab-check"><input type="checkbox"
+                                            value="speech_impairment"> Нарушение речи</label>
+                                    <label class="filter-option lab-check"><input type="checkbox" value="autism">
+                                        РАС</label>
+                                    <label class="filter-option lab-check"><input type="checkbox"
+                                            value="mental_retardation"> ЗПР</label>
+                                    <label class="filter-option lab-check"><input type="checkbox"
+                                            value="multiple_disorders"> Множественные
                                         нарушения</label>
                                 </div>
                             </div>
-                        
+
                             <div class="filter-group-accordion">
                                 <button class="accordion-toggle">Программы АООП</button>
                                 <div class="accordion-content">
-                                    <label class="filter-option lab-check"><input type="checkbox" value="aoop"> Есть программы АООП</label>
+                                    <label class="filter-option lab-check"><input type="checkbox" value="aoop"> Есть
+                                        программы АООП</label>
                                 </div>
                             </div>
-                        
-                            
+
+
                         </div>
                         <div class="filter-actions">
                             <button id="applyFilters" class="filter-btn1 btn btn-primary">Применить</button>
