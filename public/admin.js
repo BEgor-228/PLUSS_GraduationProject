@@ -38,19 +38,6 @@ class AdminManager {
     document.getElementById('cancelLogin').addEventListener('click', () => this.hideLoginModal());
     document.getElementById('closeLoginModal').addEventListener('click', () => this.hideLoginModal());
     document.getElementById('logout').addEventListener('click', () => this.handleLogout());
-
-    document.getElementById('selectExistingDirector').addEventListener('click', () => {
-      // Если поля заблокированы (директор уже выбран), сбрасываем выбор
-      if (document.getElementById('directorName').readOnly) {
-        this.resetDirectorSelection();
-      } else {
-        this.showDirectorSelection();
-      }
-    });
-    document.getElementById('saveDirectorSelection').addEventListener('click', () => this.saveDirectorSelection());
-    document.getElementById('cancelDirectorSelection').addEventListener('click', () => this.cancelDirectorSelection());
-    document.getElementById('directorSearch').addEventListener('input', (e) => this.searchDirectors(e.target.value));
-
     // Переопределяем методы карты для админа
     this.map.openInstitutionForm = (inst = null) => this.openInstitutionForm(inst);
     this.map.editInstitution = (id) => this.editInstitution(id);
@@ -70,211 +57,6 @@ class AdminManager {
       this.toggleFormFields(e.target.value);
     });
 
-  }
-  resetDirectorSelection() {
-    // Сбрасываем временные данные
-    this.tempDirectorId = null;
-    if (this.map.editingInstitution && this.map.editingInstitution.director) {
-      delete this.map.editingInstitution.director.id;
-    }
-
-    // Очищаем поля
-    document.getElementById('directorName').value = '';
-    document.getElementById('directorPhone').value = '';
-    document.getElementById('directorEmail').value = '';
-
-    // Разблокируем поля
-    this.lockDirectorFields(false);
-
-    // Показываем панель выбора
-    this.showDirectorSelection();
-  }
-
-  showDirectorSelection() {
-    // Если поля уже заблокированы (директор выбран), спрашиваем о сбросе
-    if (document.getElementById('directorName').readOnly) {
-      if (confirm('Вы хотите изменить выбранного директора? Текущие данные будут сброшены.')) {
-        this.resetDirectorSelection();
-      }
-      return;
-    }
-
-    // Показываем панель выбора директора
-    document.getElementById('directorSelection').classList.remove('hidden');
-
-    // Загружаем список директоров
-    this.loadDirectors();
-  }
-
-  cancelDirectorSelection() {
-    // Скрываем панель выбора директора
-    document.getElementById('directorSelection').classList.add('hidden');
-
-    // Очищаем поиск и список
-    document.getElementById('directorSearch').value = '';
-    document.getElementById('directorsList').innerHTML = '';
-    this.selectedDirectorId = null;
-
-    // НЕ разблокируем поля здесь, только если пользователь явно не отменил выбор
-    // Поля остаются заблокированными, если директор уже был выбран ранее
-  }
-
-  async loadDirectors(searchTerm = '') {
-    try {
-      const params = new URLSearchParams();
-      if (searchTerm) {
-        params.append('search', searchTerm);
-      }
-
-      const response = await fetch(`/api/get_directors.php?${params}`);
-      const data = await response.json();
-
-      if (data.error) throw new Error(data.error);
-
-      this.displayDirectors(data.directors);
-    } catch (error) {
-      console.error('Error loading directors:', error);
-      alert('Ошибка загрузки списка директоров');
-    }
-  }
-
-  displayDirectors(directors) {
-    const directorsList = document.getElementById('directorsList');
-    directorsList.innerHTML = '';
-
-    if (directors.length === 0) {
-      directorsList.innerHTML = '<p class="no-results">Директоры не найдены</p>';
-      return;
-    }
-
-    directors.forEach(director => {
-      const directorItem = document.createElement('div');
-      directorItem.className = 'director-item';
-      directorItem.innerHTML = `
-              <div class="director-info">
-                  <strong>${director.full_name || 'Не указано'}</strong>
-                  <div class="director-details">
-                      ${director.phone ? `Тел: ${director.phone}` : ''}
-                      ${director.email ? `Email: ${director.email}` : ''}
-                  </div>
-              </div>
-              <button type="button" class="btn btn-primary select-director-btn" data-id="${director.id}">
-                  Выбрать
-              </button>
-          `;
-      directorsList.appendChild(directorItem);
-    });
-
-    // Добавляем обработчики для кнопок выбора
-    directorsList.querySelectorAll('.select-director-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const directorId = e.target.getAttribute('data-id');
-        this.selectDirector(directorId);
-      });
-    });
-  }
-
-  searchDirectors(searchTerm) {
-    clearTimeout(this.searchTimeout);
-    this.searchTimeout = setTimeout(() => {
-      this.loadDirectors(searchTerm);
-    }, 300);
-  }
-
-  selectDirector(directorId) {
-    this.selectedDirectorId = directorId;
-
-    // Подсвечиваем выбранный элемент
-    document.querySelectorAll('.director-item').forEach(item => {
-      item.classList.remove('selected');
-    });
-    event.target.closest('.director-item').classList.add('selected');
-  }
-
-  saveDirectorSelection() {
-    if (!this.selectedDirectorId) {
-      alert('Пожалуйста, выберите директора из списка');
-      return;
-    }
-
-    // Сначала скрываем панель выбора
-    document.getElementById('directorSelection').classList.add('hidden');
-
-    // Очищаем поиск и список
-    document.getElementById('directorSearch').value = '';
-    document.getElementById('directorsList').innerHTML = '';
-
-    // Блокируем поля ДО загрузки данных
-    this.lockDirectorFields(true);
-
-    // Загружаем данные выбранного директора
-    this.loadDirectorData(this.selectedDirectorId);
-
-    // Сбрасываем выбранный ID
-    this.selectedDirectorId = null;
-  }
-
-  async loadDirectorData(directorId) {
-    try {
-      const response = await fetch(`/api/get_director.php?id=${directorId}`);
-      const data = await response.json();
-
-      if (data.error) throw new Error(data.error);
-
-      // Заполняем поля формы данными директора
-      document.getElementById('directorName').value = data.director.full_name || '';
-      document.getElementById('directorPhone').value = data.director.phone || '';
-      document.getElementById('directorEmail').value = data.director.email || '';
-
-      // Сохраняем ID директора для отправки на сервер
-      if (this.map.editingInstitution) {
-        this.map.editingInstitution.director = this.map.editingInstitution.director || {};
-        this.map.editingInstitution.director.id = directorId;
-      } else {
-        // Для нового учреждения создаем временный объект
-        this.tempDirectorId = directorId;
-      }
-
-    } catch (error) {
-      console.error('Error loading director data:', error);
-      alert('Ошибка загрузки данных директора');
-      // В случае ошибки разблокируем поля
-      this.lockDirectorFields(false);
-    }
-  }
-
-  lockDirectorFields(locked) {
-    const fields = [
-      'directorName',
-      'directorPhone',
-      'directorEmail'
-    ];
-
-    fields.forEach(fieldId => {
-      const field = document.getElementById(fieldId);
-      if (field) {
-        field.readOnly = locked;
-        field.style.backgroundColor = locked ? '#f5f5f5' : '';
-        field.style.cursor = locked ? 'not-allowed' : '';
-        field.style.borderColor = locked ? '#ddd' : '';
-      }
-    });
-
-    // Обновляем кнопку выбора директора
-    const selectButton = document.getElementById('selectExistingDirector');
-    if (selectButton) {
-      if (locked) {
-        selectButton.textContent = 'Изменить выбранного директора';
-        selectButton.classList.remove('btn-secondary');
-        selectButton.classList.add('btn-primary');
-      } else {
-        selectButton.textContent = 'Выбрать существующего директора';
-        selectButton.classList.remove('btn-primary');
-        selectButton.classList.add('btn-secondary');
-      }
-      // Всегда показываем кнопку
-      selectButton.classList.remove('hidden');
-    }
   }
 
   showLoginModal() {
@@ -339,8 +121,6 @@ class AdminManager {
   }
 
   openInstitutionForm(inst = null) {
-    this.lockDirectorFields(false);
-
     if (inst) {
       // Set form fields
       document.getElementById('institutionName').value = inst.name || '';
@@ -388,10 +168,6 @@ class AdminManager {
           lastField.querySelector('.aoop-name').value = prog.name || '';
           lastField.querySelector('.aoop-url').value = prog.url || '';
         });
-      }
-      if (inst.director && inst.director.id) {
-        // Блокируем поля, так как директор уже выбран
-        this.lockDirectorFields(true);
       }
       // ВАЖНО: Добавляем вызов toggleFormFields
       this.toggleFormFields(inst.type);
@@ -525,11 +301,6 @@ class AdminManager {
 
     if (!formData.name || !formData.type || !formData.district_id) {
       throw new Error("Заполните обязательные поля: Название, Тип и Район");
-    }
-    if (this.map.editingInstitution && this.map.editingInstitution.director && this.map.editingInstitution.director.id) {
-      formData.director.id = this.map.editingInstitution.director.id;
-    } else if (this.tempDirectorId) {
-      formData.director.id = this.tempDirectorId;
     }
     document.querySelectorAll('input[name="admission"]:checked').forEach((cb) => {
       formData.conditionsAdmission.push(cb.value);

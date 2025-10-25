@@ -1162,11 +1162,6 @@ class LipetskMap {
     document.getElementById('aoopList').innerHTML = '';
     this.aoopCounter = 0;
 
-    // Сбрасываем блокировку полей директора
-    if (window.adminManager) {
-      window.adminManager.lockDirectorFields(false);
-    }
-
     this.editingInstitution = null;
     document.getElementById('institutionModalTitle').textContent = 'Добавить учреждение';
   }
