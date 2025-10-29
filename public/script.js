@@ -933,18 +933,52 @@ class LipetskMap {
       });
     });
 
-    document.querySelectorAll('.type-filter-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const type = e.target.dataset.type;
-        this.handleTypeFilter(type);
+    document.querySelectorAll('.type-filter-btn').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const btn = e.target;
+        const type = btn.dataset.type;
+        const allButtonType = 'all';
 
-        // Обновляем активные кнопки
-        document.querySelectorAll('.type-filter-btn').forEach(b => {
-          b.classList.remove('active');
-        });
-        e.target.classList.add('active');
+        if (type === allButtonType) {
+          const isActive = btn.classList.contains('active');
+          if (isActive) {
+            btn.classList.remove('active');
+            document.querySelectorAll('.type-filter-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.filter-group-accordion input[type="checkbox"]').forEach(cb => cb.checked = false);
+          } else {
+            document.querySelectorAll('.type-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.filter-group-accordion input[type="checkbox"]').forEach(cb => cb.checked = false);
+          }
+        } else {
+          const allButton = document.querySelector(`.type-filter-btn[data-type="${allButtonType}"]`);
+          allButton.classList.remove('active');
+
+          btn.classList.toggle('active');
+
+          const checkbox = document.querySelector(`.filter-group-accordion input[type="checkbox"][value="${type}"]`);
+          if (checkbox) {
+            checkbox.checked = btn.classList.contains('active');
+          }
+
+          // Если после переключения ни одна обычная кнопка не активна,
+          // активируем кнопку "все"
+          const activeButtons = Array.from(document.querySelectorAll('.type-filter-btn'))
+            .filter(b => b.dataset.type !== allButtonType && b.classList.contains('active'));
+          if (activeButtons.length === 0) {
+            allButton.classList.add('active');
+          }
+        }
+
+        // Вызов метода применить при любом клике
+        // if (typeof applyCombinedFilters === 'function') {
+          this.applyCombinedFilters();
+        // }
       });
     });
+
+
+
 
     const toggleFiltersBtn = document.getElementById("toggleFilters");
     const filtersPanel = document.getElementById("filtersSection");
@@ -1051,11 +1085,11 @@ class LipetskMap {
     document.getElementById("districtModal").classList.remove("hidden");
     document.getElementById("regionName").textContent = districtName;
 
-    // Сбрасываем фильтр типов
-    document.querySelectorAll('.type-filter-btn').forEach(btn => {
-      btn.classList.remove('active');
-    });
-    document.querySelector('.type-filter-btn[data-type="all"]').classList.add('active');
+    // // Сбрасываем фильтр типов
+    // document.querySelectorAll('.type-filter-btn').forEach(btn => {
+    //   btn.classList.remove('active');
+    // });
+    // document.querySelector('.type-filter-btn[data-type="all"]').classList.add('active');
 
     this.loadInstitutionsForDistrict(districtName);
     const searchInput = document.getElementById("institutionSearch");
@@ -1274,31 +1308,16 @@ class LipetskMap {
     }
   }
 
-  // Добавить в класс LipetskMap
-  handleTypeFilter(type) {
-    if (type === 'all') {
-      // Показываем все учреждения
-      this.displayInstitutions(this.allInstitutions);
-    } else {
-      // Фильтруем по типу
-      const filtered = this.allInstitutions.filter(inst => inst.type === type);
-      this.displayInstitutions(filtered);
-    }
-
-    // Прокручиваем к началу списка
-    this.scrollToInstitutions();
-  }
-
-
   resetFilters() {
     document.querySelectorAll('.filter-group-accordion input[type="checkbox"]').forEach((cb) => {
       cb.checked = false;
     });
-    // Сбрасываем фильтр типов
-    document.querySelectorAll('.type-filter-btn').forEach(btn => {
-      btn.classList.remove('active');
-    });
-    document.querySelector('.type-filter-btn[data-type="all"]').classList.add('active');
+    // // Сбрасываем фильтр типов
+    // document.querySelectorAll('.type-filter-btn').forEach(btn => {
+    //   btn.classList.remove('active');
+    // });
+    // document.querySelector('.type-filter-btn[data-type="all"]').classList.add('active');
+
     this.currentPage = 1;
     const districtName = document.getElementById("regionName").textContent;
     this.loadInstitutionsForDistrict(districtName);
