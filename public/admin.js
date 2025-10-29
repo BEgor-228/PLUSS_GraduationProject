@@ -23,7 +23,7 @@ class AdminManager {
         this.showAdminPanel();
         // Перезагружаем текущий район, если открыт
         if (!document.getElementById("districtModal").classList.contains("hidden")) {
-          const districtName = document.getElementById("modalTitle").textContent;
+          const districtName = document.getElementById("regionName").textContent;
           await this.map.loadInstitutionsForDistrict(districtName);
         }
       }
@@ -42,8 +42,6 @@ class AdminManager {
     this.map.openInstitutionForm = (inst = null) => this.openInstitutionForm(inst);
     this.map.editInstitution = (id) => this.editInstitution(id);
     this.map.deleteInstitution = (id) => this.deleteInstitution(id);
-    this.map.applyFilters = () => this.applyFilters();
-    this.map.resetFilters = () => this.resetFilters();
 
     // Привязываем submit формы учреждения
     document.getElementById('institutionForm').addEventListener('submit', (e) => {
@@ -51,12 +49,28 @@ class AdminManager {
       this.saveInstitution();
     });
     document.getElementById('addAoOp').addEventListener('click', () => {
-      this.map.addAoOpField();
+      this.addAoOpField();
     });
     document.getElementById('institutionType').addEventListener('change', (e) => {
       this.toggleFormFields(e.target.value);
     });
 
+  }
+
+  addAoOpField() {
+    this.aoopCounter++;
+    const aoopList = document.getElementById("aoopList");
+    const field = document.createElement("div");
+    field.className = "aoop-field form-group";
+    field.innerHTML = `
+      <input type="text" class="aoop-name" placeholder="Название программы" required>
+      <input type="url" class="aoop-url" placeholder="URL программы">
+      <button type="button" class="remove-aoop btn btn-danger">Удалить</button>
+    `;
+    aoopList.appendChild(field);
+    field.querySelector(".remove-aoop").addEventListener("click", () => {
+      field.remove();
+    });
   }
 
   showLoginModal() {
@@ -101,7 +115,7 @@ class AdminManager {
       document.getElementById('adminLogin').classList.remove('hidden');
       // Reload current district if open
       if (!document.getElementById("districtModal").classList.contains("hidden")) {
-        const districtName = document.getElementById("modalTitle").textContent;
+        const districtName = document.getElementById("regionName").textContent;
         await this.map.loadInstitutionsForDistrict(districtName);
       }
     } catch (error) {
@@ -162,7 +176,7 @@ class AdminManager {
       this.map.aoopCounter = 0;
       if (inst.aoop_programs && Array.isArray(inst.aoop_programs)) {
         inst.aoop_programs.forEach(prog => {
-          this.map.addAoOpField();
+          this.addAoOpField();
           const fields = aoopList.querySelectorAll('.aoop-field');
           const lastField = fields[fields.length - 1];
           lastField.querySelector('.aoop-name').value = prog.name || '';
@@ -230,7 +244,7 @@ class AdminManager {
       const result = await response.json();
       if (result.error) throw new Error(result.error);
       if (!document.getElementById("districtModal").classList.contains("hidden")) {
-        const districtName = document.getElementById("modalTitle").textContent;
+        const districtName = document.getElementById("regionName").textContent;
         await this.map.loadInstitutionsForDistrict(districtName);
       }
     } catch (error) {
@@ -261,7 +275,7 @@ class AdminManager {
       if (result.error) throw new Error(result.error);
       document.getElementById("institutionModal").classList.add("hidden");
       if (!document.getElementById("districtModal").classList.contains("hidden")) {
-        const districtName = document.getElementById("modalTitle").textContent;
+        const districtName = document.getElementById("regionName").textContent;
         await this.map.loadInstitutionsForDistrict(districtName);
       }
     } catch (error) {
@@ -325,52 +339,6 @@ class AdminManager {
     return formData;
   }
 
-  async applyFilters() {
-    const districtName = document.getElementById("modalTitle").textContent;
-    const districtId = this.map.districtIdMap[districtName];
-    if (!districtId) return;
-
-    const params = new URLSearchParams({ district_id: districtId });
-
-    document.querySelectorAll('.filter-group-accordion input[type="checkbox"]:checked').forEach((cb) => {
-      if (["preschool", "school", "school_internat", "spo", "vo"].includes(cb.value)) {
-        params.append('type[]', cb.value);
-      }
-    });
-
-    const ageCheckboxes = document.querySelectorAll('.filter-group-accordion input[value^="3-"], .filter-group-accordion input[value^="5-"], .filter-group-accordion input[value^="7+"]');
-    ageCheckboxes.forEach((cb) => {
-      if (cb.checked) {
-        params.append('age[]', cb.value);
-      }
-    });
-
-    const conditionCheckboxes = document.querySelectorAll('.filter-group-accordion input[value="hearing_impairment"], .filter-group-accordion input[value="vision_impairment"], .filter-group-accordion input[value="musculoskeletal_impairment"], .filter-group-accordion input[value="speech_impairment"], .filter-group-accordion input[value="mental_retardation"], .filter-group-accordion input[value="autism"], .filter-group-accordion input[value="multiple_disorders"]');
-    conditionCheckboxes.forEach((cb) => {
-      if (cb.checked) {
-        params.append('condition[]', cb.value);
-      }
-    });
-
-    if (document.querySelector('.filter-group-accordion input[value="aoop"]:checked')) {
-      params.append('aoop', '1');
-    }
-
-    try {
-      const response = await fetch(`/api/get_institutions.php?${params}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-      this.map.displayInstitutions(data.institutions);
-      if (window.innerWidth <= 768) {
-        document.getElementById("filtersSection").classList.add("hidden");
-      }
-    } catch (error) {
-      console.error('Error applying filters:', error);
-      alert('Ошибка применения фильтров: ' + error.message);
-    }
-  }
-
   displayInstitutions(institutions) {
     // Вызываем родительский метод
     this.map.displayInstitutions(institutions);
@@ -378,20 +346,6 @@ class AdminManager {
     // Дополнительная логика для админа
     if (this.map.isAdmin) {
       this.map.bindAdminActions();
-    }
-  }
-
-  resetFilters() {
-    document.querySelectorAll('.filter-group-accordion input[type="checkbox"]').forEach((cb) => {
-      cb.checked = false;
-    });
-    document.querySelectorAll(".template-btn").forEach((btn) => {
-      btn.classList.remove("active");
-    });
-    const districtName = document.getElementById("modalTitle").textContent;
-    this.map.loadInstitutionsForDistrict(districtName);
-    if (window.innerWidth <= 768) {
-      document.getElementById("filtersSection").classList.add("hidden");
     }
   }
 }

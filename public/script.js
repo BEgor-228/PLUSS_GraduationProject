@@ -93,53 +93,6 @@ class LipetskMap {
     }
   }
 
-  searchInstitutions(searchTerm) {
-    const q = this.normalizeString(searchTerm || '');
-    if (!q.length) {
-      // Отображаем полный текущий набор (мастер-список)
-      this.displayInstitutions(this.allInstitutions || []);
-      return;
-    }
-
-    const numberMatch = (searchTerm || '').match(/\d+/);
-    const queryNumber = numberMatch ? numberMatch[0] : null;
-
-    const synonyms = {
-      preschool: ['детсад', 'детскийсад', 'садик', 'дс', 'сад', "дет сад", "дет.сад", "дет. сад", "дет садик", "дет.садик", "дет. садик"],
-      school: ['школа', 'шк', 'сош'],
-      school_internat: ['интернат', 'школаинтернат'],
-      spo: ['спо', 'техникум', 'колледж', 'училище'],
-      vo: ['во', 'вуз', 'университет', 'институт', 'академия']
-    };
-
-    const source = Array.isArray(this.allInstitutions) ? this.allInstitutions : [];
-    const results = source.filter(inst => {
-      const name = this.normalizeString(inst.name || '');
-      const desc = this.normalizeString(inst.description || '');
-      const director = this.normalizeString(
-        (inst.director && (inst.director.name || inst.director.full_name)) || ''
-      );
-      const website = this.normalizeString(inst.website || '');
-      const instNumber = (inst.name || '').match(/\d+/)?.[0] || null;
-
-      if (name.includes(q) || desc.includes(q) || director.includes(q) || website.includes(q)) return true;
-      if (queryNumber && instNumber && instNumber === queryNumber) return true;
-
-      for (const [type, words] of Object.entries(synonyms)) {
-        for (const w of words) {
-          if (this.normalizeString(searchTerm).includes(w) && inst.type === type) {
-            if (!queryNumber) return true;
-            if (instNumber && queryNumber === instNumber) return true;
-          }
-        }
-      }
-      return false;
-    });
-
-    // Отрисовываем результаты поиска (не меняем this.allInstitutions)
-    this.displayInstitutions(results);
-  }
-
   applyCombinedFilters() {
     const searchInput = document.getElementById("institutionSearch");
     const searchTerm = searchInput ? searchInput.value.trim() : "";
@@ -494,10 +447,6 @@ class LipetskMap {
 
 
   displayInstitutions(institutions) {
-    // НЕ перезаписываем this.allInstitutions здесь!
-    // this.allInstitutions должен быть установлен только при загрузке с сервера / при применении серверных фильтров.
-
-    // institutions — массив, который хотим сейчас отрисовать (может быть filtered от поиска)
     this.totalPages = Math.ceil(institutions.length / this.itemsPerPage);
     this.currentPage = 1;
 
@@ -645,37 +594,6 @@ class LipetskMap {
   createPageButton(page, isActive = false) {
     return `<button class="pagination-number ${isActive ? "active" : ""
       }" data-page="${page}">${page}</button>`;
-  }
-
-  bindPaginationEvents() {
-    // Кнопки вперед/назад
-    document.getElementById("prevPage").addEventListener("click", () => {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-        this.showCurrentPage();
-        this.updatePagination();
-      }
-    });
-
-    document.getElementById("nextPage").addEventListener("click", () => {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-        this.showCurrentPage();
-        this.updatePagination();
-      }
-    });
-
-    // Номера страниц
-    document.querySelectorAll(".pagination-number").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        const page = parseInt(e.target.dataset.page);
-        if (page !== this.currentPage) {
-          this.currentPage = page;
-          this.showCurrentPage();
-          this.updatePagination();
-        }
-      });
-    });
   }
 
   bindAdminActions() {
@@ -1037,7 +955,6 @@ class LipetskMap {
 
   openDistrictModal(districtName) {
     document.getElementById("districtModal").classList.remove("hidden");
-    document.getElementById("modalTitle").textContent = districtName;
     document.getElementById("regionName").textContent = districtName;
     this.loadInstitutionsForDistrict(districtName);
     const searchInput = document.getElementById("institutionSearch");
@@ -1166,97 +1083,6 @@ class LipetskMap {
     document.getElementById('institutionModalTitle').textContent = 'Добавить учреждение';
   }
 
-  addAoOpField() {
-    this.aoopCounter++;
-    const aoopList = document.getElementById("aoopList");
-    const field = document.createElement("div");
-    field.className = "aoop-field form-group";
-    field.innerHTML = `
-      <input type="text" class="aoop-name" placeholder="Название программы" required>
-      <input type="url" class="aoop-url" placeholder="URL программы">
-      <button type="button" class="remove-aoop btn btn-danger">Удалить</button>
-    `;
-    aoopList.appendChild(field);
-    field.querySelector(".remove-aoop").addEventListener("click", () => {
-      field.remove();
-    });
-  }
-
-  applyFilters() {
-    const districtName = document.getElementById("modalTitle").textContent;
-    const districtId = this.districtIdMap[districtName];
-    if (!districtId) return;
-    try {
-      this.showModalLoader();
-      const params = new URLSearchParams({ district_id: districtId });
-
-      // Фильтрация по типу учреждения
-      document
-        .querySelectorAll('.filter-group-accordion input[type="checkbox"]:checked')
-        .forEach((cb) => {
-          if (
-            ["preschool", "school", "school_internat", "spo", "vo"].includes(
-              cb.value
-            )
-          ) {
-            params.append("type[]", cb.value);
-          }
-        });
-
-      // Фильтрация по возрастным группам
-      const ageCheckboxes = document.querySelectorAll(
-        '.filter-group-accordion input[value^="3-"], .filter-group-accordion input[value^="5-"], .filter-group-accordion input[value^="7+"]'
-      );
-      ageCheckboxes.forEach((cb) => {
-        if (cb.checked) {
-          params.append("age[]", cb.value);
-        }
-      });
-
-      // Фильтрация по особым условиям
-      const conditionCheckboxes = document.querySelectorAll(
-        '.filter-group-accordion input[value="hearing_impairment"], .filter-group-accordion input[value="vision_impairment"], .filter-group-accordion input[value="musculoskeletal_impairment"], .filter-group-accordion input[value="speech_impairment"], .filter-group-accordion input[value="mental_retardation"], .filter-group-accordion input[value="autism"], .filter-group-accordion input[value="multiple_disorders"]'
-      );
-      conditionCheckboxes.forEach((cb) => {
-        if (cb.checked) {
-          params.append("condition[]", cb.value);
-        }
-      });
-
-      // Фильтрация по АООП
-      if (document.querySelector('.filter-group-accordion input[value="aoop"]:checked')) {
-        params.append("aoop", "1");
-      }
-      this.currentPage = 1;
-      // Загрузка отфильтрованных данных
-      this.loadFilteredInstitutions(params);
-    } finally {
-      this.hideModalLoader();
-    }
-  }
-
-  async loadFilteredInstitutions(params) {
-    try {
-      const response = await fetch(`/api/get_institutions.php?${params}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-
-      // Обновляем "мастер"-список — фильтры с сервера изменяют набор
-      this.allInstitutions = Array.isArray(data.institutions) ? data.institutions : [];
-
-      // И отрисовываем этот набор
-      this.displayInstitutions(this.allInstitutions);
-
-      if (window.innerWidth <= 768) {
-        document.getElementById("filtersSection").classList.add("hidden");
-      }
-    } catch (error) {
-      console.error("Error applying filters:", error);
-    }
-  }
-
-
   resetFilters() {
     document
       .querySelectorAll('.filter-group-accordion input[type="checkbox"]')
@@ -1264,37 +1090,13 @@ class LipetskMap {
         cb.checked = false;
       });
     this.currentPage = 1;
-    const districtName = document.getElementById("modalTitle").textContent;
+    const districtName = document.getElementById("regionName").textContent;
     this.loadInstitutionsForDistrict(districtName);
 
     if (window.innerWidth <= 768) {
       document.getElementById("filtersSection").classList.add("hidden");
     }
   }
-
-  showLoader() {
-    const loader = document.getElementById("modalLoader");
-    const institutionsSection = document.querySelector('.institutions-section');
-    if (loader) {
-      loader.classList.remove("hidden");
-    }
-    if (institutionsSection) {
-      institutionsSection.style.opacity = "0.5";
-    }
-  }
-
-  hideLoader() {
-    const loader = document.getElementById("modalLoader");
-    const institutionsSection = document.querySelector('.institutions-section');
-    if (loader) {
-      loader.classList.add("hidden");
-    }
-    if (institutionsSection) {
-      institutionsSection.style.opacity = "1";
-    }
-  }
-
-
 }
 
 let lipetskMap;
