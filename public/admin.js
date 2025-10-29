@@ -23,7 +23,7 @@ class AdminManager {
         this.showAdminPanel();
         // Перезагружаем текущий район, если открыт
         if (!document.getElementById("districtModal").classList.contains("hidden")) {
-          const districtName = document.getElementById("regionName").textContent;
+          const districtName = document.getElementById("modalTitle").textContent;
           await this.map.loadInstitutionsForDistrict(districtName);
         }
       }
