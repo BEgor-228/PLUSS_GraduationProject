@@ -1793,6 +1793,7 @@ input[readonly] {
     justify-content: center;
 }
 
+
 .type-filter-btn {
     padding: 8px 16px;
     border: 2px solid #3498db;
@@ -1804,6 +1805,14 @@ input[readonly] {
     font-weight: 500;
     transition: all 0.3s ease;
     white-space: nowrap;
+}
+
+.type-filter-btn[data-type="spo"],
+.type-filter-btn[data-type="vo"] {
+    min-width: 0;
+    padding: 8px 10px;
+    font-size: 13px;
+    flex: 0 1 auto; /* Позволяет сжиматься */
 }
 
 .type-filter-btn:hover {
@@ -1839,6 +1848,11 @@ input[readonly] {
 
   .filters-toggle-btn:hover {
     background: #0055aa;
+  }
+
+  .type-filter-btn[data-type="spo"],.type-filter-btn[data-type="vo"] {
+    padding: 6px 8px;
+    font-size: 12px;
   }
 
   #filtersSection {
@@ -1889,9 +1903,19 @@ input[readonly] {
   }
 }
 
+@media (min-width: 825px) {
+  .institution-type-filter-mobile {
+    display: none !important;
+  }
+}
+
 @media (max-width: 825px) {
   .container {
     padding: 0 10px;
+  }
+
+  .institution-type-filter {
+    display: none !important;
   }
 
   .header {

@@ -104,8 +104,9 @@ class LipetskMap {
       .filter(cb => cb.checked)
       .map(cb => cb.value);
 
+    // ОБНОВЛЕННЫЙ БЛОК: Добавляем фильтрацию для 1.5-3 лет
     const selectedAges = Array.from(
-      document.querySelectorAll('.filter-group-accordion input[value^="3-"], .filter-group-accordion input[value^="5-"], .filter-group-accordion input[value^="7+"]')
+      document.querySelectorAll('.filter-group-accordion input[value^="1.5-"], .filter-group-accordion input[value^="3-"], .filter-group-accordion input[value^="5-"], .filter-group-accordion input[value^="7+"]')
     )
       .filter(cb => cb.checked)
       .map(cb => cb.value);
@@ -135,12 +136,21 @@ class LipetskMap {
       // --- фильтрация по типу учреждения ---
       if (selectedTypes.length && !selectedTypes.includes(inst.type)) return false;
 
-      // --- фильтрация по возрасту / диапазону ---
+      // --- ОБНОВЛЕННАЯ ФИЛЬТРАЦИЯ ПО ВОЗРАСТУ ---
       if (selectedAges.length && inst.range_min && inst.range_max) {
         const matchAge = selectedAges.some(age => {
           if (age.includes('-')) {
-            const [min, max] = age.split('-').map(Number);
-            return inst.range_min <= max && inst.range_max >= min;
+            const [minStr, maxStr] = age.split('-');
+            const min = parseFloat(minStr);
+            const max = parseFloat(maxStr);
+
+            // Для диапазона 1.5-3 лет используем точное сравнение с десятичными дробями
+            if (age === "1.5-3") {
+              return inst.range_min <= max && inst.range_max >= min;
+            } else {
+              // Для остальных диапазонов используем целые числа
+              return inst.range_min <= max && inst.range_max >= min;
+            }
           } else if (age.includes('+')) {
             const min = parseInt(age);
             return inst.range_max >= min;
@@ -1107,8 +1117,9 @@ class LipetskMap {
     const tooltip = document.getElementById("tooltip");
     if (!tooltip) return;
 
-    tooltip.style.left = (e.pageX + 20) + "px";
-    tooltip.style.top = (e.pageY - 20) + "px";
+    // Смещаем немного вправо и вверх от курсора, чтобы не закрывался сам курсор:
+    tooltip.style.left = (e.clientX + 20) + "px";
+    tooltip.style.top = (e.clientY - 20) + "px";
   }
 
   clearInstitutionForm() {
