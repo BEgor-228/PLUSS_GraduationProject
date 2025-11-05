@@ -879,8 +879,7 @@ class LipetskMap {
             checkbox.checked = btn.classList.contains('active');
           }
 
-          // Если после переключения ни одна обычная кнопка не активна,
-          // активируем кнопку "все"
+
           const activeButtons = Array.from(document.querySelectorAll('.type-filter-btn'))
             .filter(b => b.dataset.type !== allButtonType && b.classList.contains('active'));
           if (activeButtons.length === 0) {
@@ -942,11 +941,9 @@ class LipetskMap {
   }
 
   resetFiltersUI() {
-    // Сбрасываем все чекбоксы в фильтрах
     document.querySelectorAll('.filter-group-accordion input[type="checkbox"]').forEach((cb) => {
       cb.checked = false;
     });
-    // Закрываем аккордеоны
     this.closeAllAccordions();
   }
 
@@ -977,7 +974,6 @@ class LipetskMap {
     }
   }
 
-  // Метод для плавной прокрутки к началу списка учреждений
   scrollToInstitutions() {
     const institutionsSection = document.querySelector(".institutions-section");
     if (institutionsSection) {
@@ -1142,9 +1138,7 @@ document.addEventListener("DOMContentLoaded", () => {
   lipetskMap = new LipetskMap();
 });
 
-// В конец script.js
 document.addEventListener('DOMContentLoaded', () => {
-  // Обработчик ошибок загрузки страницы
   window.addEventListener('error', () => {
     const pageLoader = document.getElementById("pageLoader");
     if (pageLoader) {
@@ -1160,7 +1154,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Скрываем загрузчик страницы если что-то пошло не так
   setTimeout(() => {
     const pageLoader = document.getElementById("pageLoader");
     if (pageLoader && pageLoader.style.display !== 'none') {
