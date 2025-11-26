@@ -455,6 +455,24 @@ class LipetskMap {
     }
   }
 
+  async loadRegionLinks(districtId) {
+    const linksDiv = document.getElementById('regionLinks');
+    if (!linksDiv) return;
+    linksDiv.innerHTML = '';
+
+    try {
+      const response = await fetch(`/api/get_links.php?district_id=${districtId}`);
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      if (data.links && data.links.length > 0) {
+        linksDiv.innerHTML = data.links.map(link =>
+          `<a href="${link.linktoinstitution}" target="_blank" class="region-link">${link.linksto}</a>`
+        ).join('<br>'); // или используйте join('') и добавьте margin в CSS
+      }
+    } catch (e) {
+      linksDiv.innerHTML = '<span class="text-muted">Нет ссылок для региона</span>';
+    }
+  }
 
   displayInstitutions(institutions) {
     this.totalPages = Math.ceil(institutions.length / this.itemsPerPage);
@@ -1001,7 +1019,9 @@ class LipetskMap {
 
   openDistrictModal(districtName) {
     document.getElementById("districtModal").classList.remove("hidden");
-    document.getElementById("regionName").textContent = districtName;
+    document.getElementById('regionName').textContent = districtName;
+    const districtId = this.districtIdMap[districtName];
+    this.loadRegionLinks(districtId);
 
     this.loadInstitutionsForDistrict(districtName);
     const searchInput = document.getElementById("institutionSearch");

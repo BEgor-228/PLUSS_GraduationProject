@@ -1828,6 +1828,34 @@ input[readonly] {
     border-color: #2980b9;
 }
 
+/* .region-links { margin-bottom: 16px; }
+.region-link { margin-right: 12px; color: #1a73e8; text-decoration: none; } */
+.region-links {
+  margin-top: 15px;
+}
+
+.region-link {
+  display: block;
+  margin-bottom: 10px;
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 6px 0;
+  border-bottom: 1px solid #ecf0f1;
+  transition: all 0.2s ease;
+}
+
+.region-link:hover {
+  color: #3498db;
+  border-bottom-color: #3498db;
+  padding-left: 8px;
+}
+
+.region-link:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
 
 @media (max-width: 1024px) {
   .modal-body {

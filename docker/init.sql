@@ -159,6 +159,14 @@ CREATE TABLE IF NOT EXISTS action_log (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS links (
+    id SERIAL PRIMARY KEY,
+    district_id INTEGER NOT NULL REFERENCES districts(id) ON DELETE CASCADE,
+    linksTo VARCHAR(20),
+    linkToInstitution TEXT
+);
+CREATE INDEX idx_links_linksTo ON links(linksTo);
+
 -- ============================================================
 -- ТРИГГЕРЫ для автоматического обновления updated_at
 -- ============================================================
@@ -180,6 +188,8 @@ CREATE TRIGGER update_institutions_updated_at
     BEFORE UPDATE ON institutions
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+
 
 
 -- ============================================================
