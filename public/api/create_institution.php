@@ -37,9 +37,11 @@ try {
             ]);
         }
     }
+
+    // ОБНОВЛЕНО: Добавляем aoop_url в INSERT
     $instSql = "
-        INSERT INTO institutions (name, district_id, type_code, director_id, description, range_min, range_max, website)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO institutions (name, district_id, type_code, director_id, description, range_min, range_max, website, aoop_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING id
     ";
     $instId = Database::fetchOne($instSql, [
@@ -50,29 +52,36 @@ try {
         $input['description'] ?? null,
         $input['range']['min'] ?? null,
         $input['range']['max'] ?? null,
-        $input['website'] ?? null
+        $input['website'] ?? null,
+        $input['aoop_url'] ?? null  // НОВОЕ: добавляем aoop_url
     ]);
+
     if (!empty($input['conditions'])) {
         $condSql = "INSERT INTO institution_conditions (institution_id, condition_code) VALUES (?, ?) ON CONFLICT DO NOTHING";
         foreach ($input['conditions'] as $cond) {
             Database::execute($condSql, [$instId, $cond]);
         }
     }
+
     if (!empty($input['conditionsAdmission'])) {
         $admSql = "INSERT INTO institution_admission (institution_id, admission_code) VALUES (?, ?) ON CONFLICT DO NOTHING";
         foreach ($input['conditionsAdmission'] as $adm) {
             Database::execute($admSql, [$instId, $adm]);
         }
     }
+
+    // ОБНОВЛЕНО: Теперь вставляем только названия программ без URL
     if (!empty($input['aoop_programs'])) {
-        $aoopSql = "INSERT INTO aoop_programs (institution_id, name, url) VALUES (?, ?, ?) ON CONFLICT DO NOTHING";
+        $aoopSql = "INSERT INTO aoop_programs (institution_id, name) VALUES (?, ?) ON CONFLICT DO NOTHING";
         foreach ($input['aoop_programs'] as $prog) {
-            Database::execute($aoopSql, [$instId, $prog['name'], $prog['url']]);
+            Database::execute($aoopSql, [$instId, $prog['name']]);
         }
     }
+
     // Log action
     $logSql = "INSERT INTO action_log (administrator_id, action, entity, record_id, new_data) VALUES (?, 'CREATE', 'institutions', ?, ?::jsonb)";
     Database::execute($logSql, [$_SESSION['admin_id'], $instId, json_encode($input)]);
+
     jsonResponse(['id' => $instId], 201);
 } catch (Exception $e) {
     error_log("Error in create_institution: " . $e->getMessage());

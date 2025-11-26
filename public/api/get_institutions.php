@@ -17,13 +17,13 @@ if (!$districtId || !is_numeric($districtId)) {
 
 $sql = "
     SELECT 
-        i.id, i.name, i.description, i.range_min, i.range_max, i.website,
+        i.id, i.name, i.description, i.range_min, i.range_max, i.website, i.aoop_url,
         d.full_name as director_name, d.phone as director_phone, d.email as director_email,
         d.id as director_id,
         it.code as type_code, it.name_ru as type_name,
         array_agg(DISTINCT ct.code) FILTER (WHERE ct.code IS NOT NULL) as condition_codes,
         array_agg(DISTINCT at.code) FILTER (WHERE at.code IS NOT NULL) as admission_codes,
-        json_agg(json_build_object('id', ap.id, 'name', ap.name, 'url', ap.url)) FILTER (WHERE ap.name IS NOT NULL) as aoop_programs
+        json_agg(json_build_object('id', ap.id, 'name', ap.name)) FILTER (WHERE ap.name IS NOT NULL) as aoop_programs
     FROM institutions i
     LEFT JOIN directors d ON i.director_id = d.id
     LEFT JOIN institution_types it ON i.type_code = it.code
@@ -117,7 +117,8 @@ try {
         ];
         $inst['type'] = $typeMap[$inst['type_name']] ?? $inst['type_code'];
         $inst['district_id'] = (int)$districtId;
-        unset($inst['condition_codes'], $inst['admission_codes'], $inst['type_name'], $inst['director_name'], $inst['director_phone'], $inst['director_email'], $inst['director_id']);    }
+        unset($inst['condition_codes'], $inst['admission_codes'], $inst['type_name'], $inst['director_name'], $inst['director_phone'], $inst['director_email'], $inst['director_id']);
+    }
 
     jsonResponse(['institutions' => $institutions]);
 } catch (Exception $e) {

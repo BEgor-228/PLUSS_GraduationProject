@@ -663,8 +663,9 @@ class LipetskMap {
       attestat: "Аттестат",
     };
 
+    // ОБНОВЛЕНО: Правильное отображение диапазона
     let rangeInfo = "";
-    if (institution.range_min && institution.range_max) {
+    if (institution.range_min !== null && institution.range_max !== null) {
       if (institution.type === "preschool") {
         rangeInfo = `${institution.range_min}-${institution.range_max} лет`;
       } else if (
@@ -672,6 +673,27 @@ class LipetskMap {
         institution.type === "school_internat"
       ) {
         rangeInfo = `${institution.range_min}-${institution.range_max} классы`;
+      } else {
+        // Для СПО, ВО и других типов
+        rangeInfo = `${institution.range_min}-${institution.range_max}`;
+      }
+    } else if (institution.range_min !== null) {
+      // Только минимальное значение
+      if (institution.type === "preschool") {
+        rangeInfo = `от ${institution.range_min} лет`;
+      } else if (institution.type === "school" || institution.type === "school_internat") {
+        rangeInfo = `от ${institution.range_min} класса`;
+      } else {
+        rangeInfo = `от ${institution.range_min}`;
+      }
+    } else if (institution.range_max !== null) {
+      // Только максимальное значение
+      if (institution.type === "preschool") {
+        rangeInfo = `до ${institution.range_max} лет`;
+      } else if (institution.type === "school" || institution.type === "school_internat") {
+        rangeInfo = `до ${institution.range_max} класса`;
+      } else {
+        rangeInfo = `до ${institution.range_max}`;
       }
     }
 
@@ -714,6 +736,7 @@ class LipetskMap {
         </div>`
         : "";
 
+    // ОБНОВЛЕНО: Отображение АООП с общей ссылкой
     const aoopSection =
       institution.aoop_programs && institution.aoop_programs.length > 0
         ? `<div class="aoop-section">
@@ -721,11 +744,19 @@ class LipetskMap {
           <ul class="aoop-list-card">
             ${institution.aoop_programs
           .map(
-            (prog) =>
-              `<li><a href="${prog.url}" target="_blank">${prog.name}</a></li>`
+            (prog) => {
+              if (institution.aoop_url) {
+                return `<li><a href="${institution.aoop_url}" target="_blank">${prog.name}</a></li>`;
+              } else {
+                return `<li>${prog.name}</li>`;
+              }
+            }
           )
           .join("")}
           </ul>
+          ${institution.aoop_url
+          ? `<div class="aoop-global-link"><strong>Общая ссылка на АООП:</strong> <a href="${institution.aoop_url}" target="_blank">${institution.aoop_url}</a></div>`
+          : ''}
         </div>`
         : "";
 
@@ -737,60 +768,59 @@ class LipetskMap {
       : "";
 
     return `
-      <div class="institution-card">
-        <h4>${institution.name}</h4>
-        <span class="institution-type">${typeNames[institution.type] || institution.type
+    <div class="institution-card">
+      <h4>${institution.name}</h4>
+      <span class="institution-type">${typeNames[institution.type] || institution.type
       }</span>
-        
-        ${institution.description
+      
+      ${institution.description
         ? `<p class="institution-description">${institution.description}</p>`
         : ""
       }
-        
-        <div class="institution-details">
-          ${rangeInfo
-        ? `<div class="detail-item"><strong>${institution.type === "preschool" ? "Возраст:" : "Классы:"
-        }</strong> ${rangeInfo}</div>`
+      
+      <div class="institution-details">
+        ${rangeInfo
+        ? `<div class="detail-item"><strong>${institution.type === "preschool" ? "Возраст:" : institution.type === "school" || institution.type === "school_internat" ? "Классы:" : "Диапазон:"}</strong> ${rangeInfo}</div>`
         : ""
       }
-          <div class="detail-item"><strong>Район:</strong> ${this.districts[institution.district_id] || "Неизвестный район"
+        <div class="detail-item"><strong>Район:</strong> ${this.districts[institution.district_id] || "Неизвестный район"
       }</div>
-        </div>
-        
-        ${conditionsSection}
-        ${admissionSection}
-        ${aoopSection}
-        
-        ${institution.director && institution.director.name
+      </div>
+      
+      ${conditionsSection}
+      ${admissionSection}
+      ${aoopSection}
+      
+      ${institution.director && institution.director.name
         ? `
-          <div class="institution-contacts">
-            <div class="contact-item"><strong>Руководитель:</strong> ${institution.director.name
+        <div class="institution-contacts">
+          <div class="contact-item"><strong>Руководитель:</strong> ${institution.director.name
         }</div>
-            ${institution.director.phone
+          ${institution.director.phone
           ? `<div class="contact-item"><strong>Телефон:</strong> ${institution.director.phone}</div>`
           : ""
         }
-            ${institution.director.email
+          ${institution.director.email
           ? `<div class="contact-item"><strong>Email:</strong> ${institution.director.email}</div>`
           : ""
         }
-          </div>
-        `
+        </div>
+      `
         : ""
       }
-        
-        ${institution.website
+      
+      ${institution.website
         ? `
-          <div class="contact-item">
-            <strong>Сайт:</strong> <a href="${institution.website}" target="_blank">${institution.website}</a>
-          </div>
-        `
+        <div class="contact-item">
+          <strong>Сайт:</strong> <a href="${institution.website}" target="_blank">${institution.website}</a>
+        </div>
+      `
         : ""
       }
-        
-        ${adminButtons}
-      </div>
-    `;
+      
+      ${adminButtons}
+    </div>
+  `;
   }
 
   bindEvents() {
@@ -1146,6 +1176,14 @@ class LipetskMap {
     document.getElementById('institutionForm').reset();
     document.getElementById('aoopList').innerHTML = '';
     this.aoopCounter = 0;
+
+    // Сбрасываем поля диапазона к значениям по умолчанию
+    document.getElementById('rangeMin').value = '';
+    document.getElementById('rangeMax').value = '';
+    document.getElementById('rangeMin').removeAttribute('min');
+    document.getElementById('rangeMin').removeAttribute('max');
+    document.getElementById('rangeMax').removeAttribute('min');
+    document.getElementById('rangeMax').removeAttribute('max');
 
     this.editingInstitution = null;
     document.getElementById('institutionModalTitle').textContent = 'Добавить учреждение';

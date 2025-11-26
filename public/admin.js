@@ -63,10 +63,9 @@ class AdminManager {
     const field = document.createElement("div");
     field.className = "aoop-field form-group";
     field.innerHTML = `
-      <input type="text" class="aoop-name" placeholder="Название программы" required>
-      <input type="url" class="aoop-url" placeholder="URL программы">
-      <button type="button" class="remove-aoop btn btn-danger">Удалить</button>
-    `;
+    <input type="text" class="aoop-name" placeholder="Название программы">
+    <button type="button" class="remove-aoop btn btn-danger">Удалить</button>
+  `;
     aoopList.appendChild(field);
     field.querySelector(".remove-aoop").addEventListener("click", () => {
       field.remove();
@@ -148,6 +147,9 @@ class AdminManager {
       document.getElementById('rangeMin').value = inst.range_min || '';
       document.getElementById('rangeMax').value = inst.range_max || '';
 
+      // НОВОЕ: Устанавливаем значение aoop_url
+      document.getElementById('institutionAoopUrl').value = inst.aoop_url || '';
+
       // Conditions Admission
       document.querySelectorAll('input[name="admission"]').forEach(cb => {
         cb.checked = false;
@@ -170,7 +172,8 @@ class AdminManager {
         });
       }
 
-      // AOOP
+      // AOOP - теперь без URL
+      // AOOP - теперь без URL
       const aoopList = document.getElementById('aoopList');
       aoopList.innerHTML = '';
       this.map.aoopCounter = 0;
@@ -180,9 +183,10 @@ class AdminManager {
           const fields = aoopList.querySelectorAll('.aoop-field');
           const lastField = fields[fields.length - 1];
           lastField.querySelector('.aoop-name').value = prog.name || '';
-          lastField.querySelector('.aoop-url').value = prog.url || '';
+          // URL больше не устанавливаем для отдельных программ
         });
       }
+
       // ВАЖНО: Добавляем вызов toggleFormFields
       this.toggleFormFields(inst.type);
 
@@ -191,6 +195,8 @@ class AdminManager {
       document.getElementById('institutionModal').classList.remove('hidden');
     } else {
       this.map.clearInstitutionForm();
+      // Устанавливаем значения по умолчанию для новой формы
+      this.toggleFormFields('school'); // или другой тип по умолчанию
       document.getElementById('institutionModal').classList.remove('hidden');
     }
   }
@@ -198,20 +204,45 @@ class AdminManager {
   // Добавляем метод toggleFormFields в AdminManager
   toggleFormFields(type) {
     const group = document.getElementById("rangeGroup");
+    const label = document.getElementById("rangeLabel");
+    const unit = document.getElementById("rangeUnit");
+
     if (!group) return;
 
+    // Всегда показываем группу диапазона
+    group.classList.remove("hidden");
+
     if (type === "preschool") {
-      group.classList.remove("hidden");
-      group.querySelector("label").textContent = "Возрастной диапазон";
+      label.textContent = "Возрастной диапазон";
       document.getElementById("rangeMin").placeholder = "От (лет)";
       document.getElementById("rangeMax").placeholder = "До (лет)";
+      unit.textContent = "(лет)";
+      // Устанавливаем разумные пределы для возраста
+      document.getElementById("rangeMin").min = "1";
+      document.getElementById("rangeMin").max = "7";
+      document.getElementById("rangeMax").min = "1";
+      document.getElementById("rangeMax").max = "7";
     } else if (type === "school" || type === "school_internat") {
-      group.classList.remove("hidden");
-      group.querySelector("label").textContent = "Диапазон классов";
+      label.textContent = "Диапазон классов";
       document.getElementById("rangeMin").placeholder = "От (класс)";
       document.getElementById("rangeMax").placeholder = "До (класс)";
+      unit.textContent = "(классов)";
+      // Устанавливаем пределы для классов
+      document.getElementById("rangeMin").min = "1";
+      document.getElementById("rangeMin").max = "11";
+      document.getElementById("rangeMax").min = "1";
+      document.getElementById("rangeMax").max = "11";
     } else {
-      group.classList.add("hidden");
+      // Для СПО и ВО тоже показываем, но с другими настройками
+      label.textContent = "Диапазон";
+      document.getElementById("rangeMin").placeholder = "От";
+      document.getElementById("rangeMax").placeholder = "До";
+      unit.textContent = "";
+      // Снимаем ограничения для других типов
+      document.getElementById("rangeMin").removeAttribute("min");
+      document.getElementById("rangeMin").removeAttribute("max");
+      document.getElementById("rangeMax").removeAttribute("min");
+      document.getElementById("rangeMax").removeAttribute("max");
     }
   }
 
@@ -255,29 +286,45 @@ class AdminManager {
 
   async saveInstitution() {
     try {
+      console.log("Начало сохранения учреждения...");
+
       const data = this.collectFormData();
+      console.log("Собранные данные:", data);
 
       // ВРЕМЕННО: принудительно используем update для отладки
       let url;
       if (this.map.editingInstitution && this.map.editingInstitution.id) {
         url = '/api/update_institution.php';
+        console.log("Режим: ОБНОВЛЕНИЕ");
       } else {
         url = '/api/create_institution.php';
+        console.log("Режим: СОЗДАНИЕ");
       }
+
+      console.log("Отправка запроса на:", url);
 
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
+
+      console.log("Статус ответа:", response.status);
+
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const result = await response.json();
+      console.log("Ответ сервера:", result);
+
       if (result.error) throw new Error(result.error);
+
       document.getElementById("institutionModal").classList.add("hidden");
       if (!document.getElementById("districtModal").classList.contains("hidden")) {
         const districtName = document.getElementById("regionName").textContent;
         await this.map.loadInstitutionsForDistrict(districtName);
       }
+
+      console.log("Сохранение завершено успешно!");
+
     } catch (error) {
       console.error('Error saving institution:', error);
       alert(`Ошибка: ${error.message}`);
@@ -285,52 +332,69 @@ class AdminManager {
   }
 
   collectFormData() {
+    // Получаем значения полей
+    const name = document.getElementById('institutionName').value.trim();
+    const districtId = parseInt(document.getElementById('districtId').value);
+    const type = document.getElementById('institutionType').value;
+    const description = document.getElementById('institutionDescription').value.trim();
+    const website = document.getElementById('institutionWebsite').value.trim();
+    const aoopUrl = document.getElementById('institutionAoopUrl').value.trim();
+    const rangeMin = document.getElementById('rangeMin').value ? parseInt(document.getElementById('rangeMin').value) : null;
+    const rangeMax = document.getElementById('rangeMax').value ? parseInt(document.getElementById('rangeMax').value) : null;
+    const directorName = document.getElementById('directorName').value.trim();
+
     const formData = {
-      name: document.getElementById('institutionName').value.trim(),
-      district_id: parseInt(document.getElementById('districtId').value),
-      type: document.getElementById('institutionType').value,
-      description: document.getElementById('institutionDescription').value.trim(),
-      website: document.getElementById('institutionWebsite').value.trim(),
+      name: name,
+      district_id: districtId,
+      type: type,
+      description: description || null,
+      website: website || null,
+      aoop_url: aoopUrl || null,
       range: {
-        min: parseInt(document.getElementById('rangeMin').value) || null,
-        max: parseInt(document.getElementById('rangeMax').value) || null
+        min: rangeMin,
+        max: rangeMax
       },
       conditions: [],
       conditionsAdmission: [],
       aoop_programs: [],
       director: {
-        name: document.getElementById('directorName').value.trim()
+        name: directorName
       }
     };
 
-    if (document.getElementById('directorPhone').value.trim()) {
-      formData.director.phone = document.getElementById('directorPhone').value.trim();
-    }
-    if (document.getElementById('directorEmail').value.trim()) {
-      formData.director.email = document.getElementById('directorEmail').value.trim();
-    }
-    if (this.map.editingInstitution && this.map.editingInstitution.director.id) {
-      formData.director.id = this.map.editingInstitution.director.id;
-    }
-
+    // Проверка обязательных полей
     if (!formData.name || !formData.type || !formData.district_id) {
       throw new Error("Заполните обязательные поля: Название, Тип и Район");
     }
+
+    // Conditions Admission
     document.querySelectorAll('input[name="admission"]:checked').forEach((cb) => {
       formData.conditionsAdmission.push(cb.value);
     });
 
+    // Special conditions
     document.querySelectorAll('#institutionForm input[type="checkbox"]:not([name="admission"]):checked').forEach((cb) => {
       formData.conditions.push(cb.value);
     });
 
+    // AOOP programs - только названия
     document.querySelectorAll(".aoop-field").forEach((field) => {
       const name = field.querySelector(".aoop-name").value.trim();
-      const url = field.querySelector(".aoop-url").value.trim();
       if (name) {
-        formData.aoop_programs.push({ name, url: url || null });
+        formData.aoop_programs.push({ name });
       }
     });
+
+    // Director contact info
+    const directorPhone = document.getElementById('directorPhone').value.trim();
+    const directorEmail = document.getElementById('directorEmail').value.trim();
+
+    if (directorPhone) formData.director.phone = directorPhone;
+    if (directorEmail) formData.director.email = directorEmail;
+
+    if (this.map.editingInstitution && this.map.editingInstitution.director?.id) {
+      formData.director.id = this.map.editingInstitution.director.id;
+    }
 
     if (this.map.editingInstitution) {
       formData.id = this.map.editingInstitution.id;

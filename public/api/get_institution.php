@@ -18,13 +18,13 @@ if (!$instId || !is_numeric($instId)) {
 try {
     $sql = "
         SELECT 
-            i.id, i.name, i.description, i.range_min, i.range_max, i.website, i.district_id,
+            i.id, i.name, i.description, i.range_min, i.range_max, i.website, i.aoop_url, i.district_id,
             d.full_name as director_name, d.phone as director_phone, d.email as director_email,
             d.id as director_id,
             it.code as type_code, it.name_ru as type_name,
             array_agg(DISTINCT ct.code) FILTER (WHERE ct.code IS NOT NULL) as condition_codes,
             array_agg(DISTINCT at.code) FILTER (WHERE at.code IS NOT NULL) as admission_codes,
-            (SELECT json_agg(json_build_object('id', ap.id, 'name', ap.name, 'url', ap.url)) FROM aoop_programs ap WHERE ap.institution_id = i.id) as aoop_programs
+            (SELECT json_agg(json_build_object('id', ap.id, 'name', ap.name)) FROM aoop_programs ap WHERE ap.institution_id = i.id) as aoop_programs
         FROM institutions i
         LEFT JOIN directors d ON i.director_id = d.id
         LEFT JOIN institution_types it ON i.type_code = it.code

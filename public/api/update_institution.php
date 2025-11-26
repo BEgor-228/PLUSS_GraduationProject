@@ -34,7 +34,7 @@ try {
             i.*, d.full_name as director_name, d.phone as director_phone, d.email as director_email,
             array_agg(DISTINCT ct.code) FILTER (WHERE ct.code IS NOT NULL) as condition_codes,
             array_agg(DISTINCT at.code) FILTER (WHERE at.code IS NOT NULL) as admission_codes,
-            json_agg(json_build_object('id', ap.id, 'name', ap.name, 'url', ap.url)) FILTER (WHERE ap.name IS NOT NULL) as aoop_programs
+            json_agg(json_build_object('id', ap.id, 'name', ap.name)) FILTER (WHERE ap.name IS NOT NULL) as aoop_programs
         FROM institutions i
         LEFT JOIN directors d ON i.director_id = d.id
         LEFT JOIN institution_conditions ic ON i.id = ic.institution_id
@@ -67,6 +67,7 @@ try {
             'max' => $oldInst['range_max']
         ],
         'website' => $oldInst['website'],
+        'aoop_url' => $oldInst['aoop_url'], // НОВОЕ: добавляем aoop_url
         'conditions' => $oldInst['condition_codes'] ? explode(',', trim($oldInst['condition_codes'], '{}')) : [],
         'conditionsAdmission' => $oldInst['admission_codes'] ? explode(',', trim($oldInst['admission_codes'], '{}')) : [],
         'aoop_programs' => $oldInst['aoop_programs'] ? json_decode($oldInst['aoop_programs'], true) : []
@@ -92,10 +93,11 @@ try {
         }
     }
 
+    // ОБНОВЛЕНО: Добавляем aoop_url в UPDATE
     $updateSql = "
         UPDATE institutions
         SET name = ?, district_id = ?, type_code = ?, director_id = ?, description = ?,
-        range_min = ?, range_max = ?, website = ?, updated_at = CURRENT_TIMESTAMP
+        range_min = ?, range_max = ?, website = ?, aoop_url = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     ";
     Database::execute($updateSql, [
@@ -107,6 +109,7 @@ try {
         $input['range']['min'] ?? null,
         $input['range']['max'] ?? null,
         $input['website'] ?? null,
+        $input['aoop_url'] ?? null, // НОВОЕ: добавляем aoop_url
         $instId
     ]);
 
@@ -128,10 +131,11 @@ try {
         }
     }
 
+    // ОБНОВЛЕНО: Теперь вставляем только названия программ без URL
     if (!empty($input['aoop_programs'])) {
-        $aoopSql = "INSERT INTO aoop_programs (institution_id, name, url) VALUES (?, ?, ?) ON CONFLICT DO NOTHING";
+        $aoopSql = "INSERT INTO aoop_programs (institution_id, name) VALUES (?, ?) ON CONFLICT DO NOTHING";
         foreach ($input['aoop_programs'] as $prog) {
-            Database::execute($aoopSql, [$instId, $prog['name'], $prog['url']]);
+            Database::execute($aoopSql, [$instId, $prog['name']]);
         }
     }
 
