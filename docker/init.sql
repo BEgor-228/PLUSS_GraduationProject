@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS institutions (
     range_min INTEGER,
     range_max INTEGER,
     website VARCHAR(500),
+    aoop_url VARCHAR(500), -- НОВОЕ ПОЛЕ: общая ссылка на АООП для всех программ
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -125,7 +126,7 @@ CREATE TABLE IF NOT EXISTS aoop_programs (
     id SERIAL PRIMARY KEY,
     institution_id INTEGER NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    url VARCHAR(500),
+    -- url VARCHAR(500), -- УДАЛЕННЫЙ СТОЛБЕЦ
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT check_aoop_name_not_empty CHECK (LENGTH(TRIM(name)) > 0)
