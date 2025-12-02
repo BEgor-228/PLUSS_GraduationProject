@@ -1130,6 +1130,7 @@ class LipetskMap {
             polygon.setAttribute("points", newPoints.join(" "));
             clone.removeAttribute("transform");
             polygon.style.fill = this.districtColors[districtName];
+            //polygon.style.fill = "#3498db";
             polygon.style.stroke = "black";
             polygon.style.strokeWidth = "2";
             polygon.classList.add("region");

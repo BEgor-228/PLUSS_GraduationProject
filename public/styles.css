@@ -241,7 +241,7 @@ g[id="region_eletskiy"] polygon.region {
   border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .modal-header h2 {
@@ -359,6 +359,7 @@ g[id="region_eletskiy"] polygon.region {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 1rem;
 }
 
 .region-image {
@@ -1828,15 +1829,8 @@ input[readonly] {
     border-color: #2980b9;
 }
 
-/* .region-links { margin-bottom: 16px; }
-.region-link { margin-right: 12px; color: #1a73e8; text-decoration: none; } */
-.region-links {
-  margin-top: 15px;
-}
-
 .region-link {
   display: block;
-  margin-bottom: 10px;
   color: #2c3e50;
   text-decoration: none;
   font-weight: 500;
@@ -1850,12 +1844,6 @@ input[readonly] {
   border-bottom-color: #3498db;
   padding-left: 8px;
 }
-
-.region-link:last-child {
-  margin-bottom: 0;
-  border-bottom: none;
-}
-
 
 @media (max-width: 1024px) {
   .modal-body {
@@ -1970,6 +1958,10 @@ input[readonly] {
     max-height: 300px;
   }
 
+  .modal-header{
+    padding: 5px 20px;
+  }
+
   .modal-content {
     max-width: 95%;
     margin: 10px;
@@ -1986,14 +1978,22 @@ input[readonly] {
     flex-direction: row;
     align-items: center;
     text-align: left;
+    padding: 10px 20px;
+    justify-content: center;
+    gap: 1rem;
   }
 
   .region-image {
-    width: 80px;
-    height: 60px;
+    width: 100px;
+    height: 80px;
     margin-right: 15px;
     margin-bottom: 0;
     font-size: 10px;
+  }
+
+  .region-links{
+    display: flex;
+    gap: 1rem;
   }
 
   .filters-section {
@@ -2178,6 +2178,17 @@ input[readonly] {
     }
 }
 
+@media (max-width: 620px) {
+  .region-image{
+    display: none;
+  }
+
+  .region-info-section{
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
 @media (max-width: 480px) {
   .modal {
     padding: 10px;
@@ -2191,10 +2202,25 @@ input[readonly] {
     padding: 0;
   }
 
+  .region-image{
+    display: none;
+  }
+
   .region-info-section,
   .institutions-section,
   .filters-section {
     padding: 15px;
+  }
+
+  .region-info-section{
+    display: flex;
+    flex-direction: column;
+  }
+
+  .region-links{
+    display: flex;
+    gap: 1rem;
+    margin-top: 5px;
   }
 
   .accessibility-panel {
