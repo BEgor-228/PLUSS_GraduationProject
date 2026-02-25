@@ -285,22 +285,22 @@ class LipetskMap {
           e.stopPropagation();
           if (hideTimeout) clearTimeout(hideTimeout);
           this.showTooltip(e, regionName);
-          svg.appendChild(group);
-          if (group.id === "region_eletskiy") {
-            const eletsGroup = svg.querySelector("#elets");
-            if (eletsGroup) {
-              svg.appendChild(eletsGroup);
-            }
-          }
+          // svg.appendChild(group);
+          // if (group.id === "region_eletskiy") {
+          //   const eletsGroup = svg.querySelector("#elets");
+          //   if (eletsGroup) {
+          //     svg.appendChild(eletsGroup);
+          //   }
+          // }
         });
 
         polygon.addEventListener("mouseout", (e) => {
           e.stopPropagation();
           hideTimeout = setTimeout(() => {
             this.hideTooltip();
-            originalOrder.forEach((originalGroup) =>
-              svg.appendChild(originalGroup)
-            );
+            // originalOrder.forEach((originalGroup) =>
+            //   svg.appendChild(originalGroup)
+            // );
           }, 100);
         });
 
@@ -319,10 +319,10 @@ class LipetskMap {
       });
     });
 
-    const eletsGroup = svg.querySelector("#elets");
-    if (eletsGroup) {
-      svg.appendChild(eletsGroup);
-    }
+    // const eletsGroup = svg.querySelector("#elets");
+    // if (eletsGroup) {
+    //   svg.appendChild(eletsGroup);
+    // }
 
     // Запускаем анимацию после небольшой задержки
     if (!this.animationPlayed) {
