@@ -14,22 +14,18 @@ class LipetskMap {
       this.aoopCounter = 0;
       this.isAdmin = false;
       this.animationPlayed = false;
-      // Пагинация
       this.currentPage = 1;
       this.itemsPerPage = 10;
       this.totalPages = 0;
       this.allInstitutions = [];
       this.displayedInstitutions = [];
-  
       this.loaderTimeout = null;
       this.pageLoaderTimeout = null;
-  
-      this.activeDistrict = null; // Текущий активный район
+      this.activeDistrict = null;
       this.hoverTimeout = null;
     }
   
     async init() {
-      // Показываем загрузчик страницы
       this.showPageLoader();
   
       try {
@@ -39,7 +35,6 @@ class LipetskMap {
       } catch (error) {
         console.error('Error during initialization:', error);
       } finally {
-        // Скрываем загрузчик страницы
         this.hidePageLoader();
       }
     }

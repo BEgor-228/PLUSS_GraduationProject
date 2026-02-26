@@ -18,10 +18,10 @@ if (!$id || !is_numeric($id)) {
 }
 try {
     $pdo = Database::getInstance();
-    // Fetch old data for log
+
     $oldSql = "
         SELECT
-            i.*, d.full_name as director_name, d.phone as director_phone, d.email as director_email,
+            i.*, d.id as director_id_val, d.full_name as director_name, d.phone as director_phone, d.email as director_email,
             array_agg(DISTINCT ct.code) FILTER (WHERE ct.code IS NOT NULL) as condition_codes,
             array_agg(DISTINCT at.code) FILTER (WHERE at.code IS NOT NULL) as admission_codes,
             json_agg(json_build_object('id', ap.id, 'name', ap.name)) FILTER (WHERE ap.name IS NOT NULL) as aoop_programs
@@ -40,6 +40,9 @@ try {
         jsonResponse(['error' => 'Institution not found'], 404);
     }
     $oldInst = $oldData[0];
+
+    $directorId = $oldInst['director_id_val'] ?? null;
+
     $oldJson = [
         'id' => (int) $oldInst['id'],
         'name' => $oldInst['name'],
@@ -56,18 +59,24 @@ try {
             'max' => $oldInst['range_max']
         ],
         'website' => $oldInst['website'],
-        'aoop_url' => $oldInst['aoop_url'], // НОВОЕ: добавляем aoop_url
+        'aoop_url' => $oldInst['aoop_url'],
         'conditions' => $oldInst['condition_codes'] ? explode(',', trim($oldInst['condition_codes'], '{}')) : [],
         'conditionsAdmission' => $oldInst['admission_codes'] ? explode(',', trim($oldInst['admission_codes'], '{}')) : [],
         'aoop_programs' => $oldInst['aoop_programs'] ? json_decode($oldInst['aoop_programs'], true) : []
     ];
+
     $result = Database::execute("DELETE FROM institutions WHERE id = ?", [(int) $id]);
     if ($result === 0) {
         jsonResponse(['error' => 'Institution not found'], 404);
     }
-    // Log action
+
+    if ($directorId) {
+        Database::execute("DELETE FROM directors WHERE id = ?", [(int) $directorId]);
+    }
+
     $logSql = "INSERT INTO action_log (administrator_id, action, entity, record_id, old_data) VALUES (?, 'DELETE', 'institutions', ?, ?::jsonb)";
     Database::execute($logSql, [$_SESSION['admin_id'], (int) $id, json_encode($oldJson)]);
+
     jsonResponse(['success' => true]);
 } catch (Exception $e) {
     error_log("Error in delete_institution: " . $e->getMessage());

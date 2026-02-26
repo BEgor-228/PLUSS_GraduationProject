@@ -25,8 +25,8 @@ Object.assign(LipetskMap.prototype, {
       const regionEletskiy = svg.querySelector("#region_eletskiy");
       const eletsGroup = svg.querySelector("#elets");
       if (regionEletskiy && eletsGroup) {
-        svg.appendChild(regionEletskiy); // Сначала кладем район
-        svg.appendChild(eletsGroup);     // Поверх него кладем город
+        svg.appendChild(regionEletskiy); 
+        svg.appendChild(eletsGroup); 
       }
   
       const groups = svg.querySelectorAll("g[id][data-region-name]");
@@ -124,16 +124,13 @@ Object.assign(LipetskMap.prototype, {
             
             this.hoverTimeout = setTimeout(() => {
               requestAnimationFrame(() => {
-                // Восстанавливаем исходный порядок для всех групп
                 originalOrder.forEach((originalGroup) => {
                   svg.appendChild(originalGroup);
                 });
                 
-                // Убираем подсветку с Ельца
                 const eletsGroup = svg.querySelector("#elets");
                 if (eletsGroup) {
                   eletsGroup.classList.remove('elets-highlight');
-                  // Убираем возможные инлайн-стили
                   eletsGroup.style.pointerEvents = '';
                 }
                 
@@ -158,7 +155,6 @@ Object.assign(LipetskMap.prototype, {
         });
       });
   
-      // Запускаем анимацию после небольшой задержки
       if (!this.animationPlayed) {
         setTimeout(() => {
           this.animateDistrictsAppearance();
@@ -167,7 +163,6 @@ Object.assign(LipetskMap.prototype, {
       }
     },
   
-    // Добавьте новый метод для анимации:
     animateDistrictsAppearance() {
       const svg = document.querySelector("#mapWrapper svg");
       if (!svg) return;
@@ -177,32 +172,26 @@ Object.assign(LipetskMap.prototype, {
       const centerY = svg.viewBox.baseVal.height / 2;
   
       districts.forEach((district, index) => {
-        // Получаем центр района для расчета направления анимации
         const bbox = district.getBBox();
         const districtCenterX = bbox.x + bbox.width / 2;
         const districtCenterY = bbox.y + bbox.height / 2;
   
-        // Рассчитываем направление от центра карты к центру района
         const deltaX = districtCenterX - centerX;
         const deltaY = districtCenterY - centerY;
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
         const directionX = deltaX / distance;
         const directionY = deltaY / distance;
   
-        // Начальное смещение (чем дальше район, тем больше смещение)
         const startOffset = Math.min(distance * 0.1, 50);
   
-        // Устанавливаем начальную позицию с отдельным transition для анимации появления
         district.style.transition = 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease-out';
         district.style.transform = `translate(${directionX * startOffset}px, ${directionY * startOffset}px) scale(0.8)`;
         district.style.opacity = "0";
   
-        // Запускаем анимацию с задержкой для создания волнового эффекта
         setTimeout(() => {
           district.style.transform = "translate(0, 0) scale(1)";
           district.style.opacity = "1";
   
-          // После завершения анимации появления возвращаем стандартные transition для hover
           setTimeout(() => {
             district.style.transition = 'transform 0.3s ease-out, filter 0.3s ease-out, stroke-width 0.3s ease-out';
           }, 800);
@@ -344,7 +333,6 @@ Object.assign(LipetskMap.prototype, {
               polygon.setAttribute("points", newPoints.join(" "));
               clone.removeAttribute("transform");
               polygon.style.fill = this.districtColors[districtName];
-              //polygon.style.fill = "#3498db";
               polygon.style.stroke = "black";
               polygon.style.strokeWidth = "2";
               polygon.classList.add("region");
@@ -381,8 +369,6 @@ Object.assign(LipetskMap.prototype, {
     updateTooltipPosition(e) {
       const tooltip = document.getElementById("tooltip");
       if (!tooltip) return;
-  
-      // Смещаем немного вправо и вверх от курсора, чтобы не закрывался сам курсор:
       tooltip.style.left = (e.clientX + 20) + "px";
       tooltip.style.top = (e.clientY - 20) + "px";
     },

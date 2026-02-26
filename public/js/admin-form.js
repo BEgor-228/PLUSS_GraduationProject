@@ -22,7 +22,6 @@ Object.assign(AdminManager.prototype, {
   
     openInstitutionForm(inst = null) {
       if (inst) {
-        // Set form fields
         document.getElementById('institutionName').value = inst.name || '';
         document.getElementById('districtId').value = inst.district_id ? inst.district_id.toString() : '';
         document.getElementById('institutionDescription').value = inst.description || '';
@@ -34,10 +33,8 @@ Object.assign(AdminManager.prototype, {
         document.getElementById('rangeMin').value = inst.range_min || '';
         document.getElementById('rangeMax').value = inst.range_max || '';
   
-        // НОВОЕ: Устанавливаем значение aoop_url
         document.getElementById('institutionAoopUrl').value = inst.aoop_url || '';
   
-        // Conditions Admission
         document.querySelectorAll('input[name="admission"]').forEach(cb => {
           cb.checked = false;
         });
@@ -48,7 +45,6 @@ Object.assign(AdminManager.prototype, {
           });
         }
   
-        // Special conditions
         document.querySelectorAll('#institutionForm input[type="checkbox"]:not([name="admission"])').forEach(cb => {
           cb.checked = false;
         });
@@ -58,9 +54,7 @@ Object.assign(AdminManager.prototype, {
             if (cb) cb.checked = true;
           });
         }
-  
-        // AOOP - теперь без URL
-        // AOOP - теперь без URL
+
         const aoopList = document.getElementById('aoopList');
         aoopList.innerHTML = '';
         this.map.aoopCounter = 0;
@@ -70,11 +64,9 @@ Object.assign(AdminManager.prototype, {
             const fields = aoopList.querySelectorAll('.aoop-field');
             const lastField = fields[fields.length - 1];
             lastField.querySelector('.aoop-name').value = prog.name || '';
-            // URL больше не устанавливаем для отдельных программ
           });
         }
   
-        // ВАЖНО: Добавляем вызов toggleFormFields
         this.toggleFormFields(inst.type);
   
         document.getElementById('institutionModalTitle').textContent = 'Редактировать учреждение';
@@ -82,13 +74,11 @@ Object.assign(AdminManager.prototype, {
         document.getElementById('institutionModal').classList.remove('hidden');
       } else {
         this.map.clearInstitutionForm();
-        // Устанавливаем значения по умолчанию для новой формы
-        this.toggleFormFields('school'); // или другой тип по умолчанию
+        this.toggleFormFields('school');
         document.getElementById('institutionModal').classList.remove('hidden');
       }
     },
   
-    // Добавляем метод toggleFormFields в AdminManager
     toggleFormFields(type) {
       const group = document.getElementById("rangeGroup");
       const label = document.getElementById("rangeLabel");
@@ -96,7 +86,6 @@ Object.assign(AdminManager.prototype, {
   
       if (!group) return;
   
-      // Всегда показываем группу диапазона
       group.classList.remove("hidden");
   
       if (type === "preschool") {
@@ -104,7 +93,6 @@ Object.assign(AdminManager.prototype, {
         document.getElementById("rangeMin").placeholder = "От (лет)";
         document.getElementById("rangeMax").placeholder = "До (лет)";
         unit.textContent = "(лет)";
-        // Устанавливаем разумные пределы для возраста
         document.getElementById("rangeMin").min = "1";
         document.getElementById("rangeMin").max = "7";
         document.getElementById("rangeMax").min = "1";
@@ -114,18 +102,15 @@ Object.assign(AdminManager.prototype, {
         document.getElementById("rangeMin").placeholder = "От (класс)";
         document.getElementById("rangeMax").placeholder = "До (класс)";
         unit.textContent = "(классов)";
-        // Устанавливаем пределы для классов
         document.getElementById("rangeMin").min = "1";
         document.getElementById("rangeMin").max = "11";
         document.getElementById("rangeMax").min = "1";
         document.getElementById("rangeMax").max = "11";
       } else {
-        // Для СПО и ВО тоже показываем, но с другими настройками
         label.textContent = "Диапазон";
         document.getElementById("rangeMin").placeholder = "От";
         document.getElementById("rangeMax").placeholder = "До";
         unit.textContent = "";
-        // Снимаем ограничения для других типов
         document.getElementById("rangeMin").removeAttribute("min");
         document.getElementById("rangeMin").removeAttribute("max");
         document.getElementById("rangeMax").removeAttribute("min");
@@ -134,7 +119,6 @@ Object.assign(AdminManager.prototype, {
     },
   
     collectFormData() {
-      // Получаем значения полей
       const name = document.getElementById('institutionName').value.trim();
       const districtId = parseInt(document.getElementById('districtId').value);
       const type = document.getElementById('institutionType').value;
@@ -164,22 +148,18 @@ Object.assign(AdminManager.prototype, {
         }
       };
   
-      // Проверка обязательных полей
       if (!formData.name || !formData.type || !formData.district_id) {
         throw new Error("Заполните обязательные поля: Название, Тип и Район");
       }
   
-      // Conditions Admission
       document.querySelectorAll('input[name="admission"]:checked').forEach((cb) => {
         formData.conditionsAdmission.push(cb.value);
       });
   
-      // Special conditions
       document.querySelectorAll('#institutionForm input[type="checkbox"]:not([name="admission"]):checked').forEach((cb) => {
         formData.conditions.push(cb.value);
       });
   
-      // AOOP programs - только названия
       document.querySelectorAll(".aoop-field").forEach((field) => {
         const name = field.querySelector(".aoop-name").value.trim();
         if (name) {
@@ -187,7 +167,6 @@ Object.assign(AdminManager.prototype, {
         }
       });
   
-      // Director contact info
       const directorPhone = document.getElementById('directorPhone').value.trim();
       const directorEmail = document.getElementById('directorEmail').value.trim();
   

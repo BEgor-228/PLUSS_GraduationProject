@@ -24,15 +24,12 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 try {
     $pdo = Database::getInstance();
-    // Check if login or email already exists
     $checkSql = "SELECT id FROM administrators WHERE login = ? OR email = ?";
     $existing = Database::query($checkSql, [$login, $email]);
     if (!empty($existing)) {
         jsonResponse(['error' => 'Login or email already exists'], 409);
     }
-    // Generate password hash
     $password_hash = password_hash($password, PASSWORD_DEFAULT);
-    // Insert new admin
     $insertSql = "INSERT INTO administrators (login, email, password_hash, full_name) VALUES (?, ?, ?, ?) RETURNING id";
     $adminId = Database::fetchOne($insertSql, [$login, $email, $password_hash, $full_name]);
     if ($adminId) {

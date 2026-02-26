@@ -30,7 +30,6 @@ Object.assign(LipetskMap.prototype, {
       if (!districtId) return;
   
       try {
-        // Показываем загрузчик модального окна с задержкой
         this.loaderTimeout = setTimeout(() => {
           this.showModalLoader();
         }, 200);
@@ -41,10 +40,8 @@ Object.assign(LipetskMap.prototype, {
         const data = await response.json();
         if (data.error) throw new Error(data.error);
   
-        // Сохраняем "мастер"-список учреждений для данного района
         this.allInstitutions = Array.isArray(data.institutions) ? data.institutions : [];
   
-        // Отображаем (displayInstitutions больше this.allInstitutions не перезаписывает)
         this.displayInstitutions(this.allInstitutions);
   
       } catch (error) {
@@ -70,7 +67,7 @@ Object.assign(LipetskMap.prototype, {
         if (data.links && data.links.length > 0) {
           linksDiv.innerHTML = data.links.map(link =>
             `<a href="${link.linktoinstitution}" target="_blank" class="region-link">${link.linksto}</a>`
-          ).join('<br>'); // или используйте join('') и добавьте margin в CSS
+          ).join('<br>');
         }
       } catch (e) {
         linksDiv.innerHTML = '<span class="text-muted">Нет ссылок для региона</span>';
@@ -91,7 +88,6 @@ Object.assign(LipetskMap.prototype, {
       if (institutions.length === 0) {
         document.getElementById("institutionsList").innerHTML = '<p class="text-muted">Учреждения не найдены</p>';
   
-        // Скрываем пагинацию и debugInfo
         const paginationTop = document.getElementById("paginationTop");
         const paginationBottom = document.getElementById("paginationBottom");
         if (paginationTop) paginationTop.classList.add("hidden");
@@ -100,13 +96,11 @@ Object.assign(LipetskMap.prototype, {
         return;
       }
   
-      // Показываем debugInfo когда есть учреждения
       if (debugInfo) {
         debugInfo.style.display = 'block';
       }
   
-      // Сохраним текущий набор, который отображается (не путать с this.allInstitutions)
-      this.displayedInstitutionsFull = institutions.slice(); // полный набор для пагинации
+      this.displayedInstitutionsFull = institutions.slice();
       this.totalPages = Math.ceil(this.displayedInstitutionsFull.length / this.itemsPerPage);
       this.currentPage = 1;
   
@@ -130,7 +124,6 @@ Object.assign(LipetskMap.prototype, {
         list.innerHTML = this.displayedInstitutions.map((inst) => this.createInstitutionCard(inst)).join('');
         if (debugInfo) debugInfo.style.display = 'block';
   
-        // Обновляем информацию о пагинации
         if (debugInfo) {
           const start = startIndex + 1;
           const end = Math.min(endIndex, source.length);
@@ -138,7 +131,6 @@ Object.assign(LipetskMap.prototype, {
         }
       }
   
-      // Обновляем кнопки действий для админа
       if (this.isAdmin) {
         this.bindAdminActions();
       }
@@ -150,7 +142,6 @@ Object.assign(LipetskMap.prototype, {
       const numbersTop = document.getElementById("paginationNumbersTop");
       const numbersBottom = document.getElementById("paginationNumbersBottom");
   
-      // Проверяем существование элементов перед работой с ними
       if (!paginationTop || !paginationBottom || !numbersTop || !numbersBottom) {
         console.error('Pagination elements not found');
         return;
@@ -226,7 +217,6 @@ Object.assign(LipetskMap.prototype, {
     },
   
     bindAdminActions() {
-      // Привязываем события для кнопок редактирования/удаления
       document.querySelectorAll(".edit-btn").forEach((btn) => {
         btn.addEventListener("click", (e) => {
           const id = parseInt(e.target.dataset.id);
@@ -264,7 +254,6 @@ Object.assign(LipetskMap.prototype, {
         attestat: "Аттестат",
       };
   
-      // ОБНОВЛЕНО: Правильное отображение диапазона
       let rangeInfo = "";
       if (institution.range_min !== null && institution.range_max !== null) {
         if (institution.type === "preschool") {
@@ -275,11 +264,9 @@ Object.assign(LipetskMap.prototype, {
         ) {
           rangeInfo = `${institution.range_min}-${institution.range_max} классы`;
         } else {
-          // Для СПО, ВО и других типов
           rangeInfo = `${institution.range_min}-${institution.range_max}`;
         }
       } else if (institution.range_min !== null) {
-        // Только минимальное значение
         if (institution.type === "preschool") {
           rangeInfo = `от ${institution.range_min} лет`;
         } else if (institution.type === "school" || institution.type === "school_internat") {
@@ -288,7 +275,6 @@ Object.assign(LipetskMap.prototype, {
           rangeInfo = `от ${institution.range_min}`;
         }
       } else if (institution.range_max !== null) {
-        // Только максимальное значение
         if (institution.type === "preschool") {
           rangeInfo = `до ${institution.range_max} лет`;
         } else if (institution.type === "school" || institution.type === "school_internat") {
@@ -337,7 +323,6 @@ Object.assign(LipetskMap.prototype, {
           </div>`
           : "";
   
-      // ОБНОВЛЕНО: Отображение АООП с общей ссылкой
       const aoopSection =
         institution.aoop_programs && institution.aoop_programs.length > 0
           ? `<div class="aoop-section">
@@ -429,7 +414,6 @@ Object.assign(LipetskMap.prototype, {
       document.getElementById('aoopList').innerHTML = '';
       this.aoopCounter = 0;
   
-      // Сбрасываем поля диапазона к значениям по умолчанию
       document.getElementById('rangeMin').value = '';
       document.getElementById('rangeMax').value = '';
       document.getElementById('rangeMin').removeAttribute('min');

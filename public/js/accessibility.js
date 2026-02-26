@@ -11,7 +11,6 @@ class AccessibilityModule {
     init() {
         this.createAccessibilityPanel();
         this.bindEvents();
-        // this.loadSettings();
     }
 
     createAccessibilityPanel() {
@@ -213,12 +212,10 @@ class AccessibilityModule {
             document.body.classList.remove('large-cursor');
             button.setAttribute('aria-pressed', 'false');
             button.classList.remove('active');
-            // localStorage.removeItem('accessibilityLargeCursor');
         } else {
             document.body.classList.add('large-cursor');
             button.setAttribute('aria-pressed', 'true');
             button.classList.add('active');
-            // localStorage.setItem('accessibilityLargeCursor', 'true');
         }
     }
 
@@ -408,33 +405,6 @@ class AccessibilityModule {
         ];
         keys.forEach(key => localStorage.removeItem(key));
     }
-
-    // loadSettings() {
-    //     const colorScheme = localStorage.getItem('accessibilityColorScheme');
-    //     if (colorScheme) {
-    //         document.body.classList.add('accessibility-' + colorScheme);
-    //         document.getElementById(colorScheme).classList.add('active');
-    //     }
-    //     const grayscale = localStorage.getItem('accessibilityGrayscale') === 'true';
-    //     if (grayscale && !colorScheme) {
-    //         document.body.classList.add('accessibility-grayscale');
-    //         document.getElementById('grayscale').classList.add('active');
-    //         document.getElementById('grayscale').setAttribute('aria-pressed', 'true');
-    //     }
-    //     const fontSize = localStorage.getItem('accessibilityFontSizePercent');
-    //     if (fontSize) {
-    //         this.currentFontSizePercent = parseInt(fontSize);
-    //         this.updateFontSize();
-    //     }
-    //     if (localStorage.getItem('accessibilityLargeCursor') === 'true') {
-    //         document.body.classList.add('large-cursor');
-    //         document.getElementById('large-cursor').classList.add('active');
-    //         document.getElementById('large-cursor').setAttribute('aria-pressed', 'true');
-    //     }
-    //     if (localStorage.getItem('accessibilityReadAloudMode') === 'true') {
-    //         this.enableTextReading();
-    //     }
-    // }
 
     loadGrayscale() {
         document.body.classList.add('accessibility-grayscale');

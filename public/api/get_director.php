@@ -18,7 +18,6 @@ try {
     
     $sql = "SELECT id, full_name, phone, email FROM directors WHERE id = ?";
     
-    // Используем метод query() и берем первый элемент
     $directors = Database::query($sql, [$directorId]);
     
     if (empty($directors)) {

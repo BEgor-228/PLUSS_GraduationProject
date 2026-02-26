@@ -5,15 +5,12 @@
 let lipetskMap;
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Инициализируем карту
   lipetskMap = new LipetskMap();
   lipetskMap.init();
 
-  // Инициализируем админ-панель
   new AdminManager(lipetskMap);
 });
 
-// Глобальная обработка ошибок загрузки страницы
 window.addEventListener('error', () => {
   const pageLoader = document.getElementById("pageLoader");
   if (pageLoader) {
@@ -41,4 +38,4 @@ setTimeout(() => {
       </div>
     `;
   }
-}, 10000); // 10 секунд
+}, 10000);

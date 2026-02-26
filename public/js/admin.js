@@ -10,7 +10,6 @@ class AdminManager {
     }
   
     init() {
-      // Проверяем URL на наличие /admin
       if (!window.location.pathname.includes('admin')) {
         return;
       }
@@ -25,12 +24,10 @@ class AdminManager {
       document.getElementById('cancelLogin').addEventListener('click', () => this.hideLoginModal());
       document.getElementById('closeLoginModal').addEventListener('click', () => this.hideLoginModal());
       document.getElementById('logout').addEventListener('click', () => this.handleLogout());
-      // Переопределяем методы карты для админа
       this.map.openInstitutionForm = (inst = null) => this.openInstitutionForm(inst);
       this.map.editInstitution = (id) => this.editInstitution(id);
       this.map.deleteInstitution = (id) => this.deleteInstitution(id);
   
-      // Привязываем submit формы учреждения
       document.getElementById('institutionForm').addEventListener('submit', (e) => {
         e.preventDefault();
         this.saveInstitution();

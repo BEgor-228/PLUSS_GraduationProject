@@ -16,7 +16,6 @@ Object.assign(LipetskMap.prototype, {
         .filter(cb => cb.checked)
         .map(cb => cb.value);
   
-      // ОБНОВЛЕННЫЙ БЛОК: Добавляем фильтрацию для 1.5-3 лет
       const selectedAges = Array.from(
         document.querySelectorAll('.filter-group-accordion input[value^="1.5-"], .filter-group-accordion input[value^="3-"], .filter-group-accordion input[value^="5-"], .filter-group-accordion input[value^="7+"]')
       )
@@ -45,10 +44,8 @@ Object.assign(LipetskMap.prototype, {
       const source = Array.isArray(this.allInstitutions) ? this.allInstitutions : [];
   
       const filtered = source.filter(inst => {
-        // --- фильтрация по типу учреждения ---
         if (selectedTypes.length && !selectedTypes.includes(inst.type)) return false;
   
-        // --- ОБНОВЛЕННАЯ ФИЛЬТРАЦИЯ ПО ВОЗРАСТУ ---
         if (selectedAges.length && inst.range_min && inst.range_max) {
           const matchAge = selectedAges.some(age => {
             if (age.includes('-')) {
@@ -56,11 +53,9 @@ Object.assign(LipetskMap.prototype, {
               const min = parseFloat(minStr);
               const max = parseFloat(maxStr);
   
-              // Для диапазона 1.5-3 лет используем точное сравнение с десятичными дробями
               if (age === "1.5-3") {
                 return inst.range_min <= max && inst.range_max >= min;
               } else {
-                // Для остальных диапазонов используем целые числа
                 return inst.range_min <= max && inst.range_max >= min;
               }
             } else if (age.includes('+')) {
@@ -72,17 +67,14 @@ Object.assign(LipetskMap.prototype, {
           if (!matchAge) return false;
         }
   
-        // --- фильтрация по условиям (ОВЗ) ---
         if (selectedConditions.length) {
           const hasCond = inst.conditions?.some(c => selectedConditions.includes(c));
           if (!hasCond) return false;
         }
   
-        // --- фильтрация по АООП ---
         if (aoopSelected && (!inst.aoop_programs || inst.aoop_programs.length === 0)) return false;
   
-        // --- теперь поиск ---
-        if (!q) return true; // если строка пустая — только фильтры
+        if (!q) return true;
   
         const name = this.normalizeString(inst.name || '');
         const desc = this.normalizeString(inst.description || '');
@@ -142,7 +134,7 @@ Object.assign(LipetskMap.prototype, {
     bindEvents() {
       document.getElementById("closeModal").addEventListener("click", () => {
         document.getElementById("districtModal").classList.add("hidden");
-        this.closeAllAccordions(); // Закрыть все аккордеоны
+        this.closeAllAccordions();
         const searchInput = document.getElementById("institutionSearch");
         if (searchInput) {
           searchInput.value = '';
@@ -158,7 +150,7 @@ Object.assign(LipetskMap.prototype, {
         const searchInput = document.getElementById("institutionSearch");
         if (searchInput) {
           searchInput.addEventListener("input", this.debounce((e) => {
-            this.applyCombinedFilters(); // теперь поиск всегда связан с фильтрами
+            this.applyCombinedFilters();
           }, 250));
         }
       });
@@ -177,7 +169,6 @@ Object.assign(LipetskMap.prototype, {
           this.clearInstitutionForm();
         });
   
-      // Apply and reset filters - will be handled by admin or basic
       document.getElementById("applyFilters").addEventListener("click", () => {
         this.applyCombinedFilters();
       });

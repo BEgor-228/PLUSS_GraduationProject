@@ -28,7 +28,6 @@ if ($instId <= 0) {
 try {
     $pdo = Database::getInstance();
 
-    // Fetch old data for log
     $oldSql = "
         SELECT
             i.*, d.full_name as director_name, d.phone as director_phone, d.email as director_email,
@@ -67,7 +66,7 @@ try {
             'max' => $oldInst['range_max']
         ],
         'website' => $oldInst['website'],
-        'aoop_url' => $oldInst['aoop_url'], // НОВОЕ: добавляем aoop_url
+        'aoop_url' => $oldInst['aoop_url'],
         'conditions' => $oldInst['condition_codes'] ? explode(',', trim($oldInst['condition_codes'], '{}')) : [],
         'conditionsAdmission' => $oldInst['admission_codes'] ? explode(',', trim($oldInst['admission_codes'], '{}')) : [],
         'aoop_programs' => $oldInst['aoop_programs'] ? json_decode($oldInst['aoop_programs'], true) : []
@@ -93,7 +92,6 @@ try {
         }
     }
 
-    // ОБНОВЛЕНО: Добавляем aoop_url в UPDATE
     $updateSql = "
         UPDATE institutions
         SET name = ?, district_id = ?, type_code = ?, director_id = ?, description = ?,
@@ -109,7 +107,7 @@ try {
         $input['range']['min'] ?? null,
         $input['range']['max'] ?? null,
         $input['website'] ?? null,
-        $input['aoop_url'] ?? null, // НОВОЕ: добавляем aoop_url
+        $input['aoop_url'] ?? null,
         $instId
     ]);
 
@@ -131,7 +129,6 @@ try {
         }
     }
 
-    // ОБНОВЛЕНО: Теперь вставляем только названия программ без URL
     if (!empty($input['aoop_programs'])) {
         $aoopSql = "INSERT INTO aoop_programs (institution_id, name) VALUES (?, ?) ON CONFLICT DO NOTHING";
         foreach ($input['aoop_programs'] as $prog) {
@@ -139,7 +136,6 @@ try {
         }
     }
 
-    // Log action
     $newJson = $input;
     $newJson['id'] = $instId;
     $logSql = "INSERT INTO action_log (administrator_id, action, entity, record_id, old_data, new_data) VALUES (?, 'UPDATE', 'institutions', ?, ?::jsonb, ?::jsonb)";

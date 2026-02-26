@@ -21,7 +21,6 @@ try {
     
     $sql .= " ORDER BY full_name";
     
-    // Используем метод query() вместо fetchAll()
     $directors = Database::query($sql, $params);
     
     echo json_encode(['directors' => $directors]);

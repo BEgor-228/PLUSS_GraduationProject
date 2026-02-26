@@ -13,7 +13,6 @@ CREATE INDEX idx_districts_name ON districts(name);
 
 COMMENT ON TABLE districts IS 'Районы Липецкой области';
 
-
 -- 2. СПРАВОЧНИК: Типы учреждений
 CREATE TABLE IF NOT EXISTS institution_types (
     code VARCHAR(20) PRIMARY KEY,
@@ -23,7 +22,6 @@ CREATE TABLE IF NOT EXISTS institution_types (
 );
 
 COMMENT ON TABLE institution_types IS 'Справочник типов образовательных учреждений';
-
 
 -- 3. СПРАВОЧНИК: Типы особых условий
 CREATE TABLE IF NOT EXISTS condition_types (
@@ -35,7 +33,6 @@ CREATE TABLE IF NOT EXISTS condition_types (
 
 COMMENT ON TABLE condition_types IS 'Справочник типов особых условий обучения';
 
-
 -- 4. СПРАВОЧНИК: Типы условий приема
 CREATE TABLE IF NOT EXISTS admission_types (
     code VARCHAR(20) PRIMARY KEY,
@@ -46,7 +43,6 @@ CREATE TABLE IF NOT EXISTS admission_types (
 
 COMMENT ON TABLE admission_types IS 'Справочник типов документов для приема';
 
-
 -- 5. СУЩНОСТЬ: Директора
 CREATE TABLE IF NOT EXISTS directors (
     id SERIAL PRIMARY KEY,
@@ -55,8 +51,6 @@ CREATE TABLE IF NOT EXISTS directors (
     email VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT check_director_contact CHECK (phone IS NOT NULL OR email IS NOT NULL)
 );
 
 CREATE INDEX idx_directors_name ON directors(full_name);
@@ -65,24 +59,25 @@ CREATE INDEX idx_directors_email ON directors(email);
 COMMENT ON TABLE directors IS 'Директора образовательных учреждений';
 COMMENT ON COLUMN directors.full_name IS 'ФИО директора';
 
-
 -- 6. ОСНОВНАЯ СУЩНОСТЬ: Учреждения
 CREATE TABLE IF NOT EXISTS institutions (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     district_id INTEGER NOT NULL REFERENCES districts(id) ON DELETE RESTRICT,
     type_code VARCHAR(20) NOT NULL REFERENCES institution_types(code) ON DELETE RESTRICT,
-    director_id INTEGER REFERENCES directors(id) ON DELETE SET NULL,
+    director_id INTEGER REFERENCES directors(id) ON DELETE RESTRICT,
     description TEXT,
     range_min INTEGER,
     range_max INTEGER,
     website VARCHAR(500),
-    aoop_url VARCHAR(500), -- НОВОЕ ПОЛЕ: общая ссылка на АООП для всех программ
+    aoop_url VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT check_range_valid CHECK (range_min IS NULL OR range_max IS NULL OR range_min <= range_max),
-    CONSTRAINT check_name_not_empty CHECK (LENGTH(TRIM(name)) > 0)
+    CONSTRAINT check_name_not_empty CHECK (LENGTH(TRIM(name)) > 0),
+    -- Директор может быть привязан только к одному учреждению
+    CONSTRAINT uq_institution_director UNIQUE (director_id)
 );
 
 CREATE INDEX idx_institutions_district ON institutions(district_id);
@@ -107,7 +102,6 @@ CREATE INDEX idx_inst_conditions_type ON institution_conditions(condition_code);
 
 COMMENT ON TABLE institution_conditions IS 'Связь учреждений с особыми условиями обучения';
 
-
 -- 8. СВЯЗЬ: Учреждения - Условия приема (многие-ко-многим)
 CREATE TABLE IF NOT EXISTS institution_admission (
     institution_id INTEGER NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
@@ -120,13 +114,11 @@ CREATE INDEX idx_inst_admission_type ON institution_admission(admission_code);
 
 COMMENT ON TABLE institution_admission IS 'Связь учреждений с типами документов для приема';
 
-
 -- 9. СВЯЗАННАЯ СУЩНОСТЬ: АООП программы
 CREATE TABLE IF NOT EXISTS aoop_programs (
     id SERIAL PRIMARY KEY,
     institution_id INTEGER NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    -- url VARCHAR(500), -- УДАЛЕННЫЙ СТОЛБЕЦ
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT check_aoop_name_not_empty CHECK (LENGTH(TRIM(name)) > 0)
@@ -152,8 +144,8 @@ CREATE TABLE IF NOT EXISTS administrators (
 CREATE TABLE IF NOT EXISTS action_log (
     id SERIAL PRIMARY KEY,
     administrator_id INTEGER NOT NULL REFERENCES administrators(id),
-    action VARCHAR(20) NOT NULL, -- CREATE, UPDATE, DELETE
-    entity VARCHAR(50) NOT NULL, -- Таблица
+    action VARCHAR(20) NOT NULL,
+    entity VARCHAR(50) NOT NULL,
     record_id INTEGER,
     old_data JSONB,
     new_data JSONB,
@@ -220,26 +212,26 @@ INSERT INTO admission_types (code, name_ru, description) VALUES
     ('attestat', 'Аттестат', 'Для детей, получающих аттестат государственного образца')
 ON CONFLICT (code) DO NOTHING;
 
--- Районы Липецкой области
+-- Округа и районы Липецкой области
 INSERT INTO districts (name) VALUES
     ('г. Липецк'),
     ('г. Елец'),
-    ('Воловский район'),
-    ('Грязинский район'),
-    ('Данковский район'),
-    ('Добринский район'),
-    ('Добровский район'),
-    ('Долгоруковский район'),
-    ('Елецкий район'),
-    ('Задонский район'),
-    ('Измалковский район'),
-    ('Краснинский район'),
-    ('Лебедянский район'),
+    ('Воловский округ'),
+    ('Грязинский округ'),
+    ('Данковский округ'),
+    ('Добринский округ'),
+    ('Добровский округ'),
+    ('Долгоруковский округ'),
+    ('Елецкий округ'),
+    ('Задонский округ'),
+    ('Измалковский округ'),
+    ('Краснинский округ'),
+    ('Лебедянский округ'),
     ('Лев-Толстовский район'),
-    ('Липецкий район'),
-    ('Становлянский район'),
-    ('Тербунский район'),
-    ('Усманский район'),
-    ('Хлевенский район'),
-    ('Чаплыгинский район')
+    ('Липецкий округ'),
+    ('Становлянский округ'),
+    ('Тербунский округ'),
+    ('Усманский округ'),
+    ('Хлевенский округ'),
+    ('Чаплыгинский округ')
 ON CONFLICT (name) DO NOTHING;

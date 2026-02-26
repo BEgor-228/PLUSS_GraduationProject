@@ -649,7 +649,7 @@ g[id="region_eletskiy"] polygon.region {
 
 .tag {
   padding: 4px 8px;
-  background: linear-gradient(135deg, #e0e0e0, #f5f5f5); /* Нейтральный серый для общих тегов */
+  background: linear-gradient(135deg, #e0e0e0, #f5f5f5); 
   color: #555;
   border-radius: 12px;
   font-size: 12px;
@@ -1487,7 +1487,6 @@ body.accessibility-white-on-black.large-cursor {
   outline-offset: 2px;
 }
 
-/* Для кликабельных элементов - двойной круг */
 .large-cursor a,
 .large-cursor button,
 .large-cursor [role="button"],

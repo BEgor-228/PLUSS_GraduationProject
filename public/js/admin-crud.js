@@ -50,7 +50,6 @@ Object.assign(AdminManager.prototype, {
         const data = this.collectFormData();
         console.log("Собранные данные:", data);
   
-        // ВРЕМЕННО: принудительно используем update для отладки
         let url;
         if (this.map.editingInstitution && this.map.editingInstitution.id) {
           url = '/api/update_institution.php';
@@ -91,10 +90,8 @@ Object.assign(AdminManager.prototype, {
     },
   
     displayInstitutions(institutions) {
-      // Вызываем родительский метод
       this.map.displayInstitutions(institutions);
   
-      // Дополнительная логика для админа
       if (this.map.isAdmin) {
         this.map.bindAdminActions();
       }

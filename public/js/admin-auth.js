@@ -12,7 +12,6 @@ Object.assign(AdminManager.prototype, {
         if (data.loggedIn) {
           this.map.isAdmin = true;
           this.showAdminPanel();
-          // Перезагружаем текущий район, если открыт
           if (!document.getElementById("districtModal").classList.contains("hidden")) {
             const districtName = document.getElementById("modalTitle").textContent;
             await this.map.loadInstitutionsForDistrict(districtName);
@@ -63,7 +62,6 @@ Object.assign(AdminManager.prototype, {
         this.map.isAdmin = false;
         document.getElementById('adminPanel').classList.add('hidden');
         document.getElementById('adminLogin').classList.remove('hidden');
-        // Reload current district if open
         if (!document.getElementById("districtModal").classList.contains("hidden")) {
           const districtName = document.getElementById("regionName").textContent;
           await this.map.loadInstitutionsForDistrict(districtName);

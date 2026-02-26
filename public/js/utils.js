@@ -2,17 +2,7 @@
 // utils.js — Вспомогательные методы LipetskMap
 // ============================================================
 
-/**
- * Методы, добавляемые в прототип LipetskMap:
- *   - showPageLoader / hidePageLoader
- *   - showModalLoader / hideModalLoader
- *   - normalizeString
- *   - debounce
- */
-
 Object.assign(LipetskMap.prototype, {
-
-    // Методы для загрузчика страницы
     showPageLoader() {
       const pageLoader = document.getElementById("pageLoader");
       if (pageLoader) {
@@ -23,7 +13,6 @@ Object.assign(LipetskMap.prototype, {
     hidePageLoader() {
       const pageLoader = document.getElementById("pageLoader");
       if (pageLoader) {
-        // Плавное исчезновение
         pageLoader.style.opacity = '0';
         setTimeout(() => {
           pageLoader.style.display = 'none';
@@ -31,7 +20,6 @@ Object.assign(LipetskMap.prototype, {
       }
     },
   
-    // Методы для загрузчика модального окна
     showModalLoader() {
       const modalLoader = document.getElementById("modalLoader");
       if (modalLoader) {
@@ -46,7 +34,6 @@ Object.assign(LipetskMap.prototype, {
       }
     },
   
-    // Нормализация строки для сравнения
     normalizeString(str) {
       if (!str) return '';
       return String(str)
@@ -56,7 +43,6 @@ Object.assign(LipetskMap.prototype, {
         .replace(/[^a-zа-я0-9]/gi, '');
     },
   
-    // Дебаунс (чтобы не дергать фильтр на каждую букву моментально)
     debounce(fn, delay = 250) {
       let timer;
       return (...args) => {
