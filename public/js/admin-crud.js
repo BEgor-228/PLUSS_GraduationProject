@@ -1,0 +1,103 @@
+// ============================================================
+// admin-crud.js — CRUD-операции над учреждениями:
+//                 редактирование, удаление, сохранение
+// ============================================================
+
+Object.assign(AdminManager.prototype, {
+
+    async editInstitution(id) {
+      try {
+        const districtId = this.map.institutions.find(inst => inst.id === id)?.district_id || 1;
+        const params = new URLSearchParams({ district_id: districtId, id });
+        const response = await fetch(`/api/get_institution.php?${params}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.error || !data.institution || data.institution.length === 0) {
+          throw new Error('Учреждение не найдено');
+        }
+        this.openInstitutionForm(data.institution);
+      } catch (error) {
+        console.error('Error loading for edit:', error);
+        alert('Ошибка загрузки для редактирования: ' + error.message);
+      }
+    },
+  
+    async deleteInstitution(id) {
+      if (!confirm("Вы уверены, что хотите удалить это учреждение?")) return;
+      try {
+        const response = await fetch('/api/delete_institution.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+        if (result.error) throw new Error(result.error);
+        if (!document.getElementById("districtModal").classList.contains("hidden")) {
+          const districtName = document.getElementById("regionName").textContent;
+          await this.map.loadInstitutionsForDistrict(districtName);
+        }
+      } catch (error) {
+        console.error('Error deleting institution:', error);
+        alert('Ошибка удаления');
+      }
+    },
+  
+    async saveInstitution() {
+      try {
+        console.log("Начало сохранения учреждения...");
+  
+        const data = this.collectFormData();
+        console.log("Собранные данные:", data);
+  
+        // ВРЕМЕННО: принудительно используем update для отладки
+        let url;
+        if (this.map.editingInstitution && this.map.editingInstitution.id) {
+          url = '/api/update_institution.php';
+          console.log("Режим: ОБНОВЛЕНИЕ");
+        } else {
+          url = '/api/create_institution.php';
+          console.log("Режим: СОЗДАНИЕ");
+        }
+  
+        console.log("Отправка запроса на:", url);
+  
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+  
+        console.log("Статус ответа:", response.status);
+  
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+        console.log("Ответ сервера:", result);
+  
+        if (result.error) throw new Error(result.error);
+  
+        document.getElementById("institutionModal").classList.add("hidden");
+        if (!document.getElementById("districtModal").classList.contains("hidden")) {
+          const districtName = document.getElementById("regionName").textContent;
+          await this.map.loadInstitutionsForDistrict(districtName);
+        }
+  
+        console.log("Сохранение завершено успешно!");
+  
+      } catch (error) {
+        console.error('Error saving institution:', error);
+        alert(`Ошибка: ${error.message}`);
+      }
+    },
+  
+    displayInstitutions(institutions) {
+      // Вызываем родительский метод
+      this.map.displayInstitutions(institutions);
+  
+      // Дополнительная логика для админа
+      if (this.map.isAdmin) {
+        this.map.bindAdminActions();
+      }
+    },
+  
+  });
