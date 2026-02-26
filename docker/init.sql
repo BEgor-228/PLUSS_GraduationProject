@@ -190,9 +190,6 @@ CREATE TRIGGER update_institutions_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-
-
-
 -- ============================================================
 -- ЗАПОЛНЕНИЕ СПРАВОЧНИКОВ
 -- ============================================================
