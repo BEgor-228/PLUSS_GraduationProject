@@ -26,6 +26,7 @@ Object.assign(AdminManager.prototype, {
         document.getElementById('districtId').value = inst.district_id ? inst.district_id.toString() : '';
         document.getElementById('institutionDescription').value = inst.description || '';
         document.getElementById('institutionType').value = inst.type || '';
+        document.getElementById('institutionAddress').value = inst.address || '';
         document.getElementById('directorName').value = inst.director ? inst.director.name : '';
         document.getElementById('directorPhone').value = inst.director ? inst.director.phone : '';
         document.getElementById('directorEmail').value = inst.director ? inst.director.email : '';
@@ -123,6 +124,7 @@ Object.assign(AdminManager.prototype, {
       const districtId = parseInt(document.getElementById('districtId').value);
       const type = document.getElementById('institutionType').value;
       const description = document.getElementById('institutionDescription').value.trim();
+      const address = document.getElementById('institutionAddress').value.trim();
       const website = document.getElementById('institutionWebsite').value.trim();
       const aoopUrl = document.getElementById('institutionAoopUrl').value.trim();
       const rangeMin = document.getElementById('rangeMin').value ? parseInt(document.getElementById('rangeMin').value) : null;
@@ -134,6 +136,7 @@ Object.assign(AdminManager.prototype, {
         district_id: districtId,
         type: type,
         description: description || null,
+        address: address || null,
         website: website || null,
         aoop_url: aoopUrl || null,
         range: {

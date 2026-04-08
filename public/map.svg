@@ -38,7 +38,7 @@
    inkscape:current-layer="Layer_1" />
 	<g
    id="region_gryazinsky"
-   data-region-name="Грязинский район"
+   data-region-name="Грязинский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -47,7 +47,7 @@
 	</g>
 	<g
    id="region_lipecky"
-   data-region-name="Липецкий район"
+   data-region-name="Липецкий округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -65,7 +65,7 @@
 	</g>
 	<g
    id="region_eletskiy"
-   data-region-name="Елецкий район"
+   data-region-name="Елецкий округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -83,7 +83,7 @@
 	</g>
 	<g
    id="region_volovsky"
-   data-region-name="Воловский район"
+   data-region-name="Воловский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -92,7 +92,7 @@
 	</g>
 	<g
    id="region_terbunsky"
-   data-region-name="Тербунский район"
+   data-region-name="Тербунский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -101,7 +101,7 @@
 	</g>
 	<g
    id="region_hlevencky"
-   data-region-name="Хлевенский район"
+   data-region-name="Хлевенский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -110,7 +110,7 @@
 	</g>
 	<g
    id="region_usmansky"
-   data-region-name="Усманский район"
+   data-region-name="Усманский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -119,7 +119,7 @@
 	</g>
 	<g
    id="region_dobrinsky"
-   data-region-name="Добринский район"
+   data-region-name="Добринский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -128,7 +128,7 @@
 	</g>
 	<g
    id="region_dolgorukovsky"
-   data-region-name="Долгоруковский район"
+   data-region-name="Долгоруковский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -137,7 +137,7 @@
 	</g>
 	<g
    id="region_zadonsky"
-   data-region-name="Задонский район"
+   data-region-name="Задонский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -146,7 +146,7 @@
 	</g>
 	<g
    id="region_ismalkovsky"
-   data-region-name="Измалковский район"
+   data-region-name="Измалковский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -155,7 +155,7 @@
 	</g>
 	<g
    id="region_stanovlyansky"
-   data-region-name="Становлянский район"
+   data-region-name="Становлянский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -173,7 +173,7 @@
 	</g>
 	<g
    id="region_krasninsky"
-   data-region-name="Краснинский район"
+   data-region-name="Краснинский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -182,7 +182,7 @@
 	</g>
 	<g
    id="region_dankovsky"
-   data-region-name="Данковский район"
+   data-region-name="Данковский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -191,7 +191,7 @@
 	</g>
 	<g
    id="region_lev_tolstovsky"
-   data-region-name="Лев-Толстовский район"
+   data-region-name="Лев-Толстовский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -200,7 +200,7 @@
 	</g>
 	<g
    id="region_chaplyginsky"
-   data-region-name="Чаплыгинский район"
+   data-region-name="Чаплыгинский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -209,7 +209,7 @@
 	</g>
 	<g
    id="region_dobrovsky"
-   data-region-name="Добровский район"
+   data-region-name="Добровский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"

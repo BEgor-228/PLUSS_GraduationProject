@@ -40,8 +40,8 @@ try {
 
     // ОБНОВЛЕНО: Добавляем aoop_url в INSERT
     $instSql = "
-        INSERT INTO institutions (name, district_id, type_code, director_id, description, range_min, range_max, website, aoop_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO institutions (name, district_id, type_code, director_id, description, range_min, range_max, website, aoop_url, address)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING id
     ";
     $instId = Database::fetchOne($instSql, [
@@ -53,7 +53,8 @@ try {
         $input['range']['min'] ?? null,
         $input['range']['max'] ?? null,
         $input['website'] ?? null,
-        $input['aoop_url'] ?? null  // НОВОЕ: добавляем aoop_url
+        $input['aoop_url'] ?? null,  // НОВОЕ: добавляем aoop_url
+        $input['address'] ?? null
     ]);
 
     if (!empty($input['conditions'])) {

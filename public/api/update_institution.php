@@ -30,7 +30,7 @@ try {
 
     $oldSql = "
         SELECT
-            i.*, d.full_name as director_name, d.phone as director_phone, d.email as director_email,
+            i.*, i.address, d.full_name as director_name, d.phone as director_phone, d.email as director_email,
             array_agg(DISTINCT ct.code) FILTER (WHERE ct.code IS NOT NULL) as condition_codes,
             array_agg(DISTINCT at.code) FILTER (WHERE at.code IS NOT NULL) as admission_codes,
             json_agg(json_build_object('id', ap.id, 'name', ap.name)) FILTER (WHERE ap.name IS NOT NULL) as aoop_programs
@@ -53,6 +53,7 @@ try {
     $oldInst = $oldData[0];
     $oldJson = [
         'name' => $oldInst['name'],
+        'address' => $oldInst['address'] ?? null,
         'district_id' => (int) $oldInst['district_id'],
         'type' => $oldInst['type_code'],
         'director' => [
@@ -95,7 +96,7 @@ try {
     $updateSql = "
         UPDATE institutions
         SET name = ?, district_id = ?, type_code = ?, director_id = ?, description = ?,
-        range_min = ?, range_max = ?, website = ?, aoop_url = ?, updated_at = CURRENT_TIMESTAMP
+        range_min = ?, range_max = ?, website = ?, aoop_url = ?, address = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     ";
     Database::execute($updateSql, [
@@ -108,6 +109,7 @@ try {
         $input['range']['max'] ?? null,
         $input['website'] ?? null,
         $input['aoop_url'] ?? null,
+        $input['address'] ?? null,
         $instId
     ]);
 

@@ -20,7 +20,7 @@ Object.assign(LipetskMap.prototype, {
         this.populateDistrictSelect();
       } catch (error) {
         console.error("Error loading districts:", error);
-        this.districts = { 1: "Липецкий район", 2: "Елецкий район" };
+        this.districts = { 1: "Липецкий округ", 2: "Елецкий округ" };
         this.populateLegend();
       }
     },
@@ -365,16 +365,20 @@ Object.assign(LipetskMap.prototype, {
         }
         
         <div class="institution-details">
-          ${rangeInfo
+        ${rangeInfo
           ? `<div class="detail-item"><strong>${institution.type === "preschool" ? "Возраст:" : institution.type === "school" || institution.type === "school_internat" ? "Классы:" : "Диапазон:"}</strong> ${rangeInfo}</div>`
           : ""
         }
-          <div class="detail-item"><strong>Район:</strong> ${this.districts[institution.district_id] || "Неизвестный район"
+          <div class="detail-item"><strong>Округа:</strong> ${this.districts[institution.district_id] || "Неизвестный район"
         }</div>
         </div>
         
         ${conditionsSection}
         ${admissionSection}
+        ${institution.address 
+            ? `<div class="detail-item"><strong>Адрес:</strong>&nbsp;${institution.address}</div>` 
+            : ""
+        }
         ${aoopSection}
         
         ${institution.director && institution.director.name
@@ -413,7 +417,7 @@ Object.assign(LipetskMap.prototype, {
       document.getElementById('institutionForm').reset();
       document.getElementById('aoopList').innerHTML = '';
       this.aoopCounter = 0;
-  
+      document.getElementById('institutionAddress').value = '';
       document.getElementById('rangeMin').value = '';
       document.getElementById('rangeMax').value = '';
       document.getElementById('rangeMin').removeAttribute('min');

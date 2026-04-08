@@ -21,7 +21,7 @@ try {
 
     $oldSql = "
         SELECT
-            i.*, d.id as director_id_val, d.full_name as director_name, d.phone as director_phone, d.email as director_email,
+            i.*, i.address, d.id as director_id_val, d.full_name as director_name, d.phone as director_phone, d.email as director_email,
             array_agg(DISTINCT ct.code) FILTER (WHERE ct.code IS NOT NULL) as condition_codes,
             array_agg(DISTINCT at.code) FILTER (WHERE at.code IS NOT NULL) as admission_codes,
             json_agg(json_build_object('id', ap.id, 'name', ap.name)) FILTER (WHERE ap.name IS NOT NULL) as aoop_programs
@@ -46,6 +46,7 @@ try {
     $oldJson = [
         'id' => (int) $oldInst['id'],
         'name' => $oldInst['name'],
+        'address' => $oldInst['address'] ?? null,
         'district_id' => (int) $oldInst['district_id'],
         'type' => $oldInst['type_code'],
         'director' => [

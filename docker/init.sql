@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS institutions (
     range_max INTEGER,
     website VARCHAR(500),
     aoop_url VARCHAR(500),
+    address TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

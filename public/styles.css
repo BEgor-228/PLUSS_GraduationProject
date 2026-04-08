@@ -34,7 +34,7 @@ body {
 }
 
 .container {
-  max-width: 1400px;
+  max-width: 3000px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -129,7 +129,6 @@ body {
 .map-container {
   position: relative;
   flex: 1;
-  height: 600px;
   overflow: hidden;
   border-radius: 8px;
   border: 1px solid #ddd;
@@ -152,7 +151,6 @@ body {
 
 .legend-container {
   width: 300px;
-  height: 600px;
   overflow-y: auto;
   background: white;
   border: 1px solid #ddd;
@@ -630,7 +628,7 @@ g[id="region_eletskiy"] polygon.region {
 
 .detail-item strong {
   color: #2c3e50;
-  min-width: 80px;
+  min-width: 70px;
 }
 
 .institution-tags {

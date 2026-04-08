@@ -17,7 +17,7 @@ if (!$districtId || !is_numeric($districtId)) {
 
 $sql = "
     SELECT 
-        i.id, i.name, i.description, i.range_min, i.range_max, i.website, i.aoop_url,
+        i.id, i.name, i.address, i.description, i.range_min, i.range_max, i.website, i.aoop_url,
         d.full_name as director_name, d.phone as director_phone, d.email as director_email,
         d.id as director_id,
         it.code as type_code, it.name_ru as type_name,
@@ -117,6 +117,7 @@ try {
         ];
         $inst['type'] = $typeMap[$inst['type_name']] ?? $inst['type_code'];
         $inst['district_id'] = (int)$districtId;
+        $inst['address'] = $inst['address'] ?? null;
         unset($inst['condition_codes'], $inst['admission_codes'], $inst['type_name'], $inst['director_name'], $inst['director_phone'], $inst['director_email'], $inst['director_id']);
     }
 

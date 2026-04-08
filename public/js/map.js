@@ -228,7 +228,7 @@ Object.assign(LipetskMap.prototype, {
       const districtSelect = document.getElementById("districtId");
       const sortedDistricts = Object.values(this.districts).sort();
       districtSelect.innerHTML = `
-          <option value="">Выберите район</option>
+          <option value="">Выберите округ</option>
           ${sortedDistricts
           .map(
             (name) =>
@@ -242,7 +242,7 @@ Object.assign(LipetskMap.prototype, {
       const name = Object.values(this.districts).find((name) =>
         name.includes(districtId)
       );
-      return name || `Район ${districtId}`;
+      return name || `Округ ${districtId}`;
     },
   
     handleDistrictClick(e, districtName) {
