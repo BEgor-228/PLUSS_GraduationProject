@@ -875,6 +875,47 @@ g[id="region_eletskiy"] polygon.region {
   display: none !important;
 }
 
+body.district-page {
+  min-height: 100vh;
+  position: relative;
+  background: #12171d;
+  overflow-x: hidden;
+}
+
+body.district-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("/static/map.jpg"), url("/static/map.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  filter: grayscale(25%) brightness(0.4);
+  opacity: 0.7;
+  z-index: 0;
+}
+
+body.district-page #districtModal {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  min-height: 100vh;
+  background: transparent;
+  z-index: 2;
+  padding: 24px;
+  align-items: center;
+}
+
+body.district-page #districtModal.hidden {
+  display: flex !important;
+}
+
+body.district-page #districtModal .modal-content {
+  max-width: 1200px;
+  max-height: calc(100vh - 48px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
 .admission-tag {
   background: #d1ecf1;
   color: #0c5460;
@@ -2266,5 +2307,43 @@ input[readonly] {
         padding: 6px 10px;
         font-size: 12px;
     }
+}
+
+/* Keep checkbox and label text on one line layout */
+.filter-option.lab-check,
+.checkbox-group label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px;
+  line-height: 1.35;
+}
+
+.filter-option.lab-check input[type="checkbox"],
+.checkbox-group label input[type="checkbox"] {
+  position: static !important;
+  margin: 0 !important;
+  flex: 0 0 auto;
+}
+
+body[data-page="institution-form"] .checkbox-group {
+  display: flex;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+body[data-page="institution-form"] .form-group .checkbox-group label {
+  display: inline-flex !important;
+  width: auto !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  text-align: left;
+}
+
+body[data-page="institution-form"] .form-group .checkbox-group label input[type="checkbox"] {
+  margin-right: 8px !important;
+  margin-left: 0 !important;
 }
 

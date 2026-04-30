@@ -10,29 +10,32 @@ class AdminManager {
     }
   
     init() {
-      document.getElementById('adminLogin').classList.remove('hidden');
+      const adminLoginBtn = document.getElementById('adminLogin');
+      if (adminLoginBtn) {
+        adminLoginBtn.classList.remove('hidden');
+      }
       this.bindEvents();
       this.checkSession();
     }
   
     bindEvents() {
-      document.getElementById('adminLogin').addEventListener('click', () => this.showLoginModal());
-      document.getElementById('loginForm').addEventListener('submit', (e) => this.handleLogin(e));
-      document.getElementById('cancelLogin').addEventListener('click', () => this.hideLoginModal());
-      document.getElementById('closeLoginModal').addEventListener('click', () => this.hideLoginModal());
-      document.getElementById('logout').addEventListener('click', () => this.handleLogout());
+      document.getElementById('adminLogin')?.addEventListener('click', () => this.showLoginModal());
+      document.getElementById('loginForm')?.addEventListener('submit', (e) => this.handleLogin(e));
+      document.getElementById('cancelLogin')?.addEventListener('click', () => this.hideLoginModal());
+      document.getElementById('closeLoginModal')?.addEventListener('click', () => this.hideLoginModal());
+      document.getElementById('logout')?.addEventListener('click', () => this.handleLogout());
       this.map.openInstitutionForm = (inst = null) => this.openInstitutionForm(inst);
       this.map.editInstitution = (id) => this.editInstitution(id);
       this.map.deleteInstitution = (id) => this.deleteInstitution(id);
   
-      document.getElementById('institutionForm').addEventListener('submit', (e) => {
+      document.getElementById('institutionForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         this.saveInstitution();
       });
-      document.getElementById('addAoOp').addEventListener('click', () => {
+      document.getElementById('addAoOp')?.addEventListener('click', () => {
         this.addAoOpField();
       });
-      document.getElementById('institutionType').addEventListener('change', (e) => {
+      document.getElementById('institutionType')?.addEventListener('change', (e) => {
         this.toggleFormFields(e.target.value);
       });
     }

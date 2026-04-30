@@ -3,7 +3,7 @@ import json
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpRequest, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
@@ -24,6 +24,45 @@ from .models import (
 
 def index(request: HttpRequest):
     return render(request, "mapapp/index.html")
+
+
+def district_page(request: HttpRequest, district_id: int):
+    district = get_object_or_404(District, pk=district_id)
+    return render(request, "mapapp/district.html", {"district": district})
+
+
+@require_GET
+def institution_create_page(request: HttpRequest):
+    if not _require_admin(request):
+        return redirect("index")
+
+    district_id = request.GET.get("district_id")
+    initial_data = {"district_id": int(district_id)} if district_id and district_id.isdigit() else {}
+    districts = District.objects.order_by("name").values("id", "name")
+    return render(
+        request,
+        "mapapp/institution_form.html",
+        {"initial_data": initial_data, "districts": districts, "mode": "create"},
+    )
+
+
+@require_GET
+def institution_edit_page(request: HttpRequest, institution_id: int):
+    if not _require_admin(request):
+        return redirect("index")
+
+    inst = get_object_or_404(
+        Institution.objects.select_related("director", "type").prefetch_related(
+            "conditions", "admission", "aoop_programs"
+        ),
+        pk=institution_id,
+    )
+    districts = District.objects.order_by("name").values("id", "name")
+    return render(
+        request,
+        "mapapp/institution_form.html",
+        {"initial_data": _serialize_institution(inst), "districts": districts, "mode": "edit"},
+    )
 
 
 def _parse_json(request: HttpRequest):

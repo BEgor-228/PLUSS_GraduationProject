@@ -251,15 +251,20 @@ Object.assign(LipetskMap.prototype, {
     },
   
     openDistrictModal(districtName) {
+      const districtId = this.districtIdMap[districtName];
+      if (!districtId) return;
+      window.location.href = `/district/${districtId}/`;
+    },
+
+    showDistrictView(districtName) {
       document.getElementById("districtModal").classList.remove("hidden");
-      document.getElementById('regionName').textContent = districtName;
+      document.getElementById("regionName").textContent = districtName;
       const districtId = this.districtIdMap[districtName];
       this.loadRegionLinks(districtId);
-  
       this.loadInstitutionsForDistrict(districtName);
       const searchInput = document.getElementById("institutionSearch");
       this.resetFiltersUI();
-      if (searchInput) searchInput.value = '';
+      if (searchInput) searchInput.value = "";
       this.loadDistrictSVG(districtName);
     },
   
@@ -268,7 +273,14 @@ Object.assign(LipetskMap.prototype, {
       if (!svgModal) return;
   
       try {
-        const mainSvg = document.querySelector("#mapWrapper svg");
+        let mainSvg = document.querySelector("#mapWrapper svg");
+        if (!mainSvg) {
+          const response = await fetch("/static/map.svg");
+          const svgText = await response.text();
+          const parser = new DOMParser();
+          const parsed = parser.parseFromString(svgText, "image/svg+xml");
+          mainSvg = parsed.querySelector("svg");
+        }
         if (!mainSvg) return;
   
         let regionGroup = mainSvg.querySelector(
@@ -284,8 +296,14 @@ Object.assign(LipetskMap.prototype, {
         if (regionGroup) {
           const clone = regionGroup.cloneNode(true);
           const polygon = clone.querySelector("polygon");
+          clone.style.opacity = "1";
+          clone.style.transform = "none";
+          clone.style.transition = "none";
   
           if (polygon) {
+            polygon.style.opacity = "1";
+            polygon.style.transform = "none";
+            polygon.style.transition = "none";
             const a = 1.4420655,
               b = 0,
               c = 0,
@@ -335,6 +353,7 @@ Object.assign(LipetskMap.prototype, {
               polygon.style.fill = this.districtColors[districtName];
               polygon.style.stroke = "black";
               polygon.style.strokeWidth = "2";
+              polygon.style.opacity = "1";
               polygon.classList.add("region");
   
               svgModal.innerHTML = "";

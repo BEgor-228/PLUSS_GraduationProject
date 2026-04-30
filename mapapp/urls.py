@@ -4,6 +4,9 @@ from . import views
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("district/<int:district_id>/", views.district_page, name="district_page"),
+    path("institution/new/", views.institution_create_page, name="institution_create_page"),
+    path("institution/<int:institution_id>/edit/", views.institution_edit_page, name="institution_edit_page"),
     path("admin/", views.index, name="admin_ui"),
     path("api/get_districts.php", views.get_districts),
     path("api/get_links.php", views.get_links),

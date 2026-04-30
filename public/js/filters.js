@@ -133,6 +133,10 @@ Object.assign(LipetskMap.prototype, {
   
     bindEvents() {
       document.getElementById("closeModal").addEventListener("click", () => {
+        if (document.body.dataset.page === "district") {
+          window.location.href = "/";
+          return;
+        }
         document.getElementById("districtModal").classList.add("hidden");
         this.closeAllAccordions();
         const searchInput = document.getElementById("institutionSearch");

@@ -9,6 +9,23 @@ document.addEventListener("DOMContentLoaded", () => {
   lipetskMap.init();
 
   new AdminManager(lipetskMap);
+
+  if (document.body.dataset.page === "district") {
+    const districtName = document.body.dataset.districtName;
+    if (districtName) {
+      const waitDistrictMap = async () => {
+        for (let i = 0; i < 40; i++) {
+          if (lipetskMap.districtIdMap && lipetskMap.districtIdMap[districtName]) {
+            lipetskMap.showDistrictView(districtName);
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        console.error("District map is not ready for district page");
+      };
+      waitDistrictMap();
+    }
+  }
 });
 
 window.addEventListener('error', () => {

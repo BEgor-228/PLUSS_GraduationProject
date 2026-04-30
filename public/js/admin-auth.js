@@ -12,8 +12,8 @@ Object.assign(AdminManager.prototype, {
         if (data.loggedIn) {
           this.map.isAdmin = true;
           this.showAdminPanel();
-          if (!document.getElementById("districtModal").classList.contains("hidden")) {
-            const districtName = document.getElementById("modalTitle").textContent;
+          if (!document.getElementById("districtModal")?.classList.contains("hidden")) {
+            const districtName = document.getElementById("regionName")?.textContent;
             await this.map.loadInstitutionsForDistrict(districtName);
           }
         }
@@ -23,12 +23,12 @@ Object.assign(AdminManager.prototype, {
     },
   
     showLoginModal() {
-      document.getElementById('loginModal').classList.remove('hidden');
+      document.getElementById('loginModal')?.classList.remove('hidden');
     },
   
     hideLoginModal() {
-      document.getElementById('loginModal').classList.add('hidden');
-      document.getElementById('loginForm').reset();
+      document.getElementById('loginModal')?.classList.add('hidden');
+      document.getElementById('loginForm')?.reset();
     },
   
     async handleLogin(e) {
@@ -60,10 +60,10 @@ Object.assign(AdminManager.prototype, {
       try {
         await fetch('/api/logout.php', { method: 'POST' });
         this.map.isAdmin = false;
-        document.getElementById('adminPanel').classList.add('hidden');
-        document.getElementById('adminLogin').classList.remove('hidden');
-        if (!document.getElementById("districtModal").classList.contains("hidden")) {
-          const districtName = document.getElementById("regionName").textContent;
+        document.getElementById('adminPanel')?.classList.add('hidden');
+        document.getElementById('adminLogin')?.classList.remove('hidden');
+        if (!document.getElementById("districtModal")?.classList.contains("hidden")) {
+          const districtName = document.getElementById("regionName")?.textContent;
           await this.map.loadInstitutionsForDistrict(districtName);
         }
       } catch (error) {
@@ -72,13 +72,13 @@ Object.assign(AdminManager.prototype, {
     },
   
     showAdminPanel() {
-      document.getElementById('adminLogin').classList.add('hidden');
-      document.getElementById('adminPanel').classList.remove('hidden');
-      document.getElementById('addInstitution').addEventListener('click', () => {
-        this.map.editingInstitution = null;
-        document.getElementById('institutionModalTitle').textContent = 'Добавить учреждение';
-        document.getElementById('institutionModal').classList.remove('hidden');
-        this.map.clearInstitutionForm();
+      document.getElementById('adminLogin')?.classList.add('hidden');
+      document.getElementById('adminPanel')?.classList.remove('hidden');
+      document.getElementById('addInstitution')?.addEventListener('click', () => {
+        const districtName = document.getElementById("regionName")?.textContent;
+        const districtId = districtName ? this.map.districtIdMap[districtName] : null;
+        const baseUrl = "/institution/new/";
+        window.location.href = districtId ? `${baseUrl}?district_id=${districtId}` : baseUrl;
       });
     },
   

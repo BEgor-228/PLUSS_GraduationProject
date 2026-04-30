@@ -6,20 +6,7 @@
 Object.assign(AdminManager.prototype, {
 
   async editInstitution(id) {
-    try {
-      const districtId = this.map.institutions.find(inst => inst.id === id)?.district_id || 1;
-      const params = new URLSearchParams({ district_id: districtId, id });
-      const response = await fetch(`/api/get_institution.php?${params}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      if (data.error || !data.institution || data.institution.length === 0) {
-        throw new Error('Учреждение не найдено');
-      }
-      this.openInstitutionForm(data.institution);
-    } catch (error) {
-      console.error('Error loading for edit:', error);
-      alert('Ошибка загрузки для редактирования: ' + error.message);
-    }
+    window.location.href = `/institution/${id}/edit/`;
   },
 
   async deleteInstitution(id) {
