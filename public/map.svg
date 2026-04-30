@@ -164,7 +164,7 @@
 	</g>
 	<g
    id="region_lebedyansky"
-   data-region-name="Лебедянский район"
+   data-region-name="Лебедянский округ"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"
@@ -191,7 +191,7 @@
 	</g>
 	<g
    id="region_lev_tolstovsky"
-   data-region-name="Лев-Толстовский округ"
+   data-region-name="Лев-Толстовский район"
    transform="matrix(1.4420655,0,0,1.4420655,-45.179089,-121.84611)">
 		<polygon
    class="region"

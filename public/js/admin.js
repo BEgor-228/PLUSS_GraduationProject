@@ -10,9 +10,6 @@ class AdminManager {
     }
   
     init() {
-      if (!window.location.pathname.includes('admin')) {
-        return;
-      }
       document.getElementById('adminLogin').classList.remove('hidden');
       this.bindEvents();
       this.checkSession();

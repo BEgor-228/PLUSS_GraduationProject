@@ -7,7 +7,7 @@ Object.assign(LipetskMap.prototype, {
 
     async loadMap() {
       try {
-        const response = await fetch("map.svg");
+        const response = await fetch("/static/map.svg");
         const svgText = await response.text();
         const mapWrapper = document.getElementById("mapWrapper");
         mapWrapper.innerHTML = svgText;
