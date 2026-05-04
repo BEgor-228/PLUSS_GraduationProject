@@ -46,12 +46,21 @@ Object.assign(AdminManager.prototype, {
           });
         }
   
-        document.querySelectorAll('#institutionForm input[type="checkbox"]:not([name="admission"])').forEach(cb => {
+        document.querySelectorAll('input[name="conditions"]').forEach(cb => {
           cb.checked = false;
         });
         if (inst.conditions && Array.isArray(inst.conditions)) {
           inst.conditions.forEach(code => {
-            const cb = document.querySelector(`#institutionForm input[value="${code}"]`);
+            const cb = document.querySelector(`input[name="conditions"][value="${code}"]`);
+            if (cb) cb.checked = true;
+          });
+        }
+        document.querySelectorAll('input[name="accessibility_criteria"]').forEach(cb => {
+          cb.checked = false;
+        });
+        if (inst.accessibility_criteria && Array.isArray(inst.accessibility_criteria)) {
+          inst.accessibility_criteria.forEach(code => {
+            const cb = document.querySelector(`input[name="accessibility_criteria"][value="${code}"]`);
             if (cb) cb.checked = true;
           });
         }
@@ -84,38 +93,57 @@ Object.assign(AdminManager.prototype, {
       const group = document.getElementById("rangeGroup");
       const label = document.getElementById("rangeLabel");
       const unit = document.getElementById("rangeUnit");
-  
-      if (!group) return;
-  
+      const rangeMin = document.getElementById("rangeMin");
+      const rangeMax = document.getElementById("rangeMax");
+      const attestatCheckbox = document.getElementById("doc_attestat");
+      const certificateCheckbox = document.getElementById("doc_certificate");
+
+      if (!group || !label || !unit || !rangeMin || !rangeMax) return;
+
+      if (attestatCheckbox) {
+        attestatCheckbox.disabled = false;
+        attestatCheckbox.parentElement.style.opacity = "1";
+        if (certificateCheckbox) {
+          certificateCheckbox.disabled = false;
+          certificateCheckbox.parentElement.style.opacity = "1";
+        }
+        const restrictedTypes = ["preschool", "school", "school_internat"];
+        if (restrictedTypes.includes(type)) {
+          attestatCheckbox.checked = false;
+          attestatCheckbox.disabled = true;
+          attestatCheckbox.parentElement.style.opacity = "0.5";
+        }
+      }
+
       group.classList.remove("hidden");
-  
+
       if (type === "preschool") {
-        label.textContent = "Возрастной диапазон";
-        document.getElementById("rangeMin").placeholder = "От (лет)";
-        document.getElementById("rangeMax").placeholder = "До (лет)";
+        label.textContent = "Возраст воспитанников";
+        rangeMin.placeholder = "От (лет)";
+        rangeMax.placeholder = "До (лет)";
         unit.textContent = "(лет)";
-        document.getElementById("rangeMin").min = "1";
-        document.getElementById("rangeMin").max = "7";
-        document.getElementById("rangeMax").min = "1";
-        document.getElementById("rangeMax").max = "7";
+        rangeMin.min = "1";
+        rangeMin.max = "7";
+        rangeMax.min = "1";
+        rangeMax.max = "7";
       } else if (type === "school" || type === "school_internat") {
-        label.textContent = "Диапазон классов";
-        document.getElementById("rangeMin").placeholder = "От (класс)";
-        document.getElementById("rangeMax").placeholder = "До (класс)";
-        unit.textContent = "(классов)";
-        document.getElementById("rangeMin").min = "1";
-        document.getElementById("rangeMin").max = "11";
-        document.getElementById("rangeMax").min = "1";
-        document.getElementById("rangeMax").max = "11";
+        label.textContent = "Классы обучения";
+        rangeMin.placeholder = "От (класс)";
+        rangeMax.placeholder = "До (класс)";
+        unit.textContent = "(классы)";
+        rangeMin.min = "1";
+        rangeMin.max = "11";
+        rangeMax.min = "1";
+        rangeMax.max = "11";
       } else {
-        label.textContent = "Диапазон";
-        document.getElementById("rangeMin").placeholder = "От";
-        document.getElementById("rangeMax").placeholder = "До";
-        unit.textContent = "";
-        document.getElementById("rangeMin").removeAttribute("min");
-        document.getElementById("rangeMin").removeAttribute("max");
-        document.getElementById("rangeMax").removeAttribute("min");
-        document.getElementById("rangeMax").removeAttribute("max");
+        label.textContent = "Курсы обучения / Возраст";
+        rangeMin.placeholder = "От";
+        rangeMax.placeholder = "До";
+        unit.textContent = "(курс/лет)";
+        rangeMin.removeAttribute("min");
+        rangeMin.removeAttribute("max");
+        rangeMax.removeAttribute("min");
+        rangeMax.removeAttribute("max");
       }
     },
   
@@ -144,6 +172,7 @@ Object.assign(AdminManager.prototype, {
           max: rangeMax
         },
         conditions: [],
+        accessibility_criteria: [],
         conditionsAdmission: [],
         aoop_programs: [],
         director: {
@@ -159,8 +188,11 @@ Object.assign(AdminManager.prototype, {
         formData.conditionsAdmission.push(cb.value);
       });
   
-      document.querySelectorAll('#institutionForm input[type="checkbox"]:not([name="admission"]):checked').forEach((cb) => {
+      document.querySelectorAll('input[name="conditions"]:checked').forEach((cb) => {
         formData.conditions.push(cb.value);
+      });
+      document.querySelectorAll('input[name="accessibility_criteria"]:checked').forEach((cb) => {
+        formData.accessibility_criteria.push(cb.value);
       });
   
       document.querySelectorAll(".aoop-field").forEach((field) => {

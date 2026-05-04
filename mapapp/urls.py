@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("profile/", views.profile_page, name="profile_page"),
     path("district/<int:district_id>/", views.district_page, name="district_page"),
     path("institution/new/", views.institution_create_page, name="institution_create_page"),
     path("institution/<int:institution_id>/edit/", views.institution_edit_page, name="institution_edit_page"),
@@ -18,6 +19,8 @@ urlpatterns = [
     path("api/logout.php", views.logout),
     path("api/check_session.php", views.check_session),
     path("api/register.php", views.register),
+    path("api/register_portal_user.php", views.register_portal_user),
+    path("api/login_portal.php", views.login_portal_user),
     path("api/create_institution.php", views.create_institution),
     path("api/update_institution.php", views.update_institution),
     path("api/delete_institution.php", views.delete_institution),

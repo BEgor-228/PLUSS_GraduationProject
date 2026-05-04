@@ -8,7 +8,14 @@ document.addEventListener("DOMContentLoaded", () => {
   lipetskMap = new LipetskMap();
   lipetskMap.init();
 
-  new AdminManager(lipetskMap);
+  const adminManager = new AdminManager(lipetskMap);
+
+  const authMode = new URLSearchParams(window.location.search).get("auth");
+  if (authMode === "login") {
+    adminManager.showLoginModal();
+  } else if (authMode === "register") {
+    adminManager.showRegisterModal();
+  }
 
   if (document.body.dataset.page === "district") {
     const districtName = document.body.dataset.districtName;

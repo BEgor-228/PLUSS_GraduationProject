@@ -253,6 +253,17 @@ Object.assign(LipetskMap.prototype, {
         certificate: "Свидетельство",
         attestat: "Аттестат",
       };
+      const accessibilityNames = {
+        ramps_lifts: "Нормативные пандусы и подъемники",
+        entrance_groups_doorways: "Входные группы и дверные проемы",
+        tactile_pedestrian_indicators: "Тактильно-пешеходные указатели",
+        braille_signage: "Информационные таблички со шрифтом Брайля",
+        accessible_sanitary_facilities: "Оборудованные санитарно-гигиенические помещения",
+        assistant_call_system: "Система вызова помощника",
+        contrast_marking: "Контрастная маркировка",
+        safety_zones_evacuation_routes: "Зоны безопасности и пути эвакуации",
+        acoustic_systems_induction_loops: "Акустические системы и индукционные петли",
+      };
   
       let rangeInfo = "";
       if (institution.range_min !== null && institution.range_max !== null) {
@@ -290,6 +301,9 @@ Object.assign(LipetskMap.prototype, {
       const uniqueAdmission = institution.conditionsAdmission
         ? [...new Set(institution.conditionsAdmission)]
         : [];
+      const uniqueAccessibilityCriteria = institution.accessibility_criteria
+        ? [...new Set(institution.accessibility_criteria)]
+        : [];
   
       const conditionsSection =
         uniqueConditions.length > 0
@@ -316,6 +330,21 @@ Object.assign(LipetskMap.prototype, {
             .map(
               (admission) =>
                 `<span class="tag admission">${admissionNames[admission] || admission
+                }</span>`
+            )
+            .join("")}
+            </div>
+          </div>`
+          : "";
+      const accessibilitySection =
+        uniqueAccessibilityCriteria.length > 0
+          ? `<div class="admission-section">
+            <h5>Критерии физической доступности:</h5>
+            <div class="institution-tags">
+              ${uniqueAccessibilityCriteria
+            .map(
+              (criterion) =>
+                `<span class="tag admission">${accessibilityNames[criterion] || criterion
                 }</span>`
             )
             .join("")}
@@ -375,6 +404,7 @@ Object.assign(LipetskMap.prototype, {
         
         ${conditionsSection}
         ${admissionSection}
+        ${accessibilitySection}
         ${institution.address 
             ? `<div class="detail-item"><strong>Адрес:</strong>&nbsp;${institution.address}</div>` 
             : ""

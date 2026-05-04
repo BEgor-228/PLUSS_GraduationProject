@@ -289,7 +289,8 @@ g[id="region_eletskiy"] polygon.region {
     margin: 0 auto;
 }
 
-#loginModal .modal-content {
+#loginModal .modal-content,
+#registerModal .modal-content {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -301,13 +302,15 @@ g[id="region_eletskiy"] polygon.region {
     background: #fff;
 }
 
-#loginModal .form-group {
+#loginModal .form-group,
+#registerModal .form-group {
     width: 100%;
     margin-bottom: 18px;
     text-align: left;
 }
 
-#loginModal .form-group input {
+#loginModal .form-group input,
+#registerModal .form-group input {
     width: 100%;
     background: #fff;
     border: 2px solid #e1e6eb;
@@ -319,7 +322,8 @@ g[id="region_eletskiy"] polygon.region {
     box-sizing: border-box;
 }
 
-#loginModal .form-group label {
+#loginModal .form-group label,
+#registerModal .form-group label {
     display: block;
     font-weight: 600;
     color: #2c3e50;
@@ -327,7 +331,8 @@ g[id="region_eletskiy"] polygon.region {
     font-size: 15px;
 }
 
-#loginModal .form-actions {
+#loginModal .form-actions,
+#registerModal .form-actions {
     display: flex;
     gap: 14px;
     width: 100%;
@@ -335,12 +340,68 @@ g[id="region_eletskiy"] polygon.region {
     margin-top: 8px;
 }
 
-#loginModal .btn-primary, #loginModal .btn-secondary {
+#loginModal .btn-primary, #loginModal .btn-secondary,
+#registerModal .btn-primary, #registerModal .btn-secondary {
     font-size: 16px;
     border-radius: 8px;
     padding: 10px 0;
     width: 48%;
     font-weight: 700;
+}
+
+.login-error-message {
+    width: 100%;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid #e74c3c;
+    background: #fdecea;
+    color: #c0392b;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.auth-role-tabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.auth-role-btn {
+    border: 1px solid #d6dfeb;
+    background: #fff;
+    color: #1f4f82;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.auth-role-btn.active {
+    background: #e9f1fb;
+    border-color: #2c6ab3;
+}
+
+.auth-switch-row {
+    margin-top: 14px;
+    font-size: 14px;
+    color: #4f5d6b;
+    text-align: center;
+}
+
+.auth-link-btn {
+    border: 0;
+    background: none;
+    color: #1f5fa6;
+    cursor: pointer;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+.auth-link-btn:hover {
+    text-decoration: underline;
 }
 
 
@@ -443,19 +504,34 @@ g[id="region_eletskiy"] polygon.region {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
+  align-items: stretch;
 }
 
-.checkbox-group label {
-  display: flex;
-  align-items: center;
+/* One column for checkbox, one for text — same width for all rows */
+.form-group .checkbox-group > label,
+#institutionModal .checkbox-group > label {
+  display: grid !important;
+  grid-template-columns: 1.125rem 1fr;
+  column-gap: 12px;
+  align-items: start;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   margin-bottom: 0;
   font-weight: normal;
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(0.9em * var(--accessibility-font-scale, 1));
+  line-height: 1.35;
 }
 
-.checkbox-group input[type="checkbox"] {
-  margin-right: 8px;
+.form-group .checkbox-group > label input[type="checkbox"],
+#institutionModal .checkbox-group > label input[type="checkbox"] {
+  margin: 0 !important;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.2em !important;
+  flex: unset;
 }
 
 .filter-actions {
@@ -520,10 +596,6 @@ g[id="region_eletskiy"] polygon.region {
   font-family: 'Font Awesome 6 Free';
   font-weight: 900;
   font-size: 0.9em;
-}
-
-.checkbox-group label {
-  font-size: calc(0.9em * var(--accessibility-font-scale)) !important;
 }
 
 .page-loader {
@@ -805,7 +877,8 @@ g[id="region_eletskiy"] polygon.region {
   margin-bottom: 20px;
 }
 
-.form-group label {
+/* Only top-level captions; not checkbox row labels inside .checkbox-group */
+.form-group > label {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
@@ -1018,7 +1091,7 @@ body.district-page #districtModal .modal-content {
   margin-bottom: 20px;
 }
 
-#institutionModal .form-group label {
+#institutionModal .form-group > label {
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
@@ -1083,26 +1156,20 @@ body.district-page #districtModal .modal-content {
   margin-top: 10px;
 }
 
-#institutionModal .checkbox-group label {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0;
-  font-weight: normal;
-  cursor: pointer;
+#institutionModal .checkbox-group > label {
   font-size: 14px;
   padding: 8px;
   border-radius: 4px;
   transition: background 0.2s;
 }
 
-#institutionModal .checkbox-group label:hover {
+#institutionModal .checkbox-group > label:hover {
   background: #f8f9fa;
 }
 
-#institutionModal .checkbox-group input[type="checkbox"] {
-  margin-right: 8px;
-  width: 16px;
-  height: 16px;
+#institutionModal .checkbox-group > label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
 }
 
 .accessibility-module {
@@ -2309,9 +2376,7 @@ input[readonly] {
     }
 }
 
-/* Keep checkbox and label text on one line layout */
-.filter-option.lab-check,
-.checkbox-group label {
+.filter-option.lab-check {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
@@ -2319,31 +2384,94 @@ input[readonly] {
   line-height: 1.35;
 }
 
-.filter-option.lab-check input[type="checkbox"],
-.checkbox-group label input[type="checkbox"] {
+.filter-option.lab-check input[type="checkbox"] {
   position: static !important;
   margin: 0 !important;
   flex: 0 0 auto;
 }
 
 body[data-page="institution-form"] .checkbox-group {
-  display: flex;
   flex-direction: column !important;
   flex-wrap: nowrap !important;
-  gap: 8px;
-  align-items: flex-start;
 }
 
-body[data-page="institution-form"] .form-group .checkbox-group label {
-  display: inline-flex !important;
-  width: auto !important;
-  justify-content: flex-start !important;
-  align-items: center !important;
-  text-align: left;
+/* ——— Страница профиля ——— */
+.profile-body {
+  min-height: 100vh;
+  background: #eef2f7;
 }
 
-body[data-page="institution-form"] .form-group .checkbox-group label input[type="checkbox"] {
-  margin-right: 8px !important;
-  margin-left: 0 !important;
+.profile-top-bar {
+  background: #1e3a5f;
+  color: #fff;
+  padding: 16px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.profile-brand {
+  color: #fff;
+  font-size: calc(1.15rem * var(--accessibility-font-scale));
+  font-weight: 600;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.profile-brand:hover {
+  color: #c5daf5;
+}
+
+.profile-shell {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+.profile-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 24px 32px;
+  box-shadow: 0 4px 24px rgba(30, 58, 95, 0.08);
+}
+
+.profile-title {
+  font-size: calc(1.5rem * var(--accessibility-font-scale));
+  color: #1e3a5f;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.profile-lead {
+  font-size: calc(1.05rem * var(--accessibility-font-scale));
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.profile-lead--ok {
+  color: #1e5a3a;
+  font-weight: 500;
+}
+
+.profile-hint {
+  font-size: calc(0.9rem * var(--accessibility-font-scale));
+  color: #6c757d;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.profile-meta {
+  font-size: calc(0.95rem * var(--accessibility-font-scale));
+  color: #495057;
+  margin-bottom: 20px;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.profile-header-link {
+  text-align: center;
 }
 

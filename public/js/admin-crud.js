@@ -84,44 +84,4 @@ Object.assign(AdminManager.prototype, {
     }
   },
 
-  toggleFormFields(type) {
-    const attestatCheckbox = document.getElementById('doc_attestat');
-    const certificateCheckbox = document.getElementById('doc_certificate');
-    const rangeLabel = document.getElementById('rangeLabel');
-    const rangeUnit = document.getElementById('rangeUnit');
-
-    if (!attestatCheckbox) return;
-
-    // 1. Сброс состояний по умолчанию
-    attestatCheckbox.disabled = false;
-    attestatCheckbox.parentElement.style.opacity = "1";
-    if (certificateCheckbox) {
-      certificateCheckbox.disabled = false;
-      certificateCheckbox.parentElement.style.opacity = "1";
-    }
-
-    // 2. Логика блокировки "Аттестата" для Дошкольных, Школ и Интернатов
-    // (Если я правильно понял, вы хотите оставить там только Свидетельство)
-    const restrictedTypes = ['preschool', 'school', 'school_internat'];
-
-    if (restrictedTypes.includes(type)) {
-      attestatCheckbox.checked = false;
-      attestatCheckbox.disabled = true;
-      attestatCheckbox.parentElement.style.opacity = "0.5";
-    }
-
-    // 3. Управление текстовыми подписями (Возраст vs Классы)
-    if (type === 'preschool') {
-      if (rangeLabel) rangeLabel.textContent = "Возраст воспитанников";
-      if (rangeUnit) rangeUnit.textContent = "(лет)";
-    } else if (type === 'school' || type === 'school_internat') {
-      if (rangeLabel) rangeLabel.textContent = "Классы обучения";
-      if (rangeUnit) rangeUnit.textContent = "(классы)";
-    } else {
-      // Для СПО и ВО
-      if (rangeLabel) rangeLabel.textContent = "Курсы обучения / Возраст";
-      if (rangeUnit) rangeUnit.textContent = "(курс/лет)";
-    }
-  }
-
 });

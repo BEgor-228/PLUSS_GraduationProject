@@ -47,26 +47,30 @@ TEMPLATES = [
 WSGI_APPLICATION = "interactive_map.wsgi.application"
 ASGI_APPLICATION = "interactive_map.asgi.application"
 
-DB_ENGINE = os.getenv("DB_ENGINE", "sqlite")
+DB_ENGINE = os.getenv("DB_ENGINE", "postgres").strip().lower()
 
 if DB_ENGINE == "postgres":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("DB_NAME", "interactive_map"),
-            "USER": os.getenv("DB_USER", "postgres"),
-            "PASSWORD": os.getenv("DB_PASS", "postgres"),
+            "NAME": os.getenv("DB_NAME", "lipetsk_institutions_db"),
+            "USER": os.getenv("DB_USER", "user"),
+            "PASSWORD": os.getenv("DB_PASS", "password"),
             "HOST": os.getenv("DB_HOST", "db"),
             "PORT": os.getenv("DB_PORT", "5432"),
         }
     }
-else:
+elif DB_ENGINE == "sqlite":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+else:
+    raise ValueError(
+        "Unsupported DB_ENGINE value. Use 'postgres' (default) or explicitly set DB_ENGINE=sqlite."
+    )
 
 AUTH_PASSWORD_VALIDATORS = []
 

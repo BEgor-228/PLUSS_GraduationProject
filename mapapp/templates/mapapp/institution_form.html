@@ -57,13 +57,27 @@
                 <div class="form-group">
                     <label>Особые условия</label>
                     <div class="checkbox-group">
-                        <label><input type="checkbox" value="hearing_impairment"> Нарушения слуха</label>
-                        <label><input type="checkbox" value="vision_impairment"> Нарушения зрения</label>
-                        <label><input type="checkbox" value="musculoskeletal_impairment"> Нарушения опорно-двигательного аппарата</label>
-                        <label><input type="checkbox" value="speech_impairment"> Нарушения речи</label>
-                        <label><input type="checkbox" value="mental_retardation"> Задержка психического развития</label>
-                        <label><input type="checkbox" value="autism"> Расстройство аутистического спектра</label>
-                        <label><input type="checkbox" value="multiple_disorders"> Множественные нарушения развития</label>
+                        <label><input type="checkbox" value="hearing_impairment" name="conditions"> Нарушения слуха</label>
+                        <label><input type="checkbox" value="vision_impairment" name="conditions"> Нарушения зрения</label>
+                        <label><input type="checkbox" value="musculoskeletal_impairment" name="conditions"> Нарушения опорно-двигательного аппарата</label>
+                        <label><input type="checkbox" value="speech_impairment" name="conditions"> Нарушения речи</label>
+                        <label><input type="checkbox" value="mental_retardation" name="conditions"> Задержка психического развития</label>
+                        <label><input type="checkbox" value="autism" name="conditions"> Расстройство аутистического спектра</label>
+                        <label><input type="checkbox" value="multiple_disorders" name="conditions"> Множественные нарушения развития</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Критерии физической доступности</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="ramps_lifts" name="accessibility_criteria"> Нормативные пандусы и подъемники</label>
+                        <label><input type="checkbox" value="entrance_groups_doorways" name="accessibility_criteria"> Входные группы и дверные проемы</label>
+                        <label><input type="checkbox" value="tactile_pedestrian_indicators" name="accessibility_criteria"> Тактильно-пешеходные указатели</label>
+                        <label><input type="checkbox" value="braille_signage" name="accessibility_criteria"> Информационные таблички со шрифтом Брайля</label>
+                        <label><input type="checkbox" value="accessible_sanitary_facilities" name="accessibility_criteria"> Оборудованные санитарно-гигиенические помещения</label>
+                        <label><input type="checkbox" value="assistant_call_system" name="accessibility_criteria"> Система вызова помощника</label>
+                        <label><input type="checkbox" value="contrast_marking" name="accessibility_criteria"> Контрастная маркировка</label>
+                        <label><input type="checkbox" value="safety_zones_evacuation_routes" name="accessibility_criteria"> Зоны безопасности и пути эвакуации</label>
+                        <label><input type="checkbox" value="acoustic_systems_induction_loops" name="accessibility_criteria"> Акустические системы и индукционные петли</label>
                     </div>
                 </div>
                 <div class="form-group"><label for="institutionAddress">Адрес учреждения</label><input type="text" id="institutionAddress"></div>

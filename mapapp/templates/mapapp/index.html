@@ -12,7 +12,8 @@
         <header class="header">
             <h1>Образовательные учреждения Липецкой области</h1>
             <div class="header-controls">
-                <button id="adminLogin" class="btn btn-secondary hidden">Вход администратора</button>
+                <a href="{% url 'profile_page' %}" class="btn btn-secondary profile-header-link">Профиль</a>
+                <button id="adminLogin" class="btn btn-secondary hidden">Вход</button>
                 <div id="adminPanel" class="admin-panel hidden">
                     <button id="addInstitution" class="btn btn-primary">Добавить учреждение</button>
                     <button id="logout" class="btn btn-secondary">Выход</button>

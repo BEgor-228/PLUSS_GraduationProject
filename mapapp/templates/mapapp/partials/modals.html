@@ -55,37 +55,52 @@
                     <div class="filter-group-accordion institution-type-filter-mobile">
                         <button class="accordion-toggle">Тип учреждения</button>
                         <div class="accordion-content">
-                            <label class="filter-option lab-check"><input type="checkbox" value="preschool"> Детские сады</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="school"> Школы</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="spo"> СПО</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="vo"> ВО</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="school_internat"> Интернаты</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_type" value="preschool"> Детские сады</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_type" value="school"> Школы</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_type" value="spo"> СПО</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_type" value="vo"> ВО</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_type" value="school_internat"> Интернаты</label>
                         </div>
                     </div>
                     <div class="filter-group-accordion">
                         <button class="accordion-toggle">Возраст</button>
                         <div class="accordion-content">
-                            <label class="filter-option lab-check"><input type="checkbox" value="1.5-3"> 1,5–3 лет</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="3-5"> 3–5 лет</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="5-7"> 5–7 лет</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="7+"> 7+ лет</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_age" value="1.5-3"> 1,5–3 лет</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_age" value="3-5"> 3–5 лет</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_age" value="5-7"> 5–7 лет</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_age" value="7+"> 7+ лет</label>
                         </div>
                     </div>
                     <div class="filter-group-accordion">
                         <button class="accordion-toggle">Условия обучения (ОВЗ)</button>
                         <div class="accordion-content">
-                            <label class="filter-option lab-check"><input type="checkbox" value="hearing_impairment"> Нарушение слуха</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="vision_impairment"> Нарушение зрения</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="speech_impairment"> Нарушение речи</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="autism"> РАС</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="mental_retardation"> ЗПР</label>
-                            <label class="filter-option lab-check"><input type="checkbox" value="multiple_disorders"> Множественные нарушения</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_condition" value="hearing_impairment"> Нарушение слуха</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_condition" value="vision_impairment"> Нарушение зрения</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_condition" value="musculoskeletal_impairment"> Нарушения ОДА</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_condition" value="speech_impairment"> Нарушение речи</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_condition" value="autism"> РАС</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_condition" value="mental_retardation"> ЗПР</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_condition" value="multiple_disorders"> Множественные нарушения</label>
                         </div>
                     </div>
                     <div class="filter-group-accordion">
                         <button class="accordion-toggle">Программы АООП</button>
                         <div class="accordion-content">
-                            <label class="filter-option lab-check"><input type="checkbox" value="aoop"> Есть программы АООП</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_aoop" value="aoop"> Есть программы АООП</label>
+                        </div>
+                    </div>
+                    <div class="filter-group-accordion">
+                        <button class="accordion-toggle">Критерии физической доступности</button>
+                        <div class="accordion-content">
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_accessibility" value="ramps_lifts"> Нормативные пандусы и подъемники</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_accessibility" value="entrance_groups_doorways"> Входные группы и дверные проемы</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_accessibility" value="tactile_pedestrian_indicators"> Тактильно-пешеходные указатели</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_accessibility" value="braille_signage"> Таблички со шрифтом Брайля</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_accessibility" value="accessible_sanitary_facilities"> Оборудованные санитарно-гигиенические помещения</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_accessibility" value="assistant_call_system"> Система вызова помощника</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_accessibility" value="contrast_marking"> Контрастная маркировка</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_accessibility" value="safety_zones_evacuation_routes"> Зоны безопасности и пути эвакуации</label>
+                            <label class="filter-option lab-check"><input type="checkbox" name="filter_accessibility" value="acoustic_systems_induction_loops"> Акустические системы и индукционные петли</label>
                         </div>
                     </div>
                 </div>
@@ -99,16 +114,21 @@
 </div>
 
 <div id="loginModal" class="modal hidden">
-    <div class="modal-content">
+    <div class="modal-content auth-modal-content">
         <div class="modal-header">
-            <h2>Вход администратора</h2>
+            <h2 id="authModalTitle">Вход</h2>
             <button id="closeLoginModal" class="close-btn">&times;</button>
         </div>
         <div class="login-modal-body">
+            <div class="auth-role-tabs">
+                <button type="button" id="authRoleUser" class="auth-role-btn active">Пользователь</button>
+                <button type="button" id="authRoleAdmin" class="auth-role-btn">Администратор</button>
+            </div>
             <form id="loginForm">
+                <div id="loginErrorMessage" class="login-error-message hidden" role="alert" aria-live="polite"></div>
                 <div class="form-group">
-                    <label for="adminLoginInput">Логин</label>
-                    <input type="text" id="adminLoginInput" required>
+                    <label for="adminLoginInput" id="authLoginLabel">Логин или Email</label>
+                    <input type="text" id="adminLoginInput" placeholder="Введите email" required>
                 </div>
                 <div class="form-group">
                     <label for="adminPassword">Пароль</label>
@@ -117,6 +137,48 @@
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Войти</button>
                     <button type="button" id="cancelLogin" class="btn btn-secondary">Отмена</button>
+                </div>
+                <div class="auth-switch-row">
+                    <span>Нет аккаунта?</span>
+                    <button type="button" id="openRegisterModal" class="auth-link-btn">Зарегистрируйтесь здесь</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="registerModal" class="modal hidden">
+    <div class="modal-content auth-modal-content">
+        <div class="modal-header">
+            <h2>Создать аккаунт</h2>
+            <button id="closeRegisterModal" class="close-btn">&times;</button>
+        </div>
+        <div class="login-modal-body">
+            <form id="registerForm">
+                <div id="registerErrorMessage" class="login-error-message hidden" role="alert" aria-live="polite"></div>
+                <div class="form-group">
+                    <label for="registerFullName">Полное имя</label>
+                    <input type="text" id="registerFullName" placeholder="Введите ваше полное имя" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Электронная почта</label>
+                    <input type="email" id="registerEmail" placeholder="example@mail.ru" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Пароль</label>
+                    <input type="password" id="registerPassword" placeholder="Создайте надежный пароль" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPasswordConfirm">Подтверждение пароля</label>
+                    <input type="password" id="registerPasswordConfirm" placeholder="Повторите пароль" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
+                    <button type="button" id="cancelRegister" class="btn btn-secondary">Отмена</button>
+                </div>
+                <div class="auth-switch-row">
+                    <span>Уже есть аккаунт?</span>
+                    <button type="button" id="openLoginFromRegister" class="auth-link-btn">Войдите здесь</button>
                 </div>
             </form>
         </div>
@@ -167,13 +229,27 @@
                 <div class="form-group">
                     <label>Особые условия</label>
                     <div class="checkbox-group">
-                        <label><input type="checkbox" value="hearing_impairment"> Нарушения слуха</label>
-                        <label><input type="checkbox" value="vision_impairment"> Нарушения зрения</label>
-                        <label><input type="checkbox" value="musculoskeletal_impairment"> Нарушения опорно-двигательного аппарата</label>
-                        <label><input type="checkbox" value="speech_impairment"> Нарушения речи</label>
-                        <label><input type="checkbox" value="mental_retardation"> Задержка психического развития</label>
-                        <label><input type="checkbox" value="autism"> Расстройство аутистического спектра</label>
-                        <label><input type="checkbox" value="multiple_disorders"> Множественные нарушения развития</label>
+                        <label><input type="checkbox" value="hearing_impairment" name="conditions"> Нарушения слуха</label>
+                        <label><input type="checkbox" value="vision_impairment" name="conditions"> Нарушения зрения</label>
+                        <label><input type="checkbox" value="musculoskeletal_impairment" name="conditions"> Нарушения опорно-двигательного аппарата</label>
+                        <label><input type="checkbox" value="speech_impairment" name="conditions"> Нарушения речи</label>
+                        <label><input type="checkbox" value="mental_retardation" name="conditions"> Задержка психического развития</label>
+                        <label><input type="checkbox" value="autism" name="conditions"> Расстройство аутистического спектра</label>
+                        <label><input type="checkbox" value="multiple_disorders" name="conditions"> Множественные нарушения развития</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Критерии физической доступности</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="ramps_lifts" name="accessibility_criteria"> Нормативные пандусы и подъемники</label>
+                        <label><input type="checkbox" value="entrance_groups_doorways" name="accessibility_criteria"> Входные группы и дверные проемы</label>
+                        <label><input type="checkbox" value="tactile_pedestrian_indicators" name="accessibility_criteria"> Тактильно-пешеходные указатели</label>
+                        <label><input type="checkbox" value="braille_signage" name="accessibility_criteria"> Информационные таблички со шрифтом Брайля</label>
+                        <label><input type="checkbox" value="accessible_sanitary_facilities" name="accessibility_criteria"> Оборудованные санитарно-гигиенические помещения</label>
+                        <label><input type="checkbox" value="assistant_call_system" name="accessibility_criteria"> Система вызова помощника</label>
+                        <label><input type="checkbox" value="contrast_marking" name="accessibility_criteria"> Контрастная маркировка</label>
+                        <label><input type="checkbox" value="safety_zones_evacuation_routes" name="accessibility_criteria"> Зоны безопасности и пути эвакуации</label>
+                        <label><input type="checkbox" value="acoustic_systems_induction_loops" name="accessibility_criteria"> Акустические системы и индукционные петли</label>
                     </div>
                 </div>
                 <div class="form-group"><label for="institutionAddress">Адрес учреждения</label><input type="text" id="institutionAddress"></div>

@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль — Карта образования</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body class="profile-body" data-page="profile">
+    <header class="profile-top-bar">
+        <a href="{% url 'index' %}" class="profile-brand">Карта образования</a>
+    </header>
+
+    <main class="profile-shell">
+        <div class="profile-card">
+            <h1 class="profile-title">Личный кабинет</h1>
+
+            {% if profile_role == "guest" %}
+                <p class="profile-lead">Войдите в профиль</p>
+                <p class="profile-hint">Используйте форму входа или регистрации на главной странице.</p>
+                <div class="profile-actions">
+                    <a href="{% url 'index' %}?auth=login" class="btn btn-primary">Войти</a>
+                    <a href="{% url 'index' %}?auth=register" class="btn btn-secondary">Зарегистрироваться</a>
+                    <a href="{% url 'index' %}" class="btn btn-secondary">Назад</a>
+                </div>
+            {% elif profile_role == "admin" %}
+                <p class="profile-lead profile-lead--ok">Вы вошли под администратором</p>
+                {% if display_name %}
+                    <p class="profile-meta">{{ display_name }}{% if display_email %} · {{ display_email }}{% endif %}</p>
+                {% endif %}
+                <div class="profile-actions">
+                    <a href="{% url 'index' %}" class="btn btn-primary">На карту</a>
+                </div>
+            {% else %}
+                <p class="profile-lead profile-lead--ok">Вы вошли в профиль пользователя</p>
+                {% if display_name %}
+                    <p class="profile-meta">{{ display_name }}{% if display_email %} · {{ display_email }}{% endif %}</p>
+                {% endif %}
+                <div class="profile-actions">
+                    <a href="{% url 'index' %}" class="btn btn-primary">На карту</a>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+</body>
+</html>
