@@ -10,8 +10,12 @@
 <body class="profile-body" data-page="profile">
     <header class="profile-top-bar">
         <a href="{% url 'index' %}" class="profile-brand">Карта образования</a>
+        {% if profile_role != "guest" %}
+            <button id="profileLogoutBtn" class="btn btn-secondary profile-logout-btn" type="button">Выйти</button>
+        {% endif %}
     </header>
 
+    {% if profile_role != "portal" %}
     <main class="profile-shell">
         <div class="profile-card">
             <h1 class="profile-title">Личный кабинет</h1>
@@ -32,17 +36,96 @@
                 <div class="profile-actions">
                     <a href="{% url 'index' %}" class="btn btn-primary">На карту</a>
                 </div>
-            {% else %}
-                <p class="profile-lead profile-lead--ok">Вы вошли в профиль пользователя</p>
-                {% if display_name %}
-                    <p class="profile-meta">{{ display_name }}{% if display_email %} · {{ display_email }}{% endif %}</p>
-                {% endif %}
-                <div class="profile-actions">
-                    <a href="{% url 'index' %}" class="btn btn-primary">На карту</a>
-                </div>
             {% endif %}
         </div>
     </main>
+    {% endif %}
+    {% if profile_role == "portal" %}
+    <main class="profile-shell profile-shell--dashboard">
+        <div class="profile-layout">
+            <aside class="profile-sidebar">
+                <div class="profile-avatar">{{ profile_initials|default:"U" }}</div>
+                <p class="profile-user-name">{{ display_name }}</p>
+                <p class="profile-user-email">{{ display_email }}</p>
+                <div class="profile-nav">
+                    <button class="profile-nav-btn active" data-profile-tab="overview" type="button">Обзор</button>
+                    <button class="profile-nav-btn" data-profile-tab="settings" type="button">Настройки</button>
+                </div>
+            </aside>
+            <div class="profile-main-center">
+                <div class="profile-content-wrap">
+                    <h1 class="profile-title profile-title--dashboard">Личный кабинет</h1>
+                    <section class="profile-content">
+                        <div class="profile-tab-content" data-tab-panel="overview">
+                            <h2 class="profile-favorites-title">Избранные учреждения ({{ favorites_count|default:0 }})</h2>
+                            {% if favorite_institutions %}
+                                <div class="profile-favorites-list">
+                                    {% for item in favorite_institutions %}
+                                        <article class="profile-favorite-card">
+                                            <h3>{{ item.name }}</h3>
+                                            {% if item.type_name %}
+                                                <p class="profile-favorite-meta">{{ item.type_name }}</p>
+                                            {% endif %}
+                                            {% if item.district_name %}
+                                                <p class="profile-favorite-meta">{{ item.district_name }}</p>
+                                            {% endif %}
+                                            {% if item.range_min or item.range_max %}
+                                                <p class="profile-favorite-meta">
+                                                    Диапазон:
+                                                    {% if item.range_min %}от {{ item.range_min }}{% endif %}
+                                                    {% if item.range_max %} до {{ item.range_max }}{% endif %}
+                                                </p>
+                                            {% endif %}
+                                            {% if item.district_id %}
+                                                <a class="btn btn-primary" href="/district/{{ item.district_id }}/">Подробнее</a>
+                                            {% else %}
+                                                <a class="btn btn-primary" href="{% url 'index' %}">На карту</a>
+                                            {% endif %}
+                                        </article>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="profile-hint">В избранном пока нет учреждений.</p>
+                            {% endif %}
+                        </div>
+                        <div class="profile-tab-content hidden" data-tab-panel="settings">
+                            <h2 class="profile-favorites-title">Настройки</h2>
+                            <p class="profile-hint">Раздел настроек пока в разработке.</p>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </main>
+    {% endif %}
+
+    <script>
+      (() => {
+        const logoutBtn = document.getElementById("profileLogoutBtn");
+        if (!logoutBtn) return;
+        logoutBtn.addEventListener("click", async () => {
+          try {
+            await fetch("/api/logout.php", { method: "POST" });
+          } catch (e) {
+            console.error("Logout failed", e);
+          } finally {
+            window.location.href = "{% url 'index' %}";
+          }
+        });
+
+        const tabButtons = document.querySelectorAll("[data-profile-tab]");
+        const panels = document.querySelectorAll("[data-tab-panel]");
+        tabButtons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const tab = btn.dataset.profileTab;
+            tabButtons.forEach((b) => b.classList.toggle("active", b === btn));
+            panels.forEach((panel) => {
+              panel.classList.toggle("hidden", panel.dataset.tabPanel !== tab);
+            });
+          });
+        });
+      })();
+    </script>
 
 </body>
 </html>

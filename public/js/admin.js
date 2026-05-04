@@ -19,7 +19,10 @@ class AdminManager {
     }
   
     bindEvents() {
-      document.getElementById('adminLogin')?.addEventListener('click', () => this.showLoginModal());
+      document.getElementById('adminLogin')?.addEventListener('click', () => {
+        if (this.map.isPortalUser) this.handleLogout();
+        else this.showLoginModal();
+      });
       document.getElementById('loginForm')?.addEventListener('submit', (e) => this.handleLogin(e));
       document.getElementById('cancelLogin')?.addEventListener('click', () => this.hideLoginModal());
       document.getElementById('closeLoginModal')?.addEventListener('click', () => this.hideLoginModal());

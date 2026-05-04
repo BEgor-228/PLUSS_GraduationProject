@@ -1,4 +1,5 @@
 import json
+import re
 
 from django.contrib.auth import authenticate, get_user_model, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import Group
@@ -18,6 +19,7 @@ from .models import (
     ConditionType,
     Director,
     District,
+    Favorite,
     Institution,
     InstitutionType,
     Link,
@@ -33,11 +35,38 @@ def profile_page(request: HttpRequest):
     ctx: dict = {"profile_role": "guest"}
     if user.is_authenticated:
         is_admin = user.is_superuser or user.groups.filter(name="administrators").exists()
+        login_base = (user.username or "").split("@")[0].strip()
+        initials_source = login_base or (user.get_full_name() or user.email or "U")
+        letters = [ch for ch in initials_source if ch.isalnum()]
+        profile_initials = "".join(letters[:2]).upper() if letters else "U"
         ctx = {
             "profile_role": "admin" if is_admin else "portal",
             "display_name": user.get_full_name() or user.username,
             "display_email": user.email,
+            "profile_initials": profile_initials,
         }
+        if not is_admin:
+            favorites = (
+                Favorite.objects.filter(user=user)
+                .select_related("institution__district", "institution__type")
+                .order_by("-created_at")
+            )
+            favorite_cards = []
+            for fav in favorites:
+                inst = fav.institution
+                favorite_cards.append(
+                    {
+                        "id": inst.id,
+                        "district_id": inst.district_id,
+                        "name": inst.name,
+                        "district_name": inst.district.name if inst.district_id else "",
+                        "type_name": inst.type.name_ru if inst.type_id else "",
+                        "range_min": inst.range_min,
+                        "range_max": inst.range_max,
+                    }
+                )
+            ctx["favorite_institutions"] = favorite_cards
+            ctx["favorites_count"] = len(favorite_cards)
     return render(request, "mapapp/profile.html", ctx)
 
 
@@ -127,7 +156,8 @@ def _create_user_with_repaired_sequence(**kwargs):
         return User.objects.create_user(**kwargs)
 
 
-def _serialize_institution(inst: Institution):
+def _serialize_institution(inst: Institution, favorite_ids: set[int] | None = None):
+    is_favorite = bool(favorite_ids and inst.id in favorite_ids)
     return {
         "id": inst.id,
         "name": inst.name,
@@ -143,6 +173,7 @@ def _serialize_institution(inst: Institution):
         "conditionsAdmission": list(inst.admission.values_list("code", flat=True)),
         "accessibility_criteria": list(inst.accessibility_criteria.values_list("code", flat=True)),
         "aoop_programs": [{"id": p.id, "name": p.name} for p in inst.aoop_programs.all()],
+        "is_favorite": is_favorite,
         "director": {
             "id": inst.director.id if inst.director else None,
             "name": inst.director.full_name if inst.director else "",
@@ -150,6 +181,127 @@ def _serialize_institution(inst: Institution):
             "email": inst.director.email if inst.director else "",
         },
     }
+
+
+def _get_favorite_ids_for_request(request: HttpRequest) -> set[int]:
+    user = request.user
+    if not user.is_authenticated:
+        return set()
+    if user.is_superuser or user.groups.filter(name="administrators").exists():
+        return set()
+    return set(Favorite.objects.filter(user=user).values_list("institution_id", flat=True))
+
+
+def _normalize_search_value(value: str) -> str:
+    if not value:
+        return ""
+    value = value.lower().replace("ё", "е").replace("№", "")
+    return re.sub(r"[^a-zа-я0-9]", "", value)
+
+
+def _matches_age_bucket(inst_payload: dict, age_bucket: str) -> bool:
+    range_min = inst_payload.get("range_min")
+    range_max = inst_payload.get("range_max")
+    if range_min is None or range_max is None:
+        return False
+    if "-" in age_bucket:
+        min_str, max_str = age_bucket.split("-", 1)
+        try:
+            min_value = float(min_str)
+            max_value = float(max_str)
+        except ValueError:
+            return False
+        return range_min <= max_value and range_max >= min_value
+    if "+" in age_bucket:
+        try:
+            min_value = int(age_bucket.replace("+", ""))
+        except ValueError:
+            return False
+        return range_max >= min_value
+    return False
+
+
+def _search_match(inst_payload: dict, search_term: str) -> bool:
+    if not search_term:
+        return True
+    q = _normalize_search_value(search_term)
+    if not q:
+        return True
+
+    name = _normalize_search_value(inst_payload.get("name") or "")
+    desc = _normalize_search_value(inst_payload.get("description") or "")
+    director_name = _normalize_search_value(((inst_payload.get("director") or {}).get("name")) or "")
+    website = _normalize_search_value(inst_payload.get("website") or "")
+    inst_number_match = re.search(r"\d+", inst_payload.get("name") or "")
+    query_number_match = re.search(r"\d+", search_term or "")
+    inst_number = inst_number_match.group(0) if inst_number_match else None
+    query_number = query_number_match.group(0) if query_number_match else None
+
+    if q in name or q in desc or q in director_name or q in website:
+        return True
+    if query_number and inst_number and query_number == inst_number:
+        return True
+
+    synonyms = {
+        "preschool": ["детсад", "детскийсад", "садик", "дс", "сад"],
+        "school": ["школа", "шк", "сош", "лицей", "гимназия"],
+        "school_internat": ["интернат", "школаинтернат"],
+        "spo": ["спо", "техникум", "колледж", "училище"],
+        "vo": ["во", "вуз", "университет", "институт", "академия"],
+    }
+    normalized_term = _normalize_search_value(search_term)
+    for type_code, words in synonyms.items():
+        if any(word in normalized_term for word in words) and inst_payload.get("type") == type_code:
+            if not query_number:
+                return True
+            if inst_number and query_number == inst_number:
+                return True
+    return False
+
+
+def _calc_relevance(
+    inst_payload: dict,
+    selected_types: list[str],
+    selected_ages: list[str],
+    selected_conditions: list[str],
+    selected_accessibility: list[str],
+    aoop_selected: bool,
+) -> float:
+    weights = {
+        "type": 0.5,
+        "conditions": 0.15,
+        "age": 0.15,
+        "aoop": 0.1,
+        "accessibility": 0.1,
+    }
+    inst_conditions = inst_payload.get("conditions") or []
+    inst_accessibility = inst_payload.get("accessibility_criteria") or []
+    inst_aoop = inst_payload.get("aoop_programs") or []
+
+    type_score = 1.0 if not selected_types else (1.0 if inst_payload.get("type") in selected_types else 0.0)
+    conditions_score = (
+        1.0
+        if not selected_conditions
+        else sum(1 for c in selected_conditions if c in inst_conditions) / len(selected_conditions)
+    )
+    age_score = (
+        1.0
+        if not selected_ages
+        else sum(1 for age in selected_ages if _matches_age_bucket(inst_payload, age)) / len(selected_ages)
+    )
+    aoop_score = 1.0 if not aoop_selected else (1.0 if len(inst_aoop) > 0 else 0.0)
+    accessibility_score = (
+        1.0
+        if not selected_accessibility
+        else sum(1 for c in selected_accessibility if c in inst_accessibility) / len(selected_accessibility)
+    )
+    return (
+        weights["type"] * type_score
+        + weights["conditions"] * conditions_score
+        + weights["age"] * age_score
+        + weights["aoop"] * aoop_score
+        + weights["accessibility"] * accessibility_score
+    )
 
 
 @require_GET
@@ -180,10 +332,55 @@ def get_institutions(request: HttpRequest):
     queryset = (
         Institution.objects.filter(district_id=district_id)
         .select_related("director", "type")
-        .prefetch_related("conditions", "admission", "aoop_programs")
+        .prefetch_related("conditions", "admission", "aoop_programs", "accessibility_criteria")
         .order_by("name")
     )
-    return JsonResponse({"institutions": [_serialize_institution(inst) for inst in queryset]})
+    favorite_ids = _get_favorite_ids_for_request(request)
+    return JsonResponse({"institutions": [_serialize_institution(inst, favorite_ids) for inst in queryset]})
+
+
+@require_GET
+def search_institutions(request: HttpRequest):
+    district_id = request.GET.get("district_id")
+    if not district_id:
+        return JsonResponse({"error": "district_id required"}, status=400)
+
+    selected_types = [v for v in request.GET.getlist("type") if v]
+    selected_ages = [v for v in request.GET.getlist("age") if v]
+    selected_conditions = [v for v in request.GET.getlist("condition") if v]
+    selected_accessibility = [v for v in request.GET.getlist("accessibility") if v]
+    aoop_selected = request.GET.get("aoop") in {"1", "true", "yes"}
+    search_term = (request.GET.get("q") or "").strip()
+
+    queryset = (
+        Institution.objects.filter(district_id=district_id)
+        .select_related("director", "type")
+        .prefetch_related("conditions", "admission", "aoop_programs", "accessibility_criteria")
+    )
+    favorite_ids = _get_favorite_ids_for_request(request)
+    institutions = [_serialize_institution(inst, favorite_ids) for inst in queryset]
+    institutions = [inst for inst in institutions if _search_match(inst, search_term)]
+    ranked_with_relevance = [
+        (
+            inst,
+            _calc_relevance(
+                inst,
+                selected_types,
+                selected_ages,
+                selected_conditions,
+                selected_accessibility,
+                aoop_selected,
+            ),
+        )
+        for inst in institutions
+    ]
+    ranked_with_relevance.sort(key=lambda pair: pair[1], reverse=True)
+    ranked = []
+    for inst, relevance in ranked_with_relevance:
+        inst_with_score = dict(inst)
+        inst_with_score["relevance"] = round(float(relevance), 3)
+        ranked.append(inst_with_score)
+    return JsonResponse({"institutions": ranked})
 
 
 @require_GET
@@ -197,7 +394,57 @@ def get_institution(request: HttpRequest):
         ),
         pk=inst_id,
     )
-    return JsonResponse({"institution": _serialize_institution(inst)})
+    favorite_ids = _get_favorite_ids_for_request(request)
+    return JsonResponse({"institution": _serialize_institution(inst, favorite_ids)})
+
+
+def _require_portal_user(request: HttpRequest):
+    user = request.user
+    if not user.is_authenticated:
+        return None
+    if user.is_superuser or user.groups.filter(name="administrators").exists():
+        return None
+    return user
+
+
+@require_GET
+def get_favorites(request: HttpRequest):
+    user = _require_portal_user(request)
+    if not user:
+        return JsonResponse({"favorite_ids": []})
+    favorite_ids = list(Favorite.objects.filter(user=user).values_list("institution_id", flat=True))
+    return JsonResponse({"favorite_ids": favorite_ids})
+
+
+@csrf_exempt
+@require_POST
+def add_favorite(request: HttpRequest):
+    user = _require_portal_user(request)
+    if not user:
+        return JsonResponse({"error": "Portal user role is required"}, status=403)
+    data = _parse_json(request) or {}
+    institution_id = data.get("institution_id")
+    if not institution_id:
+        return JsonResponse({"error": "institution_id is required"}, status=400)
+    institution = Institution.objects.filter(pk=institution_id).first()
+    if not institution:
+        return JsonResponse({"error": "Institution not found"}, status=404)
+    Favorite.objects.get_or_create(user=user, institution=institution)
+    return JsonResponse({"success": True, "is_favorite": True})
+
+
+@csrf_exempt
+@require_POST
+def remove_favorite(request: HttpRequest):
+    user = _require_portal_user(request)
+    if not user:
+        return JsonResponse({"error": "Portal user role is required"}, status=403)
+    data = _parse_json(request) or {}
+    institution_id = data.get("institution_id")
+    if not institution_id:
+        return JsonResponse({"error": "institution_id is required"}, status=400)
+    Favorite.objects.filter(user=user, institution_id=institution_id).delete()
+    return JsonResponse({"success": True, "is_favorite": False})
 
 
 @require_GET

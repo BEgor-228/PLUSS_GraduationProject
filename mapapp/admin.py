@@ -8,6 +8,7 @@ from .models import (
     ConditionType,
     Director,
     District,
+    Favorite,
     Institution,
     InstitutionType,
     Link,
@@ -23,3 +24,4 @@ admin.site.register(Institution)
 admin.site.register(AoopProgram)
 admin.site.register(ActionLog)
 admin.site.register(Link)
+admin.site.register(Favorite)

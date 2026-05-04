@@ -93,3 +93,14 @@ class Link(models.Model):
     district = models.ForeignKey(District, on_delete=models.CASCADE, related_name="links")
     linksTo = models.CharField(max_length=20, blank=True, null=True)
     linkToInstitution = models.TextField(blank=True, null=True)
+
+
+class Favorite(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="favorites")
+    institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name="favorited_by")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "institution"], name="uniq_user_institution_favorite"),
+        ]

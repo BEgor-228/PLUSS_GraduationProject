@@ -6,6 +6,17 @@
 Object.assign(AdminManager.prototype, {
     activeAuthRole: "portal",
 
+    updateHeaderAuthButton() {
+      const headerBtn = document.getElementById('adminLogin');
+      if (!headerBtn) return;
+      if (this.map.isAdmin) {
+        headerBtn.classList.add('hidden');
+        return;
+      }
+      headerBtn.classList.remove('hidden');
+      headerBtn.textContent = this.map.isPortalUser ? 'Выйти' : 'Войти';
+    },
+
     showLoginError(message) {
       const errorNode = document.getElementById("loginErrorMessage");
       if (!errorNode) return;
@@ -61,14 +72,26 @@ Object.assign(AdminManager.prototype, {
       try {
         const response = await fetch('/api/check_session.php');
         const data = await response.json();
+        this.map.isAdmin = Boolean(data.adminLoggedIn);
+        this.map.isPortalUser = Boolean(data.portalLoggedIn);
         if (data.loggedIn) {
           this.map.isAdmin = true;
+          this.map.isPortalUser = false;
           this.showAdminPanel();
           if (!document.getElementById("districtModal")?.classList.contains("hidden")) {
             const districtName = document.getElementById("regionName")?.textContent;
             await this.map.loadInstitutionsForDistrict(districtName);
           }
+        } else if (data.portalLoggedIn) {
+          if (!document.getElementById("districtModal")?.classList.contains("hidden")) {
+            const districtName = document.getElementById("regionName")?.textContent;
+            await this.map.loadInstitutionsForDistrict(districtName);
+          }
+        } else {
+          document.getElementById('adminPanel')?.classList.add('hidden');
+          document.getElementById('adminLogin')?.classList.remove('hidden');
         }
+        this.updateHeaderAuthButton();
       } catch (error) {
         console.error('Error checking session:', error);
       }
@@ -119,11 +142,17 @@ Object.assign(AdminManager.prototype, {
         const data = await response.json();
         if (data.success) {
           this.map.isAdmin = this.activeAuthRole === "admin";
+          this.map.isPortalUser = this.activeAuthRole !== "admin";
           if (this.map.isAdmin) this.showAdminPanel();
           else {
             document.getElementById('adminPanel')?.classList.add('hidden');
             document.getElementById('adminLogin')?.classList.remove('hidden');
+            if (!document.getElementById("districtModal")?.classList.contains("hidden")) {
+              const districtName = document.getElementById("regionName")?.textContent;
+              await this.map.loadInstitutionsForDistrict(districtName);
+            }
           }
+          this.updateHeaderAuthButton();
           this.hideLoginModal();
         } else {
           this.showLoginError('Ошибка входа: ' + (data.error || 'Неизвестная ошибка'));
@@ -181,8 +210,10 @@ Object.assign(AdminManager.prototype, {
       try {
         await fetch('/api/logout.php', { method: 'POST' });
         this.map.isAdmin = false;
+        this.map.isPortalUser = false;
         document.getElementById('adminPanel')?.classList.add('hidden');
         document.getElementById('adminLogin')?.classList.remove('hidden');
+        this.updateHeaderAuthButton();
         if (!document.getElementById("districtModal")?.classList.contains("hidden")) {
           const districtName = document.getElementById("regionName")?.textContent;
           await this.map.loadInstitutionsForDistrict(districtName);

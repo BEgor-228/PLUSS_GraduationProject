@@ -133,6 +133,8 @@ Object.assign(LipetskMap.prototype, {
   
       if (this.isAdmin) {
         this.bindAdminActions();
+      } else if (this.isPortalUser) {
+        this.bindFavoriteActions();
       }
     },
   
@@ -230,6 +232,54 @@ Object.assign(LipetskMap.prototype, {
           this.deleteInstitution(id);
         });
       });
+    },
+
+    bindFavoriteActions() {
+      document.querySelectorAll(".favorite-btn").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          const target = e.currentTarget;
+          const id = parseInt(target.dataset.id, 10);
+          const isFavorite = target.dataset.favorite === "true";
+          await this.toggleFavorite(id, isFavorite, target);
+        });
+      });
+    },
+
+    async toggleFavorite(institutionId, isFavorite, buttonEl) {
+      const endpoint = isFavorite ? "/api/remove_favorite.php" : "/api/add_favorite.php";
+      buttonEl.disabled = true;
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ institution_id: institutionId }),
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) {
+          throw new Error(data.error || `HTTP ${response.status}`);
+        }
+        this.syncFavoriteState(institutionId, Boolean(data.is_favorite));
+        this.showCurrentPage();
+      } catch (error) {
+        console.error("Favorite toggle error:", error);
+        alert(`Ошибка обновления избранного: ${error.message}`);
+      } finally {
+        buttonEl.disabled = false;
+      }
+    },
+
+    syncFavoriteState(institutionId, isFavorite) {
+      const applyState = (items) => {
+        if (!Array.isArray(items)) return;
+        items.forEach((inst) => {
+          if (inst && inst.id === institutionId) {
+            inst.is_favorite = isFavorite;
+          }
+        });
+      };
+      applyState(this.allInstitutions);
+      applyState(this.displayedInstitutionsFull);
+      applyState(this.displayedInstitutions);
     },
   
     createInstitutionCard(institution) {
@@ -381,9 +431,21 @@ Object.assign(LipetskMap.prototype, {
             <button class="btn btn-danger delete-btn" data-id="${institution.id}">Удалить</button>
           </div>`
         : "";
+      const favoriteButtons = this.isPortalUser && !this.isAdmin
+        ? `<div class="institution-actions">
+            <button class="btn ${institution.is_favorite ? "btn-danger" : "btn-primary"} favorite-btn" data-id="${institution.id}" data-favorite="${institution.is_favorite ? "true" : "false"}">
+              ${institution.is_favorite ? "Удалить из избранного" : "Добавить в избранное"}
+            </button>
+          </div>`
+        : "";
+      const relevanceBadge =
+        typeof institution.relevance === "number"
+          ? `<div class="institution-relevance-badge" title="Коэффициент релевантности">R: ${institution.relevance.toFixed(2)}</div>`
+          : "";
   
       return `
       <div class="institution-card">
+        ${relevanceBadge}
         <h4>${institution.name}</h4>
         <span class="institution-type">${typeNames[institution.type] || institution.type
         }</span>
@@ -439,6 +501,7 @@ Object.assign(LipetskMap.prototype, {
         }
         
         ${adminButtons}
+        ${favoriteButtons}
       </div>
     `;
     },

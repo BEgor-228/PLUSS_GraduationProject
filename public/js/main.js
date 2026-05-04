@@ -23,6 +23,7 @@ class LipetskMap {
       this.pageLoaderTimeout = null;
       this.activeDistrict = null;
       this.hoverTimeout = null;
+      this.isPortalUser = false;
     }
   
     async init() {
