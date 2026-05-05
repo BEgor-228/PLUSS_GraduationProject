@@ -135,6 +135,7 @@ Object.assign(LipetskMap.prototype, {
         this.bindAdminActions();
       } else if (this.isPortalUser) {
         this.bindFavoriteActions();
+        this.bindReviewActions();
       }
     },
   
@@ -281,6 +282,171 @@ Object.assign(LipetskMap.prototype, {
       applyState(this.displayedInstitutionsFull);
       applyState(this.displayedInstitutions);
     },
+
+    bindReviewActions() {
+      this.initReviewModalEvents();
+      document.querySelectorAll(".review-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const id = parseInt(e.currentTarget.dataset.id, 10);
+          this.openReviewModal(id);
+        });
+      });
+    },
+
+    initReviewModalEvents() {
+      if (this.reviewModalBound) return;
+      const modal = document.getElementById("reviewModal");
+      const closeBtn = document.getElementById("closeReviewModal");
+      const cancelBtn = document.getElementById("cancelReview");
+      const form = document.getElementById("reviewForm");
+      if (!modal || !closeBtn || !cancelBtn || !form) return;
+
+      const closeModal = () => {
+        modal.classList.add("hidden");
+        form.reset();
+        const errorNode = document.getElementById("reviewErrorMessage");
+        if (errorNode) {
+          errorNode.textContent = "";
+          errorNode.classList.add("hidden");
+        }
+      };
+
+      closeBtn.addEventListener("click", closeModal);
+      cancelBtn.addEventListener("click", closeModal);
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        await this.submitReview();
+      });
+      this.reviewModalBound = true;
+    },
+
+    openReviewModal(institutionId) {
+      if (!this.isPortalUser || this.isAdmin) {
+        alert("Только зарегистрированный пользователь может оставить отзыв.");
+        return;
+      }
+      const source = Array.isArray(this.displayedInstitutionsFull) ? this.displayedInstitutionsFull : [];
+      const institution = source.find((inst) => inst.id === institutionId);
+      if (!institution) return;
+
+      const accessibilityNames = {
+        ramps_lifts: "Нормативные пандусы и подъемники",
+        entrance_groups_doorways: "Входные группы и дверные проемы",
+        tactile_pedestrian_indicators: "Тактильно-пешеходные указатели",
+        braille_signage: "Информационные таблички со шрифтом Брайля",
+        accessible_sanitary_facilities: "Оборудованные санитарно-гигиенические помещения",
+        assistant_call_system: "Система вызова помощника",
+        contrast_marking: "Контрастная маркировка",
+        safety_zones_evacuation_routes: "Зоны безопасности и пути эвакуации",
+        acoustic_systems_induction_loops: "Акустические системы и индукционные петли",
+      };
+      const criteriaCodes = Array.isArray(institution.accessibility_criteria)
+        ? [...new Set(institution.accessibility_criteria)].filter((code) => accessibilityNames[code])
+        : [];
+
+      const modal = document.getElementById("reviewModal");
+      const institutionIdInput = document.getElementById("reviewInstitutionId");
+      const institutionNameInput = document.getElementById("reviewInstitutionName");
+      const criteriaList = document.getElementById("reviewCriteriaList");
+      if (!modal || !institutionIdInput || !institutionNameInput || !criteriaList) return;
+
+      criteriaList.innerHTML = criteriaCodes.map((code) => `
+        <div class="review-criterion-row">
+          <span class="review-criterion-name">${accessibilityNames[code]}</span>
+          <select class="review-criterion-select" data-code="${code}" required>
+            <option value="">Оценка</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+      `).join("");
+      institutionIdInput.value = String(institution.id);
+      institutionNameInput.value = institution.name || "";
+      document.getElementById("reviewComment").value = "";
+      document.getElementById("reviewInstitutionRating").value = "";
+      const submitBtn = document.getElementById("submitReviewBtn");
+      const errorNode = document.getElementById("reviewErrorMessage");
+      if (submitBtn) submitBtn.disabled = false;
+      if (errorNode) {
+        errorNode.textContent = "";
+        errorNode.classList.add("hidden");
+      }
+      modal.classList.remove("hidden");
+    },
+
+    async submitReview() {
+      const institutionId = parseInt(document.getElementById("reviewInstitutionId")?.value || "", 10);
+      const comment = (document.getElementById("reviewComment")?.value || "").trim();
+      const institutionRating = parseInt(document.getElementById("reviewInstitutionRating")?.value || "", 10);
+      const errorNode = document.getElementById("reviewErrorMessage");
+      const submitBtn = document.getElementById("submitReviewBtn");
+      if (!institutionId) return;
+      if (!Number.isInteger(institutionRating) || institutionRating < 1 || institutionRating > 5) {
+        if (errorNode) {
+          errorNode.textContent = "Укажите оценку учреждения от 1 до 5.";
+          errorNode.classList.remove("hidden");
+        }
+        return;
+      }
+
+      const criteriaRatings = {};
+      let missing = false;
+      const criteriaNodes = document.querySelectorAll(".review-criterion-select");
+      document.querySelectorAll(".review-criterion-select").forEach((node) => {
+        const code = node.dataset.code;
+        const value = parseInt(node.value, 10);
+        if (!Number.isInteger(value)) {
+          missing = true;
+          return;
+        }
+        criteriaRatings[code] = value;
+      });
+
+      if (criteriaNodes.length > 0 && missing) {
+        if (errorNode) {
+          errorNode.textContent = "Поставьте оценку каждому критерию доступности.";
+          errorNode.classList.remove("hidden");
+        }
+        return;
+      }
+
+      if (submitBtn) submitBtn.disabled = true;
+      if (errorNode) {
+        errorNode.textContent = "";
+        errorNode.classList.add("hidden");
+      }
+      try {
+        const response = await fetch("/api/create_review.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            institution_id: institutionId,
+            comment,
+            institution_rating: institutionRating,
+            criteria_ratings: criteriaRatings,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) {
+          throw new Error(data.error || `HTTP ${response.status}`);
+        }
+        alert("Отзыв отправлен на модерацию.");
+        document.getElementById("reviewModal")?.classList.add("hidden");
+      } catch (error) {
+        if (errorNode) {
+          errorNode.textContent = `Ошибка отправки: ${error.message}`;
+          errorNode.classList.remove("hidden");
+        }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    },
   
     createInstitutionCard(institution) {
       const typeNames = {
@@ -354,6 +520,7 @@ Object.assign(LipetskMap.prototype, {
       const uniqueAccessibilityCriteria = institution.accessibility_criteria
         ? [...new Set(institution.accessibility_criteria)]
         : [];
+      const avgAccessibility = institution.avg_accessibility_criteria || {};
   
       const conditionsSection =
         uniqueConditions.length > 0
@@ -390,12 +557,18 @@ Object.assign(LipetskMap.prototype, {
         uniqueAccessibilityCriteria.length > 0
           ? `<div class="admission-section">
             <h5>Критерии физической доступности:</h5>
-            <div class="institution-tags">
+            <div class="accessibility-rating-list">
               ${uniqueAccessibilityCriteria
             .map(
-              (criterion) =>
-                `<span class="tag admission">${accessibilityNames[criterion] || criterion
-                }</span>`
+              (criterion) => {
+                const avg = avgAccessibility[criterion];
+                const avgBadge =
+                  typeof avg === "number"
+                    ? `<span class="tag-avg-circle" title="Средняя оценка критерия">${avg.toFixed(2)}</span>`
+                    : "";
+                const label = accessibilityNames[criterion] || criterion;
+                return `<div class="accessibility-rating-row"><span class="accessibility-rating-label">${label}</span>${avgBadge}</div>`;
+              }
             )
             .join("")}
             </div>
@@ -436,6 +609,7 @@ Object.assign(LipetskMap.prototype, {
             <button class="btn ${institution.is_favorite ? "btn-danger" : "btn-primary"} favorite-btn" data-id="${institution.id}" data-favorite="${institution.is_favorite ? "true" : "false"}">
               ${institution.is_favorite ? "Удалить из избранного" : "Добавить в избранное"}
             </button>
+            <button class="btn btn-secondary review-btn" data-id="${institution.id}">Оставить отзыв</button>
           </div>`
         : "";
       const relevanceBadge =
@@ -446,7 +620,10 @@ Object.assign(LipetskMap.prototype, {
       return `
       <div class="institution-card">
         ${relevanceBadge}
-        <h4>${institution.name}</h4>
+        <div class="institution-title-row">
+          <h4>${institution.name}</h4>
+          ${typeof institution.avg_institution_rating === "number" ? `<span class="institution-rating-circle" title="Средняя оценка учреждения">${institution.avg_institution_rating.toFixed(2)}</span>` : ""}
+        </div>
         <span class="institution-type">${typeNames[institution.type] || institution.type
         }</span>
         

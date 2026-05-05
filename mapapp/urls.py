@@ -15,6 +15,7 @@ urlpatterns = [
     path("api/search_institutions.php", views.search_institutions),
     path("api/get_institution.php", views.get_institution),
     path("api/get_favorites.php", views.get_favorites),
+    path("api/update_profile.php", views.update_profile),
     path("api/add_favorite.php", views.add_favorite),
     path("api/remove_favorite.php", views.remove_favorite),
     path("api/get_directors.php", views.get_directors),
@@ -25,7 +26,9 @@ urlpatterns = [
     path("api/register.php", views.register),
     path("api/register_portal_user.php", views.register_portal_user),
     path("api/login_portal.php", views.login_portal_user),
+    path("api/create_review.php", views.create_review),
     path("api/create_institution.php", views.create_institution),
+    path("api/delete_user.php", views.delete_user),
     path("api/update_institution.php", views.update_institution),
     path("api/delete_institution.php", views.delete_institution),
 ]

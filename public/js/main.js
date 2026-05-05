@@ -24,6 +24,7 @@ class LipetskMap {
       this.activeDistrict = null;
       this.hoverTimeout = null;
       this.isPortalUser = false;
+      this.reviewModalBound = false;
     }
   
     async init() {

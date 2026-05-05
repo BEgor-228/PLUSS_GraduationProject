@@ -104,3 +104,63 @@ class Favorite(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["user", "institution"], name="uniq_user_institution_favorite"),
         ]
+
+
+class ProfileNotification(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="profile_notifications",
+    )
+    institution = models.ForeignKey(
+        Institution,
+        on_delete=models.CASCADE,
+        related_name="profile_notifications",
+    )
+    action_log = models.ForeignKey(
+        ActionLog,
+        on_delete=models.CASCADE,
+        related_name="profile_notifications",
+    )
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "action_log"],
+                name="uniq_profile_notification_per_user_action",
+            ),
+        ]
+
+
+class InstitutionReview(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_APPROVED = "approved"
+    STATUS_REJECTED = "rejected"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "На модерации"),
+        (STATUS_APPROVED, "Одобрен"),
+        (STATUS_REJECTED, "Отклонен"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="institution_reviews",
+    )
+    institution = models.ForeignKey(
+        Institution,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    rating = models.DecimalField(max_digits=3, decimal_places=2)
+    criteria_scores = models.JSONField(default=dict, blank=True)
+    comment = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]

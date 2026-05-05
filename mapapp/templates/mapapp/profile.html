@@ -16,7 +16,7 @@
     </header>
 
     {% if profile_role != "portal" %}
-    <main class="profile-shell">
+    <main class="profile-shell{% if profile_role == 'admin' %} profile-shell--admin-dashboard{% endif %}">
         <div class="profile-card">
             <h1 class="profile-title">Личный кабинет</h1>
 
@@ -29,12 +29,95 @@
                     <a href="{% url 'index' %}" class="btn btn-secondary">Назад</a>
                 </div>
             {% elif profile_role == "admin" %}
-                <p class="profile-lead profile-lead--ok">Вы вошли под администратором</p>
-                {% if display_name %}
-                    <p class="profile-meta">{{ display_name }}{% if display_email %} · {{ display_email }}{% endif %}</p>
-                {% endif %}
-                <div class="profile-actions">
-                    <a href="{% url 'index' %}" class="btn btn-primary">На карту</a>
+                <div class="admin-dashboard-layout">
+                    <aside class="admin-dashboard-sidebar">
+                        <div class="admin-dashboard-avatar">{{ profile_initials|default:"U" }}</div>
+                        <p class="admin-dashboard-name">{{ display_name }}</p>
+                        <p class="admin-dashboard-email">{{ display_email }}</p>
+                        <div class="admin-dashboard-nav">
+                            <button class="admin-dashboard-nav-btn active" data-admin-tab="dashboard" type="button">Дашборд</button>
+                            <button class="admin-dashboard-nav-btn" data-admin-tab="users" type="button">Пользователи</button>
+                        </div>
+                    </aside>
+                    <section class="admin-dashboard-content">
+                        <div class="admin-tab-panel" data-admin-panel="dashboard">
+                            <div class="admin-dashboard-header-row">
+                                <h2 class="profile-title profile-title--dashboard">Обзор системы</h2>
+                            </div>
+                            <div class="admin-stats-grid">
+                                <article class="admin-stat-card">
+                                    <p class="admin-stat-value">{{ admin_total_institutions|default:0 }}</p>
+                                    <p class="admin-stat-label">Образовательных учреждений</p>
+                                    <p class="admin-stat-delta">+{{ admin_institutions_month_delta|default:0 }} за месяц</p>
+                                </article>
+                                <article class="admin-stat-card">
+                                    <p class="admin-stat-value">{{ admin_total_users|default:0 }}</p>
+                                    <p class="admin-stat-label">Зарегистрированных пользователей</p>
+                                    <p class="admin-stat-delta">+{{ admin_users_month_delta|default:0 }} за месяц</p>
+                                </article>
+                            </div>
+                            <div class="admin-chart-card">
+                                <h3 class="admin-chart-title">Распределение по типам учреждений</h3>
+                                <div class="admin-chart-wrap">
+                                    <div class="admin-chart-pie" id="adminTypePie"></div>
+                                    <ul class="admin-chart-legend" id="adminTypeLegend"></ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="admin-tab-panel hidden" data-admin-panel="users">
+                            <div class="admin-dashboard-header-row">
+                                <h2 class="profile-title profile-title--dashboard">Пользователи</h2>
+                            </div>
+                            <div class="admin-users-toolbar">
+                                <input id="adminUsersSearch" class="admin-users-search" type="text" placeholder="Поиск пользователя...">
+                            </div>
+                            <div class="admin-users-table-wrap">
+                                <table class="admin-users-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Пользователь</th>
+                                            <th>Почта</th>
+                                            <th>Действие</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminUsersTbody">
+                                        {% for item in admin_users %}
+                                            <tr class="admin-user-row" data-search="{{ item.display_name|lower }} {{ item.username|lower }} {{ item.email|lower }}">
+                                                <td>
+                                                    <div class="admin-user-cell">
+                                                        <div class="admin-user-avatar">{{ item.initials }}</div>
+                                                        <div>
+                                                            <p class="admin-user-name">{{ item.display_name }}</p>
+                                                            <p class="admin-user-login">{{ item.username|lower }}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>{{ item.email }}</td>
+                                                <td>
+                                                    {% if item.is_current_user %}
+                                                        <span class="admin-user-self-mark">Вы</span>
+                                                    {% else %}
+                                                        <button class="admin-user-delete-btn" data-user-id="{{ item.id }}" title="Удалить пользователя" type="button">✕</button>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr><td colspan="3" class="admin-users-empty">Пользователей пока нет</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="admin-users-pagination hidden" id="adminUsersPagination">
+                                <button class="admin-users-page-btn" id="adminUsersPrevBtn" type="button">Назад</button>
+                                <span class="admin-users-page-info" id="adminUsersPageInfo"></span>
+                                <button class="admin-users-page-btn" id="adminUsersNextBtn" type="button">Вперед</button>
+                            </div>
+                        </div>
+                        <div class="profile-actions">
+                            <a href="{% url 'index' %}" class="btn btn-primary">На карту</a>
+                        </div>
+                        {{ admin_type_distribution|json_script:"adminTypeDistributionData" }}
+                    </section>
                 </div>
             {% endif %}
         </div>
@@ -57,11 +140,16 @@
                     <h1 class="profile-title profile-title--dashboard">Личный кабинет</h1>
                     <section class="profile-content">
                         <div class="profile-tab-content" data-tab-panel="overview">
-                            <h2 class="profile-favorites-title">Избранные учреждения ({{ favorites_count|default:0 }})</h2>
+                            <div class="profile-favorites-head">
+                                <h2 class="profile-favorites-title">Избранные учреждения ({{ favorites_count|default:0 }})</h2>
+                                {% if favorites_count|default:0 > 4 %}
+                                    <button id="showAllFavoritesBtn" class="btn btn-secondary profile-show-all-btn" type="button">Все избранные</button>
+                                {% endif %}
+                            </div>
                             {% if favorite_institutions %}
                                 <div class="profile-favorites-list">
                                     {% for item in favorite_institutions %}
-                                        <article class="profile-favorite-card">
+                                        <article class="profile-favorite-card{% if forloop.counter > 4 %} profile-favorite-card--extra hidden{% endif %}">
                                             <h3>{{ item.name }}</h3>
                                             {% if item.type_name %}
                                                 <p class="profile-favorite-meta">{{ item.type_name }}</p>
@@ -87,10 +175,76 @@
                             {% else %}
                                 <p class="profile-hint">В избранном пока нет учреждений.</p>
                             {% endif %}
+                            <div class="profile-notifications-block">
+                                <div class="profile-favorites-head">
+                                    <h2 class="profile-favorites-title">Уведомления ({{ notifications_count|default:0 }})</h2>
+                                    {% if notifications_count|default:0 > 2 %}
+                                        <button id="showAllNotificationsBtn" class="btn btn-secondary profile-show-all-btn" type="button">Все уведомления</button>
+                                    {% endif %}
+                                </div>
+                                {% if notifications %}
+                                    <div class="profile-notifications-list">
+                                        {% for notification in notifications %}
+                                            <article class="profile-notification-card{% if forloop.counter > 2 %} profile-notification-card--extra hidden{% endif %}">
+                                                <p class="profile-notification-title">{{ notification.institution_name }}</p>
+                                                <p class="profile-notification-message">{{ notification.message }}</p>
+                                                <p class="profile-notification-date">{{ notification.created_at|date:"d.m.Y H:i" }}</p>
+                                            </article>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <p class="profile-hint">Изменений по избранным учреждениям пока нет.</p>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="profile-tab-content hidden" data-tab-panel="settings">
                             <h2 class="profile-favorites-title">Настройки</h2>
-                            <p class="profile-hint">Раздел настроек пока в разработке.</p>
+                            <form id="profileSettingsForm" class="profile-settings-form">
+                                <div class="profile-settings-grid">
+                                    <div class="form-group">
+                                        <label for="profileFirstName">Имя пользователя</label>
+                                        <input id="profileFirstName" name="first_name" type="text" value="{{ settings_first_name|default:'' }}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="profileUsername">Username</label>
+                                        <input id="profileUsername" name="username" type="text" value="{{ settings_username|default:'' }}" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="profileEmail">Почта</label>
+                                    <input id="profileEmail" name="email" type="email" value="{{ settings_email|default:'' }}" required>
+                                </div>
+                                <div id="profileSettingsMessage" class="profile-settings-message hidden" aria-live="polite"></div>
+                                <div class="profile-settings-actions">
+                                    <button id="profileApplyBtn" class="btn btn-primary" type="submit">Применить</button>
+                                </div>
+                            </form>
+                            <section class="profile-appearance-block">
+                                <h2 class="profile-favorites-title">Внешний вид</h2>
+                                <p class="profile-hint">Выберите цветовую тему личного кабинета.</p>
+                                <div class="profile-theme-switcher" id="profileThemeButtons" role="radiogroup" aria-label="Цветовая тема">
+                                    <button class="profile-theme-option active" data-theme="blue" type="button" role="radio" aria-checked="true">
+                                        <span class="profile-theme-swatch profile-theme-swatch--blue"></span>
+                                        <span class="profile-theme-name">Синяя</span>
+                                    </button>
+                                    <button class="profile-theme-option" data-theme="red" type="button" role="radio" aria-checked="false">
+                                        <span class="profile-theme-swatch profile-theme-swatch--red"></span>
+                                        <span class="profile-theme-name">Красная</span>
+                                    </button>
+                                    <button class="profile-theme-option" data-theme="green" type="button" role="radio" aria-checked="false">
+                                        <span class="profile-theme-swatch profile-theme-swatch--green"></span>
+                                        <span class="profile-theme-name">Зелёная</span>
+                                    </button>
+                                    <button class="profile-theme-option" data-theme="orange" type="button" role="radio" aria-checked="false">
+                                        <span class="profile-theme-swatch profile-theme-swatch--orange"></span>
+                                        <span class="profile-theme-name">Оранжевая</span>
+                                    </button>
+                                    <button class="profile-theme-option" data-theme="dark" type="button" role="radio" aria-checked="false">
+                                        <span class="profile-theme-swatch profile-theme-swatch--dark"></span>
+                                        <span class="profile-theme-name">Тёмная</span>
+                                    </button>
+                                </div>
+                            </section>
                         </div>
                     </section>
                 </div>
@@ -102,16 +256,17 @@
     <script>
       (() => {
         const logoutBtn = document.getElementById("profileLogoutBtn");
-        if (!logoutBtn) return;
-        logoutBtn.addEventListener("click", async () => {
-          try {
-            await fetch("/api/logout.php", { method: "POST" });
-          } catch (e) {
-            console.error("Logout failed", e);
-          } finally {
-            window.location.href = "{% url 'index' %}";
-          }
-        });
+        if (logoutBtn) {
+          logoutBtn.addEventListener("click", async () => {
+            try {
+              await fetch("/api/logout.php", { method: "POST" });
+            } catch (e) {
+              console.error("Logout failed", e);
+            } finally {
+              window.location.href = "{% url 'index' %}";
+            }
+          });
+        }
 
         const tabButtons = document.querySelectorAll("[data-profile-tab]");
         const panels = document.querySelectorAll("[data-tab-panel]");
@@ -123,6 +278,264 @@
               panel.classList.toggle("hidden", panel.dataset.tabPanel !== tab);
             });
           });
+        });
+
+        const pieEl = document.getElementById("adminTypePie");
+        const legendEl = document.getElementById("adminTypeLegend");
+        const chartDataNode = document.getElementById("adminTypeDistributionData");
+        if (pieEl && legendEl && chartDataNode) {
+          let chartItems = [];
+          try {
+            chartItems = JSON.parse(chartDataNode.textContent || "[]");
+          } catch (e) {
+            chartItems = [];
+          }
+          const palette = ["#1f5ea8", "#2e8b57", "#d9781d", "#b63d35", "#8e44ad", "#34495e", "#16a085"];
+          const total = chartItems.reduce((sum, item) => sum + Number(item.count || 0), 0);
+          if (!total) {
+            pieEl.classList.add("admin-chart-pie--empty");
+            pieEl.textContent = "Нет данных";
+            legendEl.innerHTML = '<li class="admin-chart-legend-item admin-chart-legend-item--empty">Нет данных для отображения</li>';
+          } else {
+            let currentPercent = 0;
+            const gradientParts = [];
+            legendEl.innerHTML = "";
+            chartItems.forEach((item, idx) => {
+              const count = Number(item.count || 0);
+              const percent = (count / total) * 100;
+              const start = currentPercent;
+              const end = currentPercent + percent;
+              const color = palette[idx % palette.length];
+              gradientParts.push(`${color} ${start.toFixed(2)}% ${end.toFixed(2)}%`);
+              currentPercent = end;
+
+              const legendItem = document.createElement("li");
+              legendItem.className = "admin-chart-legend-item";
+              legendItem.innerHTML = `<span class="admin-chart-legend-dot" style="background:${color}"></span><span>${item.name} (${count})</span>`;
+              legendEl.appendChild(legendItem);
+            });
+            pieEl.style.background = `conic-gradient(${gradientParts.join(",")})`;
+          }
+        }
+
+        const adminTabButtons = document.querySelectorAll("[data-admin-tab]");
+        const adminPanels = document.querySelectorAll("[data-admin-panel]");
+        adminTabButtons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const tab = btn.dataset.adminTab;
+            adminTabButtons.forEach((b) => b.classList.toggle("active", b === btn));
+            adminPanels.forEach((panel) => {
+              panel.classList.toggle("hidden", panel.dataset.adminPanel !== tab);
+            });
+          });
+        });
+
+        const usersSearchInput = document.getElementById("adminUsersSearch");
+        const userRows = Array.from(document.querySelectorAll(".admin-user-row"));
+        const usersPagination = document.getElementById("adminUsersPagination");
+        const usersPrevBtn = document.getElementById("adminUsersPrevBtn");
+        const usersNextBtn = document.getElementById("adminUsersNextBtn");
+        const usersPageInfo = document.getElementById("adminUsersPageInfo");
+        const pageSize = 10;
+        let usersCurrentPage = 1;
+        let usersFilteredRows = [...userRows];
+
+        const renderUsersPage = () => {
+          if (!userRows.length) return;
+          const totalItems = usersFilteredRows.length;
+          const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+          if (usersCurrentPage > totalPages) usersCurrentPage = totalPages;
+          const startIdx = (usersCurrentPage - 1) * pageSize;
+          const endIdx = startIdx + pageSize;
+          const visibleSet = new Set(usersFilteredRows.slice(startIdx, endIdx));
+          userRows.forEach((row) => {
+            const isVisible = visibleSet.has(row);
+            row.classList.toggle("hidden", !isVisible);
+          });
+
+          if (usersPagination) {
+            usersPagination.classList.toggle("hidden", totalItems <= pageSize);
+          }
+          if (usersPrevBtn) usersPrevBtn.disabled = usersCurrentPage <= 1;
+          if (usersNextBtn) usersNextBtn.disabled = usersCurrentPage >= totalPages;
+          if (usersPageInfo) usersPageInfo.textContent = `${usersCurrentPage} / ${totalPages}`;
+        };
+
+        const applyUsersFilter = () => {
+          const q = ((usersSearchInput && usersSearchInput.value) || "").trim().toLowerCase();
+          usersFilteredRows = userRows.filter((row) => {
+            const haystack = (row.dataset.search || "").toLowerCase();
+            return !q || haystack.includes(q);
+          });
+          usersCurrentPage = 1;
+          renderUsersPage();
+        };
+
+        if (usersSearchInput && userRows.length) {
+          usersSearchInput.addEventListener("input", applyUsersFilter);
+        }
+        if (usersPrevBtn) {
+          usersPrevBtn.addEventListener("click", () => {
+            if (usersCurrentPage <= 1) return;
+            usersCurrentPage -= 1;
+            renderUsersPage();
+          });
+        }
+        if (usersNextBtn) {
+          usersNextBtn.addEventListener("click", () => {
+            const totalPages = Math.max(1, Math.ceil(usersFilteredRows.length / pageSize));
+            if (usersCurrentPage >= totalPages) return;
+            usersCurrentPage += 1;
+            renderUsersPage();
+          });
+        }
+        if (userRows.length) {
+          renderUsersPage();
+        }
+
+        document.querySelectorAll(".admin-user-delete-btn").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const userId = btn.dataset.userId;
+            if (!userId) return;
+            const ok = window.confirm("Удалить пользователя из системы?");
+            if (!ok) return;
+            btn.disabled = true;
+            try {
+              const response = await fetch("/api/delete_user.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: Number(userId) }),
+              });
+              const payload = await response.json();
+              if (!response.ok || !payload?.success) {
+                window.alert(payload?.error || "Не удалось удалить пользователя.");
+                return;
+              }
+              const row = btn.closest("tr");
+              if (row) {
+                row.remove();
+                const idx = userRows.indexOf(row);
+                if (idx >= 0) userRows.splice(idx, 1);
+                applyUsersFilter();
+              }
+            } catch (e) {
+              console.error("Delete user failed", e);
+              window.alert("Ошибка сети. Попробуйте ещё раз.");
+            } finally {
+              btn.disabled = false;
+            }
+          });
+        });
+
+        const settingsForm = document.getElementById("profileSettingsForm");
+        const messageBox = document.getElementById("profileSettingsMessage");
+        const applyBtn = document.getElementById("profileApplyBtn");
+        const showAllFavoritesBtn = document.getElementById("showAllFavoritesBtn");
+        const showAllNotificationsBtn = document.getElementById("showAllNotificationsBtn");
+        const themeButtons = document.querySelectorAll(".profile-theme-option");
+        const nameBadge = document.querySelector(".profile-user-name");
+        const emailBadge = document.querySelector(".profile-user-email");
+        const avatar = document.querySelector(".profile-avatar");
+
+        if (showAllFavoritesBtn) {
+          let expandedFavorites = false;
+          showAllFavoritesBtn.addEventListener("click", () => {
+            expandedFavorites = !expandedFavorites;
+            document.querySelectorAll(".profile-favorite-card--extra").forEach((card) => {
+              card.classList.toggle("hidden", !expandedFavorites);
+            });
+            showAllFavoritesBtn.textContent = expandedFavorites ? "Свернуть" : "Все избранные";
+          });
+        }
+
+        if (showAllNotificationsBtn) {
+          let expandedNotifications = false;
+          showAllNotificationsBtn.addEventListener("click", () => {
+            expandedNotifications = !expandedNotifications;
+            document.querySelectorAll(".profile-notification-card--extra").forEach((card) => {
+              card.classList.toggle("hidden", !expandedNotifications);
+            });
+            showAllNotificationsBtn.textContent = expandedNotifications ? "Свернуть" : "Все уведомления";
+          });
+        }
+
+        const applyTheme = (theme) => {
+          const resolved = theme || "blue";
+          document.body.setAttribute("data-profile-theme", resolved);
+          themeButtons.forEach((btn) => {
+            const isActive = btn.dataset.theme === resolved;
+            btn.classList.toggle("active", isActive);
+            btn.setAttribute("aria-checked", isActive ? "true" : "false");
+          });
+        };
+
+        const savedTheme = localStorage.getItem("profileTheme") || "blue";
+        applyTheme(savedTheme);
+        themeButtons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const nextTheme = btn.dataset.theme || "blue";
+            localStorage.setItem("profileTheme", nextTheme);
+            applyTheme(nextTheme);
+          });
+        });
+
+        if (!settingsForm) return;
+
+        const setMessage = (text, isError = false) => {
+          if (!messageBox) return;
+          messageBox.textContent = text || "";
+          messageBox.classList.toggle("hidden", !text);
+          messageBox.classList.toggle("error", Boolean(text) && isError);
+          messageBox.classList.toggle("success", Boolean(text) && !isError);
+        };
+
+        const calcInitials = (firstName, username) => {
+          const base = (firstName || "").trim() || (username || "").trim() || "U";
+          const letters = Array.from(base).filter((ch) => /[0-9A-Za-zА-Яа-яЁё]/.test(ch));
+          return (letters.slice(0, 2).join("") || "U").toUpperCase();
+        };
+
+        settingsForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const firstNameInput = document.getElementById("profileFirstName");
+          const usernameInput = document.getElementById("profileUsername");
+          const emailInput = document.getElementById("profileEmail");
+          const payload = {
+            first_name: (firstNameInput?.value || "").trim(),
+            username: (usernameInput?.value || "").trim(),
+            email: (emailInput?.value || "").trim(),
+          };
+
+          if (!payload.first_name || !payload.username || !payload.email) {
+            setMessage("Заполните все поля.", true);
+            return;
+          }
+
+          if (applyBtn) applyBtn.disabled = true;
+          setMessage("");
+          try {
+            const response = await fetch("/api/update_profile.php", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+            if (!response.ok || !data?.success) {
+              setMessage(data?.error || "Не удалось сохранить изменения.", true);
+              return;
+            }
+
+            const profile = data.profile || payload;
+            if (nameBadge) nameBadge.textContent = profile.first_name || profile.username;
+            if (emailBadge) emailBadge.textContent = profile.email || "";
+            if (avatar) avatar.textContent = calcInitials(profile.first_name, profile.username);
+            setMessage("Изменения сохранены.");
+          } catch (e) {
+            console.error("Profile update failed", e);
+            setMessage("Ошибка сети. Попробуйте еще раз.", true);
+          } finally {
+            if (applyBtn) applyBtn.disabled = false;
+          }
         });
       })();
     </script>

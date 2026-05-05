@@ -4,7 +4,7 @@ import re
 from django.contrib.auth import authenticate, get_user_model, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import Group
 from django.db import IntegrityError, connection, transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -21,8 +21,10 @@ from .models import (
     District,
     Favorite,
     Institution,
+    InstitutionReview,
     InstitutionType,
     Link,
+    ProfileNotification,
 )
 
 
@@ -45,7 +47,59 @@ def profile_page(request: HttpRequest):
             "display_email": user.email,
             "profile_initials": profile_initials,
         }
+        if is_admin:
+            now = timezone.now()
+            month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            total_institutions = Institution.objects.count()
+            institutions_month_delta = Institution.objects.filter(created_at__gte=month_start).count()
+            User = get_user_model()
+            total_users = User.objects.count()
+            users_month_delta = User.objects.filter(date_joined__gte=month_start).count()
+            type_distribution_qs = (
+                Institution.objects.values("type__name_ru")
+                .annotate(total=Count("id"))
+                .order_by("-total")
+            )
+            type_distribution = [
+                {
+                    "name": row["type__name_ru"] or "Без типа",
+                    "count": row["total"],
+                }
+                for row in type_distribution_qs
+            ]
+            admin_users_qs = User.objects.order_by("-date_joined").values(
+                "id", "username", "first_name", "last_name", "email"
+            )
+            admin_users = []
+            for row in admin_users_qs:
+                full_name = " ".join(part for part in [row["first_name"], row["last_name"]] if part).strip()
+                display_name = full_name or row["username"] or "Пользователь"
+                initials_letters = [ch for ch in display_name if ch.isalnum()]
+                initials = "".join(initials_letters[:2]).upper() if initials_letters else "U"
+                admin_users.append(
+                    {
+                        "id": row["id"],
+                        "display_name": display_name,
+                        "username": row["username"] or "",
+                        "email": row["email"] or "",
+                        "initials": initials,
+                        "is_current_user": row["id"] == user.id,
+                    }
+                )
+            ctx.update(
+                {
+                    "admin_total_institutions": total_institutions,
+                    "admin_institutions_month_delta": institutions_month_delta,
+                    "admin_total_users": total_users,
+                    "admin_users_month_delta": users_month_delta,
+                    "admin_type_distribution": type_distribution,
+                    "admin_users": admin_users,
+                }
+            )
         if not is_admin:
+            ctx["settings_first_name"] = user.first_name or ""
+            ctx["settings_username"] = user.username or ""
+            ctx["settings_email"] = user.email or ""
             favorites = (
                 Favorite.objects.filter(user=user)
                 .select_related("institution__district", "institution__type")
@@ -67,6 +121,20 @@ def profile_page(request: HttpRequest):
                 )
             ctx["favorite_institutions"] = favorite_cards
             ctx["favorites_count"] = len(favorite_cards)
+            notifications_qs = (
+                ProfileNotification.objects.filter(user=user)
+                .select_related("institution", "action_log")
+                .order_by("-created_at")[:20]
+            )
+            ctx["notifications"] = [
+                {
+                    "institution_name": n.institution.name if n.institution_id else "Учреждение",
+                    "message": n.message,
+                    "created_at": n.created_at,
+                }
+                for n in notifications_qs
+            ]
+            ctx["notifications_count"] = len(ctx["notifications"])
     return render(request, "mapapp/profile.html", ctx)
 
 
@@ -156,8 +224,64 @@ def _create_user_with_repaired_sequence(**kwargs):
         return User.objects.create_user(**kwargs)
 
 
-def _serialize_institution(inst: Institution, favorite_ids: set[int] | None = None):
+def _get_reviews_aggregates_for_institutions(institution_ids: list[int]) -> dict[int, dict]:
+    if not institution_ids:
+        return {}
+
+    reviews = InstitutionReview.objects.filter(institution_id__in=institution_ids).only(
+        "institution_id", "rating", "criteria_scores"
+    )
+
+    inst_rating_sum: dict[int, float] = {}
+    inst_rating_count: dict[int, int] = {}
+
+    criteria_sum: dict[int, dict[str, float]] = {}
+    criteria_count: dict[int, dict[str, int]] = {}
+
+    for review in reviews:
+        inst_id = review.institution_id
+        inst_rating_sum[inst_id] = inst_rating_sum.get(inst_id, 0.0) + float(review.rating or 0)
+        inst_rating_count[inst_id] = inst_rating_count.get(inst_id, 0) + 1
+
+        criteria_scores = review.criteria_scores or {}
+        if isinstance(criteria_scores, dict):
+            for code, score in criteria_scores.items():
+                try:
+                    score_int = int(score)
+                except (TypeError, ValueError):
+                    continue
+                code_s = str(code)
+                criteria_sum.setdefault(inst_id, {}).setdefault(code_s, 0.0)
+                criteria_count.setdefault(inst_id, {}).setdefault(code_s, 0)
+                criteria_sum[inst_id][code_s] += float(score_int)
+                criteria_count[inst_id][code_s] += 1
+
+    aggregates: dict[int, dict] = {}
+    for inst_id in institution_ids:
+        rating_avg = None
+        if inst_rating_count.get(inst_id):
+            rating_avg = round(inst_rating_sum[inst_id] / inst_rating_count[inst_id], 2)
+
+        avg_criteria: dict[str, float] = {}
+        codes_for_inst = criteria_sum.get(inst_id, {})
+        for code, sum_value in codes_for_inst.items():
+            cnt = criteria_count.get(inst_id, {}).get(code, 0)
+            if cnt:
+                avg_criteria[code] = round(sum_value / cnt, 2)
+
+        aggregates[inst_id] = {
+            "avg_institution_rating": rating_avg,
+            "avg_accessibility_criteria": avg_criteria,
+        }
+
+    return aggregates
+
+
+def _serialize_institution(
+    inst: Institution, favorite_ids: set[int] | None = None, review_aggs: dict[int, dict] | None = None
+):
     is_favorite = bool(favorite_ids and inst.id in favorite_ids)
+    review_agg = (review_aggs or {}).get(inst.id) if review_aggs else None
     return {
         "id": inst.id,
         "name": inst.name,
@@ -174,6 +298,8 @@ def _serialize_institution(inst: Institution, favorite_ids: set[int] | None = No
         "accessibility_criteria": list(inst.accessibility_criteria.values_list("code", flat=True)),
         "aoop_programs": [{"id": p.id, "name": p.name} for p in inst.aoop_programs.all()],
         "is_favorite": is_favorite,
+        "avg_institution_rating": review_agg.get("avg_institution_rating") if review_agg else None,
+        "avg_accessibility_criteria": (review_agg.get("avg_accessibility_criteria") if review_agg else {}) or {},
         "director": {
             "id": inst.director.id if inst.director else None,
             "name": inst.director.full_name if inst.director else "",
@@ -304,6 +430,70 @@ def _calc_relevance(
     )
 
 
+def _value_changed(old_value, new_value) -> bool:
+    return (old_value or "") != (new_value or "")
+
+
+def _build_institution_update_message(old_data: dict | None, new_data: dict | None, institution_name: str) -> str:
+    old_payload = old_data or {}
+    new_payload = new_data or {}
+    changed_parts: list[str] = []
+
+    if _value_changed(old_payload.get("name"), new_payload.get("name")):
+        changed_parts.append("название")
+    if _value_changed(old_payload.get("description"), new_payload.get("description")):
+        changed_parts.append("описание")
+    if _value_changed(old_payload.get("address"), new_payload.get("address")):
+        changed_parts.append("адрес")
+    if _value_changed(old_payload.get("website"), new_payload.get("website")):
+        changed_parts.append("сайт")
+    if _value_changed(old_payload.get("aoop_url"), new_payload.get("aoop_url")):
+        changed_parts.append("ссылка на АООП")
+    if _value_changed(old_payload.get("district_id"), new_payload.get("district_id")):
+        changed_parts.append("округ")
+    if _value_changed(old_payload.get("type"), new_payload.get("type")):
+        changed_parts.append("тип учреждения")
+
+    old_min = (old_payload.get("range") or {}).get("min") if isinstance(old_payload.get("range"), dict) else old_payload.get("range_min")
+    old_max = (old_payload.get("range") or {}).get("max") if isinstance(old_payload.get("range"), dict) else old_payload.get("range_max")
+    new_min = (new_payload.get("range") or {}).get("min") if isinstance(new_payload.get("range"), dict) else new_payload.get("range_min")
+    new_max = (new_payload.get("range") or {}).get("max") if isinstance(new_payload.get("range"), dict) else new_payload.get("range_max")
+    if _value_changed(old_min, new_min) or _value_changed(old_max, new_max):
+        changed_parts.append("возрастной диапазон")
+
+    old_director = old_payload.get("director") or {}
+    new_director = new_payload.get("director") or {}
+    if any(
+        _value_changed(old_director.get(key), new_director.get(key))
+        for key in ("name", "phone", "email")
+    ):
+        changed_parts.append("данные директора")
+
+    old_conditions = old_payload.get("conditions") or []
+    new_conditions = new_payload.get("conditions") or []
+    if sorted(old_conditions) != sorted(new_conditions):
+        changed_parts.append("условия обучения")
+
+    old_admission = old_payload.get("conditionsAdmission") or []
+    new_admission = new_payload.get("conditionsAdmission") or []
+    if sorted(old_admission) != sorted(new_admission):
+        changed_parts.append("формы поступления")
+
+    old_accessibility = old_payload.get("accessibility_criteria") or []
+    new_accessibility = new_payload.get("accessibility_criteria") or []
+    if sorted(old_accessibility) != sorted(new_accessibility):
+        changed_parts.append("критерии доступности")
+
+    old_aoop = sorted((p.get("name") or "").strip() for p in (old_payload.get("aoop_programs") or []) if isinstance(p, dict))
+    new_aoop = sorted((p.get("name") or "").strip() for p in (new_payload.get("aoop_programs") or []) if isinstance(p, dict))
+    if old_aoop != new_aoop:
+        changed_parts.append("программы АООП")
+
+    if not changed_parts:
+        return f'В учреждение "{institution_name}" внесены изменения.'
+    return f'В учреждении "{institution_name}" обновлены: {", ".join(changed_parts)}.'
+
+
 @require_GET
 def get_districts(request: HttpRequest):
     districts = District.objects.order_by("name").values("id", "name")
@@ -335,8 +525,12 @@ def get_institutions(request: HttpRequest):
         .prefetch_related("conditions", "admission", "aoop_programs", "accessibility_criteria")
         .order_by("name")
     )
+    institution_ids = list(queryset.values_list("id", flat=True))
+    review_aggs = _get_reviews_aggregates_for_institutions(institution_ids)
     favorite_ids = _get_favorite_ids_for_request(request)
-    return JsonResponse({"institutions": [_serialize_institution(inst, favorite_ids) for inst in queryset]})
+    return JsonResponse(
+        {"institutions": [_serialize_institution(inst, favorite_ids, review_aggs) for inst in queryset]}
+    )
 
 
 @require_GET
@@ -357,8 +551,10 @@ def search_institutions(request: HttpRequest):
         .select_related("director", "type")
         .prefetch_related("conditions", "admission", "aoop_programs", "accessibility_criteria")
     )
+    institution_ids = list(queryset.values_list("id", flat=True))
+    review_aggs = _get_reviews_aggregates_for_institutions(institution_ids)
     favorite_ids = _get_favorite_ids_for_request(request)
-    institutions = [_serialize_institution(inst, favorite_ids) for inst in queryset]
+    institutions = [_serialize_institution(inst, favorite_ids, review_aggs) for inst in queryset]
     institutions = [inst for inst in institutions if _search_match(inst, search_term)]
     ranked_with_relevance = [
         (
@@ -394,8 +590,9 @@ def get_institution(request: HttpRequest):
         ),
         pk=inst_id,
     )
+    review_aggs = _get_reviews_aggregates_for_institutions([inst.id])
     favorite_ids = _get_favorite_ids_for_request(request)
-    return JsonResponse({"institution": _serialize_institution(inst, favorite_ids)})
+    return JsonResponse({"institution": _serialize_institution(inst, favorite_ids, review_aggs)})
 
 
 def _require_portal_user(request: HttpRequest):
@@ -414,6 +611,52 @@ def get_favorites(request: HttpRequest):
         return JsonResponse({"favorite_ids": []})
     favorite_ids = list(Favorite.objects.filter(user=user).values_list("institution_id", flat=True))
     return JsonResponse({"favorite_ids": favorite_ids})
+
+
+@csrf_exempt
+@require_POST
+def update_profile(request: HttpRequest):
+    user = _require_portal_user(request)
+    if not user:
+        return JsonResponse({"error": "Portal user role is required"}, status=403)
+
+    data = _parse_json(request)
+    if data is None:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    first_name = (data.get("first_name") or "").strip()
+    username = (data.get("username") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+
+    if not first_name:
+        return JsonResponse({"error": "Имя не может быть пустым"}, status=400)
+    if not username:
+        return JsonResponse({"error": "Логин не может быть пустым"}, status=400)
+    if not email:
+        return JsonResponse({"error": "Почта не может быть пустой"}, status=400)
+
+    User = get_user_model()
+    username_taken = User.objects.filter(username=username).exclude(id=user.id).exists()
+    if username_taken:
+        return JsonResponse({"error": "Этот username уже занят"}, status=409)
+    email_taken = User.objects.filter(email__iexact=email).exclude(id=user.id).exists()
+    if email_taken:
+        return JsonResponse({"error": "Эта почта уже используется"}, status=409)
+
+    user.first_name = first_name
+    user.username = username
+    user.email = email
+    user.save(update_fields=["first_name", "username", "email"])
+    return JsonResponse(
+        {
+            "success": True,
+            "profile": {
+                "first_name": user.first_name,
+                "username": user.username,
+                "email": user.email,
+            },
+        }
+    )
 
 
 @csrf_exempt
@@ -629,6 +872,97 @@ def _require_admin(request: HttpRequest):
 
 @csrf_exempt
 @require_POST
+def delete_user(request: HttpRequest):
+    admin = _require_admin(request)
+    if not admin:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    data = _parse_json(request) or {}
+    user_id = data.get("user_id")
+    if not user_id:
+        return JsonResponse({"error": "user_id is required"}, status=400)
+    User = get_user_model()
+    target = User.objects.filter(id=user_id).first()
+    if not target:
+        return JsonResponse({"error": "User not found"}, status=404)
+    if target.id == admin.id:
+        return JsonResponse({"error": "Нельзя удалить текущего администратора"}, status=400)
+    if target.is_superuser:
+        return JsonResponse({"error": "Нельзя удалить суперпользователя"}, status=400)
+    target.delete()
+    return JsonResponse({"success": True})
+
+
+@csrf_exempt
+@require_POST
+def create_review(request: HttpRequest):
+    user = _require_portal_user(request)
+    if not user:
+        return JsonResponse({"error": "Только зарегистрированный пользователь может оставить отзыв"}, status=403)
+
+    data = _parse_json(request)
+    if data is None:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    institution_id = data.get("institution_id")
+    comment = (data.get("comment") or "").strip()
+    institution_rating = data.get("institution_rating")
+    criteria_ratings = data.get("criteria_ratings")
+
+    if not institution_id:
+        return JsonResponse({"error": "institution_id is required"}, status=400)
+    institution = Institution.objects.filter(pk=institution_id).first()
+    if not institution:
+        return JsonResponse({"error": "Учреждение не найдено"}, status=404)
+    if criteria_ratings is None:
+        criteria_ratings = {}
+    if not isinstance(criteria_ratings, dict):
+        return JsonResponse({"error": "criteria_ratings must be an object"}, status=400)
+    try:
+        institution_rating_value = int(institution_rating)
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "Оценка учреждения должна быть целым числом от 1 до 5"}, status=400)
+    if institution_rating_value < 1 or institution_rating_value > 5:
+        return JsonResponse({"error": "Оценка учреждения должна быть от 1 до 5"}, status=400)
+
+    institution_criteria_codes = set(
+        institution.accessibility_criteria.values_list("code", flat=True)
+    )
+    normalized_scores: dict[str, int] = {}
+    for code, score in criteria_ratings.items():
+        if str(code) not in institution_criteria_codes:
+            return JsonResponse({"error": f"Критерий {code} не относится к этому учреждению"}, status=400)
+        try:
+            rating_value = int(score)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": f"Некорректная оценка для критерия {code}"}, status=400)
+        if rating_value < 1 or rating_value > 5:
+            return JsonResponse({"error": f"Оценка для критерия {code} должна быть от 1 до 5"}, status=400)
+        normalized_scores[str(code)] = rating_value
+
+    if institution_criteria_codes and set(normalized_scores.keys()) != institution_criteria_codes:
+        return JsonResponse({"error": "Оцените все критерии доступности этого учреждения"}, status=400)
+
+    review = InstitutionReview.objects.create(
+        user=user,
+        institution=institution,
+        rating=institution_rating_value,
+        criteria_scores=normalized_scores,
+        comment=comment,
+        status=InstitutionReview.STATUS_PENDING,
+    )
+    return JsonResponse(
+        {
+            "success": True,
+            "review_id": review.id,
+            "status": review.status,
+            "rating": float(review.rating),
+        },
+        status=201,
+    )
+
+
+@csrf_exempt
+@require_POST
 @transaction.atomic
 def create_institution(request: HttpRequest):
     admin = _require_admin(request)
@@ -684,7 +1018,7 @@ def update_institution(request: HttpRequest):
     inst.save()
 
     _sync_relations(inst, data)
-    ActionLog.objects.create(
+    action_log = ActionLog.objects.create(
         administrator=admin,
         action="UPDATE",
         entity="institutions",
@@ -692,6 +1026,25 @@ def update_institution(request: HttpRequest):
         old_data=old_data,
         new_data=data,
     )
+    favorite_user_ids = list(Favorite.objects.filter(institution=inst).values_list("user_id", flat=True))
+    if favorite_user_ids:
+        notification_text = _build_institution_update_message(
+            old_data=action_log.old_data,
+            new_data=action_log.new_data,
+            institution_name=inst.name,
+        )
+        ProfileNotification.objects.bulk_create(
+            [
+                ProfileNotification(
+                    user_id=user_id,
+                    institution=inst,
+                    action_log=action_log,
+                    message=notification_text,
+                )
+                for user_id in favorite_user_ids
+            ],
+            ignore_conflicts=True,
+        )
     return JsonResponse({"success": True})
 
 
