@@ -5,7 +5,7 @@
 
 Object.assign(LipetskMap.prototype, {
 
-    async applyCombinedFilters() {
+    async applyCombinedFilters(page = 1) {
       const searchInput = document.getElementById("institutionSearch");
       const searchTerm = searchInput ? searchInput.value.trim() : "";
       const districtName = document.getElementById("regionName")?.textContent || "";
@@ -22,6 +22,8 @@ Object.assign(LipetskMap.prototype, {
 
       const params = new URLSearchParams();
       params.set("district_id", districtId);
+      params.set("page", String(page));
+      params.set("page_size", String(this.itemsPerPage || 10));
       if (searchTerm) params.set("q", searchTerm);
       checkedValues("filter_type").forEach((v) => params.append("type", v));
       checkedValues("filter_age").forEach((v) => params.append("age", v));
@@ -36,7 +38,8 @@ Object.assign(LipetskMap.prototype, {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (data.error) throw new Error(data.error);
-        this.displayInstitutions(Array.isArray(data.institutions) ? data.institutions : []);
+        this.lastListMode = "search";
+        this.displayInstitutions(Array.isArray(data.institutions) ? data.institutions : [], data.pagination || null);
       } catch (error) {
         console.error("Error searching institutions:", error);
       }
@@ -68,7 +71,8 @@ Object.assign(LipetskMap.prototype, {
       });
       this.currentPage = 1;
       const districtName = document.getElementById("regionName").textContent;
-      this.loadInstitutionsForDistrict(districtName);
+      this.lastListMode = "district";
+      this.loadInstitutionsForDistrict(districtName, 1);
       if (window.innerWidth <= 768) {
         document.getElementById("filtersSection").classList.add("hidden");
       }
@@ -98,7 +102,7 @@ Object.assign(LipetskMap.prototype, {
         institutionSearch.addEventListener(
           "input",
           this.debounce(() => {
-            this.applyCombinedFilters();
+            this.applyCombinedFilters(1);
           }, 250)
         );
       }
@@ -118,7 +122,7 @@ Object.assign(LipetskMap.prototype, {
         });
   
       document.getElementById("applyFilters").addEventListener("click", () => {
-        this.applyCombinedFilters();
+        this.applyCombinedFilters(1);
       });
   
       document.getElementById("resetFilters").addEventListener("click", () => {
@@ -129,7 +133,11 @@ Object.assign(LipetskMap.prototype, {
         const searchInput = document.getElementById("institutionSearch");
         if (searchInput) searchInput.value = '';
   
-        this.displayInstitutions(this.allInstitutions);
+        const districtName = document.getElementById("regionName")?.textContent || "";
+        this.lastListMode = "district";
+        if (districtName) {
+          this.loadInstitutionsForDistrict(districtName, 1);
+        }
       });
   
       // Обработчики для верхней пагинации
@@ -200,7 +208,7 @@ Object.assign(LipetskMap.prototype, {
             }
           }
   
-          this.applyCombinedFilters();
+          this.applyCombinedFilters(1);
         });
       });
   

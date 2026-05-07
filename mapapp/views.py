@@ -67,7 +67,7 @@ def profile_page(request: HttpRequest):
                 }
                 for row in type_distribution_qs
             ]
-            admin_users_qs = User.objects.order_by("-date_joined").values(
+            admin_users_qs = User.objects.filter(is_superuser=False).order_by("-date_joined").values(
                 "id", "username", "first_name", "last_name", "email"
             )
             admin_users = []
@@ -86,6 +86,39 @@ def profile_page(request: HttpRequest):
                         "is_current_user": row["id"] == user.id,
                     }
                 )
+            moderation_reviews_qs = (
+                InstitutionReview.objects.filter(
+                    status__in=[
+                        InstitutionReview.STATUS_PENDING,
+                        InstitutionReview.STATUS_DISAPPROVED,
+                        "rejected",
+                    ]
+                )
+                .select_related("institution__type", "user")
+                .order_by("-created_at")
+            )
+            moderation_reviews = [
+                {
+                    "id": review.id,
+                    "institution_type": review.institution.type.name_ru if review.institution and review.institution.type else "Без типа",
+                    "institution_name": review.institution.name if review.institution else "Учреждение",
+                    "user_name": review.user.get_full_name() or review.user.username or "Пользователь",
+                    "status_label": (
+                        "На модерации"
+                        if review.status == InstitutionReview.STATUS_PENDING
+                        else "Отклонен"
+                    ),
+                    "status_value": (
+                        review.status
+                        if review.status in {InstitutionReview.STATUS_PENDING, InstitutionReview.STATUS_DISAPPROVED}
+                        else InstitutionReview.STATUS_DISAPPROVED
+                    ),
+                    "rating": float(review.rating or 0),
+                    "comment": review.comment or "Комментарий не указан.",
+                    "created_at": review.created_at,
+                }
+                for review in moderation_reviews_qs
+            ]
             ctx.update(
                 {
                     "admin_total_institutions": total_institutions,
@@ -94,6 +127,7 @@ def profile_page(request: HttpRequest):
                     "admin_users_month_delta": users_month_delta,
                     "admin_type_distribution": type_distribution,
                     "admin_users": admin_users,
+                    "admin_moderation_reviews": moderation_reviews,
                 }
             )
         if not is_admin:
@@ -184,6 +218,31 @@ def _parse_json(request: HttpRequest):
         return None
 
 
+def _get_pagination(request: HttpRequest) -> tuple[int, int]:
+    try:
+        page = int(request.GET.get("page", "1"))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        page_size = int(request.GET.get("page_size", "10"))
+    except (TypeError, ValueError):
+        page_size = 10
+    page = max(1, page)
+    page_size = max(1, min(page_size, 100))
+    return page, page_size
+
+
+def _build_pagination(total_items: int, page: int, page_size: int) -> dict:
+    total_pages = max(1, (total_items + page_size - 1) // page_size)
+    safe_page = min(max(1, page), total_pages)
+    return {
+        "page": safe_page,
+        "page_size": page_size,
+        "total_items": total_items,
+        "total_pages": total_pages,
+    }
+
+
 def _authenticate_with_login_or_email(request: HttpRequest, login_value: str, password: str):
     User = get_user_model()
     login_value = (login_value or "").strip()
@@ -228,7 +287,10 @@ def _get_reviews_aggregates_for_institutions(institution_ids: list[int]) -> dict
     if not institution_ids:
         return {}
 
-    reviews = InstitutionReview.objects.filter(institution_id__in=institution_ids).only(
+    reviews = InstitutionReview.objects.filter(
+        institution_id__in=institution_ids,
+        status=InstitutionReview.STATUS_APPROVED,
+    ).only(
         "institution_id", "rating", "criteria_scores"
     )
 
@@ -525,11 +587,20 @@ def get_institutions(request: HttpRequest):
         .prefetch_related("conditions", "admission", "aoop_programs", "accessibility_criteria")
         .order_by("name")
     )
+    page, page_size = _get_pagination(request)
+    total_items = queryset.count()
+    pagination = _build_pagination(total_items=total_items, page=page, page_size=page_size)
+    start_idx = (pagination["page"] - 1) * page_size
+    end_idx = start_idx + page_size
+    queryset = queryset[start_idx:end_idx]
     institution_ids = list(queryset.values_list("id", flat=True))
     review_aggs = _get_reviews_aggregates_for_institutions(institution_ids)
     favorite_ids = _get_favorite_ids_for_request(request)
     return JsonResponse(
-        {"institutions": [_serialize_institution(inst, favorite_ids, review_aggs) for inst in queryset]}
+        {
+            "institutions": [_serialize_institution(inst, favorite_ids, review_aggs) for inst in queryset],
+            "pagination": pagination,
+        }
     )
 
 
@@ -576,7 +647,12 @@ def search_institutions(request: HttpRequest):
         inst_with_score = dict(inst)
         inst_with_score["relevance"] = round(float(relevance), 3)
         ranked.append(inst_with_score)
-    return JsonResponse({"institutions": ranked})
+    page, page_size = _get_pagination(request)
+    total_items = len(ranked)
+    pagination = _build_pagination(total_items=total_items, page=page, page_size=page_size)
+    start_idx = (pagination["page"] - 1) * page_size
+    end_idx = start_idx + page_size
+    return JsonResponse({"institutions": ranked[start_idx:end_idx], "pagination": pagination})
 
 
 @require_GET
@@ -913,6 +989,9 @@ def create_review(request: HttpRequest):
     institution = Institution.objects.filter(pk=institution_id).first()
     if not institution:
         return JsonResponse({"error": "Учреждение не найдено"}, status=404)
+    existing_review = InstitutionReview.objects.filter(user=user, institution=institution).exists()
+    if existing_review:
+        return JsonResponse({"error": "Вы уже оставили отзыв для этого учреждения"}, status=409)
     if criteria_ratings is None:
         criteria_ratings = {}
     if not isinstance(criteria_ratings, dict):
@@ -959,6 +1038,73 @@ def create_review(request: HttpRequest):
         },
         status=201,
     )
+
+
+@csrf_exempt
+@require_POST
+def approve_review(request: HttpRequest):
+    admin = _require_admin(request)
+    if not admin:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    data = _parse_json(request) or {}
+    review_id = data.get("review_id")
+    if not review_id:
+        return JsonResponse({"error": "review_id is required"}, status=400)
+    review = InstitutionReview.objects.filter(id=review_id).first()
+    if not review:
+        return JsonResponse({"error": "Отзыв не найден"}, status=404)
+    review.status = InstitutionReview.STATUS_APPROVED
+    review.save(update_fields=["status", "updated_at"])
+    return JsonResponse({"success": True, "status": review.status})
+
+
+@csrf_exempt
+@require_POST
+def disapprove_review(request: HttpRequest):
+    admin = _require_admin(request)
+    if not admin:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    data = _parse_json(request) or {}
+    review_id = data.get("review_id")
+    if not review_id:
+        return JsonResponse({"error": "review_id is required"}, status=400)
+    review = InstitutionReview.objects.filter(id=review_id).first()
+    if not review:
+        return JsonResponse({"error": "Отзыв не найден"}, status=404)
+    review.status = InstitutionReview.STATUS_DISAPPROVED
+    review.save(update_fields=["status", "updated_at"])
+    return JsonResponse({"success": True, "status": review.status})
+
+
+@csrf_exempt
+@require_POST
+def edit_review_placeholder(request: HttpRequest):
+    admin = _require_admin(request)
+    if not admin:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    data = _parse_json(request) or {}
+    review_id = data.get("review_id")
+    if not review_id:
+        return JsonResponse({"error": "review_id is required"}, status=400)
+    review = InstitutionReview.objects.filter(id=review_id).first()
+    if not review:
+        return JsonResponse({"error": "Отзыв не найден"}, status=404)
+
+    raw_status = (data.get("status") or "").strip()
+    status_value = "disapproved" if raw_status == "rejected" else raw_status
+    allowed_statuses = {
+        InstitutionReview.STATUS_PENDING,
+        InstitutionReview.STATUS_APPROVED,
+        InstitutionReview.STATUS_DISAPPROVED,
+    }
+    if status_value not in allowed_statuses:
+        return JsonResponse({"error": "Некорректный статус модерации"}, status=400)
+
+    comment = (data.get("comment") or "").strip()
+    review.status = status_value
+    review.comment = comment
+    review.save(update_fields=["status", "comment", "updated_at"])
+    return JsonResponse({"success": True, "status": review.status, "comment": review.comment})
 
 
 @csrf_exempt

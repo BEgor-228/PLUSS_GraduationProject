@@ -25,6 +25,7 @@ class LipetskMap {
       this.hoverTimeout = null;
       this.isPortalUser = false;
       this.reviewModalBound = false;
+      this.lastListMode = "district";
     }
   
     async init() {

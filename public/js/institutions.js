@@ -25,7 +25,7 @@ Object.assign(LipetskMap.prototype, {
       }
     },
   
-    async loadInstitutionsForDistrict(districtName) {
+    async loadInstitutionsForDistrict(districtName, page = 1) {
       const districtId = this.districtIdMap[districtName];
       if (!districtId) return;
   
@@ -34,15 +34,19 @@ Object.assign(LipetskMap.prototype, {
           this.showModalLoader();
         }, 200);
   
-        const params = new URLSearchParams({ district_id: districtId });
+        const params = new URLSearchParams({
+          district_id: districtId,
+          page: String(page),
+          page_size: String(this.itemsPerPage || 10),
+        });
         const response = await fetch(`/api/get_institutions.php?${params}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (data.error) throw new Error(data.error);
   
+        this.lastListMode = "district";
         this.allInstitutions = Array.isArray(data.institutions) ? data.institutions : [];
-  
-        this.displayInstitutions(this.allInstitutions);
+        this.displayInstitutions(this.allInstitutions, data.pagination || null);
   
       } catch (error) {
         console.error('Error loading institutions:', error);
@@ -74,15 +78,16 @@ Object.assign(LipetskMap.prototype, {
       }
     },
   
-    displayInstitutions(institutions) {
-      this.totalPages = Math.ceil(institutions.length / this.itemsPerPage);
-      this.currentPage = 1;
+    displayInstitutions(institutions, pagination = null) {
+      this.totalPages = Number(pagination?.total_pages || 1);
+      this.currentPage = Number(pagination?.page || 1);
+      const totalItems = Number(pagination?.total_items || institutions.length);
   
       const debugInfo = document.getElementById("debugInfo");
       const institutionCount = document.getElementById("institutionCount");
   
       if (institutionCount) {
-        institutionCount.textContent = `(${institutions.length})`;
+        institutionCount.textContent = `(${totalItems})`;
       }
   
       if (institutions.length === 0) {
@@ -100,34 +105,27 @@ Object.assign(LipetskMap.prototype, {
         debugInfo.style.display = 'block';
       }
   
-      this.displayedInstitutionsFull = institutions.slice();
-      this.totalPages = Math.ceil(this.displayedInstitutionsFull.length / this.itemsPerPage);
-      this.currentPage = 1;
+      this.displayedInstitutions = institutions.slice();
   
       this.showCurrentPage();
       this.updatePagination();
     },
   
     showCurrentPage() {
-      const source = Array.isArray(this.displayedInstitutionsFull) ? this.displayedInstitutionsFull : [];
-      const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-      const endIndex = startIndex + this.itemsPerPage;
-      this.displayedInstitutions = source.slice(startIndex, endIndex);
+      const source = Array.isArray(this.displayedInstitutions) ? this.displayedInstitutions : [];
   
       const list = document.getElementById("institutionsList");
       const debugInfo = document.getElementById("debugInfo");
   
-      if (this.displayedInstitutions.length === 0) {
+      if (source.length === 0) {
         list.innerHTML = '<p class="text-muted">Учреждения не найдены</p>';
         if (debugInfo) debugInfo.style.display = 'none';
       } else {
-        list.innerHTML = this.displayedInstitutions.map((inst) => this.createInstitutionCard(inst)).join('');
+        list.innerHTML = source.map((inst) => this.createInstitutionCard(inst)).join('');
         if (debugInfo) debugInfo.style.display = 'block';
   
         if (debugInfo) {
-          const start = startIndex + 1;
-          const end = Math.min(endIndex, source.length);
-          debugInfo.textContent = `Показано ${start}-${end} из ${source.length} учреждений (Страница ${this.currentPage} из ${this.totalPages})`;
+          debugInfo.textContent = `Страница ${this.currentPage} из ${this.totalPages}`;
         }
       }
   
@@ -279,7 +277,6 @@ Object.assign(LipetskMap.prototype, {
         });
       };
       applyState(this.allInstitutions);
-      applyState(this.displayedInstitutionsFull);
       applyState(this.displayedInstitutions);
     },
 
@@ -328,7 +325,7 @@ Object.assign(LipetskMap.prototype, {
         alert("Только зарегистрированный пользователь может оставить отзыв.");
         return;
       }
-      const source = Array.isArray(this.displayedInstitutionsFull) ? this.displayedInstitutionsFull : [];
+      const source = Array.isArray(this.displayedInstitutions) ? this.displayedInstitutions : [];
       const institution = source.find((inst) => inst.id === institutionId);
       if (!institution) return;
 
@@ -699,30 +696,35 @@ Object.assign(LipetskMap.prototype, {
       document.getElementById('institutionModalTitle').textContent = 'Добавить учреждение';
     },
   
-    handlePrevPage() {
+    async handlePrevPage() {
       if (this.currentPage > 1) {
-        this.currentPage--;
-        this.showCurrentPage();
-        this.updatePagination();
+        await this.requestListPage(this.currentPage - 1);
         this.scrollToInstitutions();
       }
     },
   
-    handleNextPage() {
+    async handleNextPage() {
       if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-        this.showCurrentPage();
-        this.updatePagination();
+        await this.requestListPage(this.currentPage + 1);
         this.scrollToInstitutions();
       }
     },
   
-    handlePageClick(page) {
+    async handlePageClick(page) {
       if (page !== this.currentPage) {
-        this.currentPage = page;
-        this.showCurrentPage();
-        this.updatePagination();
+        await this.requestListPage(page);
         this.scrollToInstitutions();
+      }
+    },
+
+    async requestListPage(page) {
+      const districtName = document.getElementById("regionName")?.textContent || this.currentDistrictName;
+      if (this.lastListMode === "search") {
+        await this.applyCombinedFilters(page);
+        return;
+      }
+      if (districtName) {
+        await this.loadInstitutionsForDistrict(districtName, page);
       }
     },
   

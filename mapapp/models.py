@@ -138,11 +138,11 @@ class ProfileNotification(models.Model):
 class InstitutionReview(models.Model):
     STATUS_PENDING = "pending"
     STATUS_APPROVED = "approved"
-    STATUS_REJECTED = "rejected"
+    STATUS_DISAPPROVED = "disapproved"
     STATUS_CHOICES = [
         (STATUS_PENDING, "На модерации"),
         (STATUS_APPROVED, "Одобрен"),
-        (STATUS_REJECTED, "Отклонен"),
+        (STATUS_DISAPPROVED, "Отклонен"),
     ]
 
     user = models.ForeignKey(
@@ -164,3 +164,6 @@ class InstitutionReview(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "institution"], name="uniq_user_institution_review"),
+        ]

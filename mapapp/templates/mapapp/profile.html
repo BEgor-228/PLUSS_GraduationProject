@@ -36,6 +36,7 @@
                         <p class="admin-dashboard-email">{{ display_email }}</p>
                         <div class="admin-dashboard-nav">
                             <button class="admin-dashboard-nav-btn active" data-admin-tab="dashboard" type="button">Дашборд</button>
+                            <button class="admin-dashboard-nav-btn" data-admin-tab="review-moderation" type="button">Администрация отзывов</button>
                             <button class="admin-dashboard-nav-btn" data-admin-tab="users" type="button">Пользователи</button>
                         </div>
                     </aside>
@@ -62,6 +63,46 @@
                                     <div class="admin-chart-pie" id="adminTypePie"></div>
                                     <ul class="admin-chart-legend" id="adminTypeLegend"></ul>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="admin-tab-panel hidden" data-admin-panel="review-moderation">
+                            <div class="admin-dashboard-header-row">
+                                <h2 class="profile-title profile-title--dashboard">Модерация отзывов</h2>
+                            </div>
+                            <div class="admin-reviews-list" id="adminReviewsList">
+                                {% for review in admin_moderation_reviews %}
+                                    <article class="admin-review-card"
+                                             data-review-id="{{ review.id }}"
+                                             data-review-status="{{ review.status_value }}"
+                                             data-review-institution="{{ review.institution_name }}"
+                                             data-review-author="{{ review.user_name }}"
+                                             data-review-date="{{ review.created_at|date:'d.m.Y H:i' }}"
+                                             data-review-rating="{{ review.rating|stringformat:'.2f' }}"
+                                             data-review-comment="{{ review.comment }}">
+                                        <div class="admin-review-header">
+                                            <div class="admin-review-main-meta">
+                                                <span class="admin-review-inst-line">
+                                                    <span class="admin-review-inst-type">{{ review.institution_type }}</span>
+                                                    <span class="admin-review-separator">|</span>
+                                                    <span class="admin-review-inst-name">{{ review.institution_name }}</span>
+                                                </span>
+                                                <span class="admin-review-user-status">
+                                                    {{ review.user_name }}
+                                                    <span class="admin-review-status-badge{% if review.status_value == 'disapproved' %} is-rejected{% endif %}">{{ review.status_label }}</span>
+                                                </span>
+                                            </div>
+                                            <span class="admin-review-date">{{ review.created_at|date:"d.m.Y H:i" }}</span>
+                                        </div>
+                                        <p class="admin-review-comment">{{ review.comment }}</p>
+                                        <div class="admin-review-actions">
+                                            <button class="admin-review-btn admin-review-btn--approve" data-review-action="approve" type="button">Одобрить</button>
+                                            <button class="admin-review-btn admin-review-btn--disapprove" data-review-action="disapprove" type="button">Отклонить</button>
+                                            <button class="admin-review-btn admin-review-btn--edit" data-review-action="edit" type="button">Редактировать</button>
+                                        </div>
+                                    </article>
+                                {% empty %}
+                                    <p class="admin-users-empty" id="adminReviewsEmpty">Отзывов на модерации пока нет.</p>
+                                {% endfor %}
                             </div>
                         </div>
                         <div class="admin-tab-panel hidden" data-admin-panel="users">
@@ -118,6 +159,56 @@
                         </div>
                         {{ admin_type_distribution|json_script:"adminTypeDistributionData" }}
                     </section>
+                </div>
+                <div class="admin-review-modal hidden" id="adminReviewEditModal">
+                    <div class="admin-review-modal-card">
+                        <div class="admin-review-modal-header">
+                            <h3>Редактирование отзыва</h3>
+                            <button class="admin-review-modal-close" id="adminReviewEditCloseBtn" type="button">×</button>
+                        </div>
+                        <form id="adminReviewEditForm" class="admin-review-edit-form">
+                            <input id="adminReviewId" type="hidden">
+                            <div class="admin-review-form-grid">
+                                <div class="form-group">
+                                    <label for="adminReviewInstitution">Учреждение</label>
+                                    <input id="adminReviewInstitution" type="text" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="adminReviewAuthor">Автор</label>
+                                    <input id="adminReviewAuthor" type="text" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="adminReviewDate">Дата отзыва</label>
+                                    <input id="adminReviewDate" type="text" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="adminReviewRating">Рейтинг</label>
+                                    <div id="adminReviewRating" class="admin-review-rating-display" aria-live="polite"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="adminReviewStatus">Статус модерации</label>
+                                <select id="adminReviewStatus" required>
+                                    <option value="pending">На модерации</option>
+                                    <option value="approved">Одобрено</option>
+                                    <option value="disapproved">Отклонено</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="adminReviewComment">Текст отзыва</label>
+                                <textarea id="adminReviewComment" rows="5" placeholder="Введите текст отзыва"></textarea>
+                            </div>
+                            <div class="admin-review-preview">
+                                <p class="admin-review-preview-title">Предпросмотр:</p>
+                                <p id="adminReviewPreviewText"></p>
+                            </div>
+                            <div id="adminReviewEditMessage" class="profile-settings-message hidden" aria-live="polite"></div>
+                            <div class="admin-review-modal-actions">
+                                <button class="btn btn-secondary" id="adminReviewEditCancelBtn" type="button">Отмена</button>
+                                <button class="btn btn-primary" id="adminReviewEditSaveBtn" type="submit">Сохранить изменения</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             {% endif %}
         </div>
@@ -391,6 +482,185 @@
         }
         if (userRows.length) {
           renderUsersPage();
+        }
+
+        const reviewsList = document.getElementById("adminReviewsList");
+        const reviewModal = document.getElementById("adminReviewEditModal");
+        const reviewForm = document.getElementById("adminReviewEditForm");
+        const reviewMessage = document.getElementById("adminReviewEditMessage");
+        const reviewSaveBtn = document.getElementById("adminReviewEditSaveBtn");
+        const reviewCommentInput = document.getElementById("adminReviewComment");
+        const reviewPreviewText = document.getElementById("adminReviewPreviewText");
+        let editingReviewCard = null;
+
+        const statusToLabel = (status) => {
+          if (status === "approved") return "Одобрено";
+          if (status === "disapproved" || status === "rejected") return "Отклонен";
+          return "На модерации";
+        };
+        const statusToValue = (status) => {
+          if (status === "approved") return "approved";
+          if (status === "disapproved" || status === "rejected") return "disapproved";
+          return "pending";
+        };
+        const setReviewMessage = (text, isError = false) => {
+          if (!reviewMessage) return;
+          reviewMessage.textContent = text || "";
+          reviewMessage.classList.toggle("hidden", !text);
+          reviewMessage.classList.toggle("error", Boolean(text) && isError);
+          reviewMessage.classList.toggle("success", Boolean(text) && !isError);
+        };
+        const renderReviewRating = (ratingNum) => {
+          const ratingNode = document.getElementById("adminReviewRating");
+          if (!ratingNode) return;
+          const safeRating = Number.isFinite(ratingNum) ? Math.max(0, Math.min(5, ratingNum)) : 0;
+          const stars = Array.from({ length: 5 }, (_, idx) => {
+            const active = idx + 1 <= safeRating;
+            return `<span class="admin-review-star ${active ? "is-active" : ""}">★</span>`;
+          }).join("");
+          ratingNode.innerHTML = `<span class="admin-review-stars">${stars}</span><span class="admin-review-rating-value">${safeRating.toFixed(2)}</span>`;
+        };
+        const ensureEmptyState = () => {
+          if (!reviewsList) return;
+          if (reviewsList.querySelector(".admin-review-card")) return;
+          if (document.getElementById("adminReviewsEmpty")) return;
+          const empty = document.createElement("p");
+          empty.className = "admin-users-empty";
+          empty.id = "adminReviewsEmpty";
+          empty.textContent = "Отзывов на модерации пока нет.";
+          reviewsList.appendChild(empty);
+        };
+        const refreshReviewCard = (card, status, comment) => {
+          if (!card) return;
+          const statusLabel = statusToLabel(status);
+          card.dataset.reviewStatus = statusToValue(status);
+          card.dataset.reviewComment = comment || "";
+          const badge = card.querySelector(".admin-review-status-badge");
+          if (badge) {
+            badge.textContent = statusLabel;
+            badge.classList.toggle("is-rejected", statusLabel === "Отклонен");
+          }
+          const commentNode = card.querySelector(".admin-review-comment");
+          if (commentNode) commentNode.textContent = comment || "Комментарий не указан.";
+        };
+        const openReviewModal = (card) => {
+          if (!reviewModal || !reviewForm || !card) return;
+          editingReviewCard = card;
+          setReviewMessage("");
+          const idInput = document.getElementById("adminReviewId");
+          const institutionInput = document.getElementById("adminReviewInstitution");
+          const authorInput = document.getElementById("adminReviewAuthor");
+          const dateInput = document.getElementById("adminReviewDate");
+          const statusInput = document.getElementById("adminReviewStatus");
+          if (idInput) idInput.value = card.dataset.reviewId || "";
+          if (institutionInput) institutionInput.value = card.dataset.reviewInstitution || "";
+          if (authorInput) authorInput.value = card.dataset.reviewAuthor || "";
+          if (dateInput) dateInput.value = card.dataset.reviewDate || "";
+          const rawRating = String(card.dataset.reviewRating || "").replace(",", ".").trim();
+          renderReviewRating(Number.parseFloat(rawRating));
+          if (statusInput) statusInput.value = statusToValue(card.dataset.reviewStatus || "pending");
+          if (reviewCommentInput) reviewCommentInput.value = card.dataset.reviewComment || "";
+          if (reviewPreviewText) reviewPreviewText.textContent = (card.dataset.reviewComment || "").trim() || "Текст отзыва отсутствует.";
+          reviewModal.classList.remove("hidden");
+        };
+        const closeReviewModal = () => {
+          if (!reviewModal) return;
+          reviewModal.classList.add("hidden");
+          editingReviewCard = null;
+          setReviewMessage("");
+          reviewForm?.reset();
+        };
+
+        if (reviewCommentInput && reviewPreviewText) {
+          reviewCommentInput.addEventListener("input", () => {
+            const value = (reviewCommentInput.value || "").trim();
+            reviewPreviewText.textContent = value || "Текст отзыва отсутствует.";
+          });
+        }
+
+        document.getElementById("adminReviewEditCloseBtn")?.addEventListener("click", closeReviewModal);
+        document.getElementById("adminReviewEditCancelBtn")?.addEventListener("click", closeReviewModal);
+        reviewModal?.addEventListener("click", (event) => {
+          if (event.target === reviewModal) closeReviewModal();
+        });
+
+        reviewForm?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const reviewId = Number(document.getElementById("adminReviewId")?.value || 0);
+          const status = document.getElementById("adminReviewStatus")?.value || "pending";
+          const comment = (reviewCommentInput?.value || "").trim();
+          if (!reviewId) return;
+          if (reviewSaveBtn) reviewSaveBtn.disabled = true;
+          setReviewMessage("");
+          try {
+            const response = await fetch("/api/edit_review.php", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ review_id: reviewId, status, comment }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data?.success) {
+              setReviewMessage(data?.error || "Не удалось сохранить изменения.", true);
+              return;
+            }
+            const finalStatus = data?.status || status;
+            const finalComment = data?.comment ?? comment;
+            if (finalStatus === "approved") {
+              editingReviewCard?.remove();
+              ensureEmptyState();
+              closeReviewModal();
+              return;
+            }
+            refreshReviewCard(editingReviewCard, finalStatus, finalComment);
+            setReviewMessage("Изменения сохранены.");
+            setTimeout(closeReviewModal, 500);
+          } catch (e) {
+            console.error("Review update failed", e);
+            setReviewMessage("Ошибка сети. Попробуйте еще раз.", true);
+          } finally {
+            if (reviewSaveBtn) reviewSaveBtn.disabled = false;
+          }
+        });
+
+        if (reviewsList) {
+          reviewsList.addEventListener("click", async (event) => {
+            const actionBtn = event.target.closest("[data-review-action]");
+            if (!actionBtn) return;
+            const card = actionBtn.closest(".admin-review-card");
+            const reviewId = Number(card?.dataset.reviewId || 0);
+            if (!reviewId) return;
+            const action = actionBtn.dataset.reviewAction;
+            if (action === "edit") {
+              openReviewModal(card);
+              return;
+            }
+
+            const endpoint = action === "approve" ? "/api/approve_review.php" : "/api/disapprove_review.php";
+            actionBtn.disabled = true;
+            try {
+              const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ review_id: reviewId }),
+              });
+              const data = await response.json();
+              if (!response.ok || !data?.success) {
+                window.alert(data?.error || "Не удалось обновить статус отзыва.");
+                return;
+              }
+              if (action === "approve") {
+                card?.remove();
+              } else {
+                refreshReviewCard(card, "disapproved", card?.dataset.reviewComment || "");
+              }
+              ensureEmptyState();
+            } catch (e) {
+              console.error("Review moderation failed", e);
+              window.alert("Ошибка сети. Попробуйте ещё раз.");
+            } finally {
+              actionBtn.disabled = false;
+            }
+          });
         }
 
         document.querySelectorAll(".admin-user-delete-btn").forEach((btn) => {
