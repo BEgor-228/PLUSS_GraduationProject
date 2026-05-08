@@ -1,11 +1,12 @@
 import json
 import re
+from datetime import datetime, timedelta
 
 from django.contrib.auth import authenticate, get_user_model, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import Group
 from django.db import IntegrityError, connection, transaction
-from django.db.models import Count, Q
-from django.http import HttpRequest, JsonResponse
+from django.db.models import Avg, Count, Q
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -25,6 +26,7 @@ from .models import (
     InstitutionType,
     Link,
     ProfileNotification,
+    UserDistrictPreference,
 )
 
 
@@ -55,6 +57,21 @@ def profile_page(request: HttpRequest):
             User = get_user_model()
             total_users = User.objects.count()
             users_month_delta = User.objects.filter(date_joined__gte=month_start).count()
+            moderation_total = InstitutionReview.objects.filter(
+                status__in=[
+                    InstitutionReview.STATUS_PENDING,
+                    InstitutionReview.STATUS_DISAPPROVED,
+                    "rejected",
+                ]
+            ).count()
+            moderation_month_delta = InstitutionReview.objects.filter(
+                status__in=[
+                    InstitutionReview.STATUS_PENDING,
+                    InstitutionReview.STATUS_DISAPPROVED,
+                    "rejected",
+                ],
+                created_at__gte=month_start,
+            ).count()
             type_distribution_qs = (
                 Institution.objects.values("type__name_ru")
                 .annotate(total=Count("id"))
@@ -67,8 +84,51 @@ def profile_page(request: HttpRequest):
                 }
                 for row in type_distribution_qs
             ]
-            admin_users_qs = User.objects.filter(is_superuser=False).order_by("-date_joined").values(
-                "id", "username", "first_name", "last_name", "email"
+            user_reviews_chart_qs = (
+                User.objects.filter(is_superuser=False)
+                .annotate(reviews_count=Count("institution_reviews"))
+                .filter(reviews_count__gt=0)
+                .order_by("-reviews_count", "username")
+                .values("first_name", "last_name", "username", "reviews_count")
+            )
+            user_reviews_chart = []
+            for row in user_reviews_chart_qs:
+                full_name = " ".join(part for part in [row["first_name"], row["last_name"]] if part).strip()
+                display_name = full_name or row["username"] or "Пользователь"
+                user_reviews_chart.append(
+                    {
+                        "name": display_name,
+                        "username": row["username"] or "",
+                        "value": int(row["reviews_count"] or 0),
+                    }
+                )
+            institution_rating_chart_qs = (
+                Institution.objects.annotate(
+                    avg_rating=Avg(
+                        "reviews__rating",
+                        filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED),
+                    )
+                )
+                .filter(avg_rating__isnull=False)
+                .select_related("district")
+                .order_by("-avg_rating", "name")
+            )
+            institution_rating_chart = [
+                {
+                    "name": inst.name,
+                    "district_name": inst.district.name if inst.district_id else "",
+                    "value": round(float(inst.avg_rating or 0), 2),
+                }
+                for inst in institution_rating_chart_qs
+            ]
+            admin_users_qs = (
+                User.objects.filter(is_superuser=False)
+                .annotate(
+                    reviews_count=Count("institution_reviews"),
+                    avg_rating=Avg("institution_reviews__rating"),
+                )
+                .order_by("-date_joined")
+                .values("id", "username", "first_name", "last_name", "email", "reviews_count", "avg_rating")
             )
             admin_users = []
             for row in admin_users_qs:
@@ -84,6 +144,8 @@ def profile_page(request: HttpRequest):
                         "email": row["email"] or "",
                         "initials": initials,
                         "is_current_user": row["id"] == user.id,
+                        "reviews_count": int(row.get("reviews_count") or 0),
+                        "avg_rating": float(row["avg_rating"]) if row.get("avg_rating") is not None else None,
                     }
                 )
             moderation_reviews_qs = (
@@ -125,7 +187,11 @@ def profile_page(request: HttpRequest):
                     "admin_institutions_month_delta": institutions_month_delta,
                     "admin_total_users": total_users,
                     "admin_users_month_delta": users_month_delta,
+                    "admin_moderation_total": moderation_total,
+                    "admin_moderation_month_delta": moderation_month_delta,
                     "admin_type_distribution": type_distribution,
+                    "admin_user_reviews_chart": user_reviews_chart,
+                    "admin_institution_rating_chart": institution_rating_chart,
                     "admin_users": admin_users,
                     "admin_moderation_reviews": moderation_reviews,
                 }
@@ -134,6 +200,10 @@ def profile_page(request: HttpRequest):
             ctx["settings_first_name"] = user.first_name or ""
             ctx["settings_username"] = user.username or ""
             ctx["settings_email"] = user.email or ""
+            preference = UserDistrictPreference.objects.filter(user=user).select_related("district").first()
+            ctx["settings_district_id"] = preference.district_id if preference else None
+            ctx["settings_notify_new_institutions"] = bool(preference and preference.notify_new_institutions)
+            ctx["settings_districts"] = list(District.objects.order_by("name").values("id", "name"))
             favorites = (
                 Favorite.objects.filter(user=user)
                 .select_related("institution__district", "institution__type")
@@ -155,20 +225,76 @@ def profile_page(request: HttpRequest):
                 )
             ctx["favorite_institutions"] = favorite_cards
             ctx["favorites_count"] = len(favorite_cards)
+            user_reviews_qs = (
+                InstitutionReview.objects.filter(user=user)
+                .select_related("institution__district", "institution__type")
+                .order_by("-created_at")
+            )
+            status_label_map = {
+                InstitutionReview.STATUS_PENDING: "На модерации",
+                InstitutionReview.STATUS_APPROVED: "Опубликован",
+                InstitutionReview.STATUS_DISAPPROVED: "Отклонен",
+                "rejected": "Отклонен",
+            }
+            user_reviews = []
+            for review in user_reviews_qs:
+                user_reviews.append(
+                    {
+                        "id": review.id,
+                        "institution_name": review.institution.name if review.institution_id else "Учреждение",
+                        "district_name": (
+                            review.institution.district.name
+                            if review.institution_id and review.institution.district_id
+                            else "Город не указан"
+                        ),
+                        "type_name": (
+                            review.institution.type.name_ru
+                            if review.institution_id and review.institution.type_id
+                            else "Тип не указан"
+                        ),
+                        "comment": review.comment or "Комментарий не указан.",
+                        "rating": float(review.rating or 0),
+                        "status_value": (
+                            review.status
+                            if review.status in {
+                                InstitutionReview.STATUS_PENDING,
+                                InstitutionReview.STATUS_APPROVED,
+                                InstitutionReview.STATUS_DISAPPROVED,
+                            }
+                            else InstitutionReview.STATUS_DISAPPROVED
+                        ),
+                        "status_label": status_label_map.get(review.status, "На модерации"),
+                        "created_at": review.created_at,
+                        "created_at_display": review.created_at.strftime("%d.%m.%Y %H:%M"),
+                    }
+                )
+            ctx["user_reviews"] = user_reviews
+            ctx["user_reviews_count"] = len(user_reviews)
             notifications_qs = (
                 ProfileNotification.objects.filter(user=user)
-                .select_related("institution", "action_log")
-                .order_by("-created_at")[:20]
+                .select_related("institution__district", "institution__type")
+                .order_by("-created_at")
             )
-            ctx["notifications"] = [
-                {
-                    "institution_name": n.institution.name if n.institution_id else "Учреждение",
-                    "message": n.message,
-                    "created_at": n.created_at,
-                }
-                for n in notifications_qs
-            ]
-            ctx["notifications_count"] = len(ctx["notifications"])
+            notifications = []
+            for notification in notifications_qs:
+                inst = notification.institution
+                notifications.append(
+                    {
+                        "institution_id": inst.id if inst else None,
+                        "district_id": inst.district_id if inst else None,
+                        "district_name": (
+                            inst.district.name if inst and inst.district_id else "Город/район не указан"
+                        ),
+                        "type_name": (
+                            inst.type.name_ru if inst and inst.type_id else "Тип не указан"
+                        ),
+                        "institution_name": inst.name if inst else "Учреждение",
+                        "message": notification.message,
+                        "created_at": notification.created_at,
+                    }
+                )
+            ctx["notifications"] = notifications
+            ctx["notifications_count"] = len(notifications)
     return render(request, "mapapp/profile.html", ctx)
 
 
@@ -339,11 +465,60 @@ def _get_reviews_aggregates_for_institutions(institution_ids: list[int]) -> dict
     return aggregates
 
 
+def _get_approved_reviews_for_institutions(
+    institution_ids: list[int], limit_per_institution: int = 3
+) -> dict[int, dict]:
+    if not institution_ids:
+        return {}
+    counts_qs = (
+        InstitutionReview.objects.filter(
+            institution_id__in=institution_ids,
+            status=InstitutionReview.STATUS_APPROVED,
+        )
+        .values("institution_id")
+        .annotate(total=Count("id"))
+    )
+    counts_map = {row["institution_id"]: row["total"] for row in counts_qs}
+    result: dict[int, dict] = {
+        inst_id: {"count": counts_map.get(inst_id, 0), "items": []} for inst_id in institution_ids
+    }
+    reviews_qs = (
+        InstitutionReview.objects.filter(
+            institution_id__in=institution_ids,
+            status=InstitutionReview.STATUS_APPROVED,
+        )
+        .select_related("user")
+        .order_by("institution_id", "-created_at", "-id")
+    )
+    per_inst_added: dict[int, int] = {}
+    for review in reviews_qs:
+        inst_id = review.institution_id
+        current = per_inst_added.get(inst_id, 0)
+        if current >= limit_per_institution:
+            continue
+        user_name = review.user.get_full_name() or review.user.username or "Пользователь"
+        result.setdefault(inst_id, {"count": 0, "items": []})
+        result[inst_id]["items"].append(
+            {
+                "author": user_name,
+                "rating": float(review.rating or 0),
+                "comment": review.comment or "",
+                "created_at": review.created_at.strftime("%d.%m.%Y %H:%M"),
+            }
+        )
+        per_inst_added[inst_id] = current + 1
+    return result
+
+
 def _serialize_institution(
-    inst: Institution, favorite_ids: set[int] | None = None, review_aggs: dict[int, dict] | None = None
+    inst: Institution,
+    favorite_ids: set[int] | None = None,
+    review_aggs: dict[int, dict] | None = None,
+    approved_reviews_map: dict[int, dict] | None = None,
 ):
     is_favorite = bool(favorite_ids and inst.id in favorite_ids)
     review_agg = (review_aggs or {}).get(inst.id) if review_aggs else None
+    approved_reviews_payload = (approved_reviews_map or {}).get(inst.id, {})
     return {
         "id": inst.id,
         "name": inst.name,
@@ -362,6 +537,8 @@ def _serialize_institution(
         "is_favorite": is_favorite,
         "avg_institution_rating": review_agg.get("avg_institution_rating") if review_agg else None,
         "avg_accessibility_criteria": (review_agg.get("avg_accessibility_criteria") if review_agg else {}) or {},
+        "approved_reviews_count": approved_reviews_payload.get("count", 0),
+        "approved_reviews": approved_reviews_payload.get("items", []),
         "director": {
             "id": inst.director.id if inst.director else None,
             "name": inst.director.full_name if inst.director else "",
@@ -595,10 +772,13 @@ def get_institutions(request: HttpRequest):
     queryset = queryset[start_idx:end_idx]
     institution_ids = list(queryset.values_list("id", flat=True))
     review_aggs = _get_reviews_aggregates_for_institutions(institution_ids)
+    approved_reviews_map = _get_approved_reviews_for_institutions(institution_ids)
     favorite_ids = _get_favorite_ids_for_request(request)
     return JsonResponse(
         {
-            "institutions": [_serialize_institution(inst, favorite_ids, review_aggs) for inst in queryset],
+            "institutions": [
+                _serialize_institution(inst, favorite_ids, review_aggs, approved_reviews_map) for inst in queryset
+            ],
             "pagination": pagination,
         }
     )
@@ -624,8 +804,9 @@ def search_institutions(request: HttpRequest):
     )
     institution_ids = list(queryset.values_list("id", flat=True))
     review_aggs = _get_reviews_aggregates_for_institutions(institution_ids)
+    approved_reviews_map = _get_approved_reviews_for_institutions(institution_ids)
     favorite_ids = _get_favorite_ids_for_request(request)
-    institutions = [_serialize_institution(inst, favorite_ids, review_aggs) for inst in queryset]
+    institutions = [_serialize_institution(inst, favorite_ids, review_aggs, approved_reviews_map) for inst in queryset]
     institutions = [inst for inst in institutions if _search_match(inst, search_term)]
     ranked_with_relevance = [
         (
@@ -667,8 +848,9 @@ def get_institution(request: HttpRequest):
         pk=inst_id,
     )
     review_aggs = _get_reviews_aggregates_for_institutions([inst.id])
+    approved_reviews_map = _get_approved_reviews_for_institutions([inst.id])
     favorite_ids = _get_favorite_ids_for_request(request)
-    return JsonResponse({"institution": _serialize_institution(inst, favorite_ids, review_aggs)})
+    return JsonResponse({"institution": _serialize_institution(inst, favorite_ids, review_aggs, approved_reviews_map)})
 
 
 def _require_portal_user(request: HttpRequest):
@@ -703,6 +885,8 @@ def update_profile(request: HttpRequest):
     first_name = (data.get("first_name") or "").strip()
     username = (data.get("username") or "").strip()
     email = (data.get("email") or "").strip().lower()
+    district_id = data.get("district_id")
+    notify_new_institutions = bool(data.get("notify_new_institutions", False))
 
     if not first_name:
         return JsonResponse({"error": "Имя не может быть пустым"}, status=400)
@@ -723,6 +907,15 @@ def update_profile(request: HttpRequest):
     user.username = username
     user.email = email
     user.save(update_fields=["first_name", "username", "email"])
+    preference, _ = UserDistrictPreference.objects.get_or_create(user=user)
+    district_obj = None
+    if district_id not in (None, "", 0, "0"):
+        district_obj = District.objects.filter(id=district_id).first()
+        if not district_obj:
+            return JsonResponse({"error": "Выбранный район не найден"}, status=400)
+    preference.district = district_obj
+    preference.notify_new_institutions = bool(notify_new_institutions and district_obj is not None)
+    preference.save(update_fields=["district", "notify_new_institutions", "updated_at"])
     return JsonResponse(
         {
             "success": True,
@@ -730,6 +923,8 @@ def update_profile(request: HttpRequest):
                 "first_name": user.first_name,
                 "username": user.username,
                 "email": user.email,
+                "district_id": preference.district_id,
+                "notify_new_institutions": preference.notify_new_institutions,
             },
         }
     )
@@ -947,6 +1142,235 @@ def _require_admin(request: HttpRequest):
 
 
 @csrf_exempt
+@require_GET
+def export_admin_report(request: HttpRequest):
+    admin = _require_admin(request)
+    if not admin:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+
+    export_format = (request.GET.get("format") or "pdf").strip().lower()
+    if export_format != "pdf":
+        return JsonResponse({"error": "Формат пока не поддерживается"}, status=400)
+
+    now = timezone.localtime()
+    month_value = (request.GET.get("month") or "").strip()
+    if month_value:
+        try:
+            requested_month = datetime.strptime(month_value, "%Y-%m")
+            period_start = timezone.make_aware(datetime(requested_month.year, requested_month.month, 1))
+        except ValueError:
+            return JsonResponse({"error": "Некорректный месяц. Используйте формат YYYY-MM"}, status=400)
+    else:
+        period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    if period_start.month == 12:
+        period_end = period_start.replace(year=period_start.year + 1, month=1, day=1)
+    else:
+        period_end = period_start.replace(month=period_start.month + 1, day=1)
+
+    total_institutions = Institution.objects.count()
+    institutions_month_delta = Institution.objects.filter(created_at__gte=period_start, created_at__lt=period_end).count()
+    User = get_user_model()
+    total_users = User.objects.count()
+    users_month_delta = User.objects.filter(date_joined__gte=period_start, date_joined__lt=period_end).count()
+    moderation_total = InstitutionReview.objects.filter(
+        status__in=[InstitutionReview.STATUS_PENDING, InstitutionReview.STATUS_DISAPPROVED, "rejected"]
+    ).count()
+    moderation_month_delta = InstitutionReview.objects.filter(
+        status__in=[InstitutionReview.STATUS_PENDING, InstitutionReview.STATUS_DISAPPROVED, "rejected"],
+        created_at__gte=period_start,
+        created_at__lt=period_end,
+    ).count()
+
+    approved_reviews_qs = InstitutionReview.objects.filter(status=InstitutionReview.STATUS_APPROVED)
+    approved_reviews_total = approved_reviews_qs.count()
+    avg_approved_rating = approved_reviews_qs.aggregate(value=Avg("rating")).get("value")
+    avg_approved_rating_value = round(float(avg_approved_rating), 2) if avg_approved_rating is not None else 0.0
+
+    distribution_rows = list(
+        Institution.objects.values("type__name_ru")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
+    top_type_row = distribution_rows[0] if distribution_rows else None
+    top_type_name = (top_type_row or {}).get("type__name_ru") or "n/a"
+    top_type_count = int((top_type_row or {}).get("total") or 0)
+    type_distribution_total = sum(int(row.get("total") or 0) for row in distribution_rows) or 1
+    type_distribution_lines = [
+        (
+            (row.get("type__name_ru") or "Без типа"),
+            int(row.get("total") or 0),
+            (int(row.get("total") or 0) * 100.0) / type_distribution_total,
+        )
+        for row in distribution_rows
+    ]
+
+    top_user_row = (
+        User.objects.filter(is_superuser=False)
+        .annotate(reviews_count=Count("institution_reviews"))
+        .order_by("-reviews_count", "username")
+        .values("first_name", "last_name", "username", "reviews_count")
+        .first()
+    )
+    top_user_name = "n/a"
+    top_user_reviews = 0
+    if top_user_row:
+        full_name = " ".join(
+            part for part in [top_user_row.get("first_name"), top_user_row.get("last_name")] if part
+        ).strip()
+        top_user_name = full_name or top_user_row.get("username") or "n/a"
+        top_user_reviews = int(top_user_row.get("reviews_count") or 0)
+
+    users_list_rows = (
+        User.objects.annotate(reviews_count=Count("institution_reviews"))
+        .order_by("username", "id")
+        .values("first_name", "last_name", "username", "email", "reviews_count")
+    )
+    users_list = []
+    for row in users_list_rows:
+        full_name = " ".join(part for part in [row["first_name"], row["last_name"]] if part).strip()
+        users_list.append(
+            {
+                "display_name": full_name or row["username"] or (row["email"] or "Пользователь"),
+                "username": row["username"] or "",
+                "reviews_count": int(row["reviews_count"] or 0),
+            }
+        )
+
+    institutions_list_rows = (
+        Institution.objects.annotate(
+            avg_rating=Avg("reviews__rating", filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED))
+        )
+        .select_related("district")
+        .order_by("name")
+        .values("name", "district__name", "avg_rating")
+    )
+    institutions_list = [
+        {
+            "name": row["name"] or "Учреждение",
+            "district_name": row["district__name"] or "",
+            "avg_rating": round(float(row["avg_rating"]), 2) if row["avg_rating"] is not None else None,
+        }
+        for row in institutions_list_rows
+    ]
+
+    try:
+        from io import BytesIO
+
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from reportlab.pdfgen import canvas
+    except Exception:
+        return JsonResponse({"error": "PDF библиотека не установлена. Установите reportlab."}, status=500)
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    font_name = "Helvetica"
+    for candidate in [
+        ("Arial", "C:/Windows/Fonts/arial.ttf"),
+        ("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        ("DejaVuSans", "/usr/share/fonts/dejavu/DejaVuSans.ttf"),
+        ("LiberationSans", "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"),
+        ("NotoSans", "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"),
+    ]:
+        try:
+            pdfmetrics.registerFont(TTFont(candidate[0], candidate[1]))
+            font_name = candidate[0]
+            break
+        except Exception:
+            continue
+
+    y = height - 48
+    bottom_margin = 48
+
+    def ensure_space(required_height: int = 14):
+        nonlocal y
+        if y - required_height < bottom_margin:
+            pdf.showPage()
+            y = height - 48
+
+    def write_line(text: str, x: int = 48, step: int = 14, size: int = 10):
+        nonlocal y
+        ensure_space(step)
+        pdf.setFont(font_name, size)
+        pdf.drawString(x, y, text)
+        y -= step
+
+    def write_section_title(text: str):
+        nonlocal y
+        ensure_space(20)
+        pdf.setFont(font_name, 12)
+        pdf.drawString(40, y, text)
+        y -= 16
+
+    pdf.setTitle("Admin Dashboard Report")
+    pdf.setFont(font_name, 16)
+    pdf.drawString(40, y, "Admin Dashboard Report")
+    y -= 22
+    write_line(f"Generated: {now.strftime('%Y-%m-%d %H:%M')}", x=40, step=18, size=10)
+    write_line(
+        f"Selected period: {period_start.strftime('%Y-%m-%d')} to {(period_end - timedelta(days=1)).strftime('%Y-%m-%d')}",
+        x=40,
+        step=18,
+        size=10,
+    )
+    y -= 8
+
+    write_section_title("Core metrics")
+    metrics_lines = [
+        f"- Institutions total: {total_institutions} (new in selected month: +{institutions_month_delta})",
+        f"- Registered users: {total_users} (new in selected month: +{users_month_delta})",
+        f"- Reviews on moderation: {moderation_total} (new in selected month: +{moderation_month_delta})",
+        f"- Approved reviews total: {approved_reviews_total}",
+        f"- Average approved institution rating: {avg_approved_rating_value:.2f}",
+    ]
+    for line in metrics_lines:
+        write_line(line)
+
+    y -= 8
+    write_section_title("Additional insights")
+    write_line(f"- Largest institution type: {top_type_name} ({top_type_count})")
+    write_line(f"- Most active reviewer: {top_user_name} ({top_user_reviews} reviews)")
+
+    y -= 8
+    write_section_title("Distribution by institution type")
+    if type_distribution_lines:
+        for idx, item in enumerate(type_distribution_lines, start=1):
+            write_line(f"{idx}. {item[0]} - {item[1]} ({item[2]:.2f}%)")
+    else:
+        write_line("No institution types found.")
+
+    y -= 8
+    write_section_title("All users and review counts")
+    if users_list:
+        for idx, item in enumerate(users_list, start=1):
+            username_part = f" (@{item['username']})" if item["username"] else ""
+            write_line(f"{idx}. {item['display_name']}{username_part} - reviews: {item['reviews_count']}")
+    else:
+        write_line("No users found.")
+
+    y -= 8
+    write_section_title("All institutions and average ratings")
+    if institutions_list:
+        for idx, item in enumerate(institutions_list, start=1):
+            district_part = f" [{item['district_name']}]" if item["district_name"] else ""
+            rating_value = "n/a" if item["avg_rating"] is None else f"{item['avg_rating']:.2f}"
+            write_line(f"{idx}. {item['name']}{district_part} - average rating: {rating_value}")
+    else:
+        write_line("No institutions found.")
+
+    pdf.save()
+    buffer.seek(0)
+
+    filename = f"admin_dashboard_report_{period_start.strftime('%Y%m')}_{now.strftime('%d_%H%M')}.pdf"
+    response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+@csrf_exempt
 @require_POST
 def delete_user(request: HttpRequest):
     admin = _require_admin(request)
@@ -1108,6 +1532,144 @@ def edit_review_placeholder(request: HttpRequest):
 
 
 @csrf_exempt
+@require_GET
+def get_my_review(request: HttpRequest):
+    user = _require_portal_user(request)
+    if not user:
+        return JsonResponse({"error": "Portal user role is required"}, status=403)
+    review_id = request.GET.get("review_id")
+    if not review_id:
+        return JsonResponse({"error": "review_id is required"}, status=400)
+    review = (
+        InstitutionReview.objects.filter(id=review_id, user=user)
+        .select_related("institution__district", "institution__type")
+        .first()
+    )
+    if not review:
+        return JsonResponse({"error": "Отзыв не найден"}, status=404)
+
+    institution = review.institution
+    criteria_scores = review.criteria_scores or {}
+    criteria_rows = []
+    if institution:
+        criteria_qs = institution.accessibility_criteria.order_by("name_ru").values("code", "name_ru")
+        for criterion in criteria_qs:
+            score_value = criteria_scores.get(criterion["code"])
+            try:
+                parsed_score = int(score_value)
+            except (TypeError, ValueError):
+                parsed_score = None
+            criteria_rows.append(
+                {
+                    "code": criterion["code"],
+                    "name": criterion["name_ru"],
+                    "score": parsed_score,
+                }
+            )
+
+    status_label_map = {
+        InstitutionReview.STATUS_PENDING: "На модерации",
+        InstitutionReview.STATUS_APPROVED: "Опубликован",
+        InstitutionReview.STATUS_DISAPPROVED: "Отклонен",
+        "rejected": "Отклонен",
+    }
+    return JsonResponse(
+        {
+            "review": {
+                "id": review.id,
+                "institution_name": institution.name if institution else "Учреждение",
+                "district_name": institution.district.name if institution and institution.district_id else "Город не указан",
+                "type_name": institution.type.name_ru if institution and institution.type_id else "Тип не указан",
+                "created_at": review.created_at.strftime("%d.%m.%Y %H:%M"),
+                "status_value": review.status,
+                "status_label": status_label_map.get(review.status, "На модерации"),
+                "institution_rating": float(review.rating or 0),
+                "comment": review.comment or "",
+                "criteria": criteria_rows,
+            }
+        }
+    )
+
+
+@csrf_exempt
+@require_POST
+def update_my_review(request: HttpRequest):
+    user = _require_portal_user(request)
+    if not user:
+        return JsonResponse({"error": "Portal user role is required"}, status=403)
+    data = _parse_json(request) or {}
+    review_id = data.get("review_id")
+    if not review_id:
+        return JsonResponse({"error": "review_id is required"}, status=400)
+    review = InstitutionReview.objects.filter(id=review_id, user=user).first()
+    if not review:
+        return JsonResponse({"error": "Отзыв не найден"}, status=404)
+
+    comment = (data.get("comment") or "").strip()
+    institution_rating = data.get("institution_rating")
+    criteria_ratings = data.get("criteria_ratings")
+    if criteria_ratings is None:
+        criteria_ratings = {}
+    if not isinstance(criteria_ratings, dict):
+        return JsonResponse({"error": "criteria_ratings must be an object"}, status=400)
+    try:
+        institution_rating_value = int(institution_rating)
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "Оценка учреждения должна быть целым числом от 1 до 5"}, status=400)
+    if institution_rating_value < 1 or institution_rating_value > 5:
+        return JsonResponse({"error": "Оценка учреждения должна быть от 1 до 5"}, status=400)
+
+    institution_criteria_codes = set(
+        review.institution.accessibility_criteria.values_list("code", flat=True)
+    )
+    normalized_scores: dict[str, int] = {}
+    for code, score in criteria_ratings.items():
+        if str(code) not in institution_criteria_codes:
+            return JsonResponse({"error": f"Критерий {code} не относится к этому учреждению"}, status=400)
+        try:
+            rating_value = int(score)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": f"Некорректная оценка для критерия {code}"}, status=400)
+        if rating_value < 1 or rating_value > 5:
+            return JsonResponse({"error": f"Оценка для критерия {code} должна быть от 1 до 5"}, status=400)
+        normalized_scores[str(code)] = rating_value
+
+    if institution_criteria_codes and set(normalized_scores.keys()) != institution_criteria_codes:
+        return JsonResponse({"error": "Оцените все критерии доступности этого учреждения"}, status=400)
+
+    review.rating = institution_rating_value
+    review.criteria_scores = normalized_scores
+    review.comment = comment
+    review.status = InstitutionReview.STATUS_PENDING
+    review.save(update_fields=["rating", "criteria_scores", "comment", "status", "updated_at"])
+    return JsonResponse(
+        {
+            "success": True,
+            "status": review.status,
+            "comment": review.comment,
+            "institution_rating": float(review.rating or 0),
+        }
+    )
+
+
+@csrf_exempt
+@require_POST
+def delete_my_review(request: HttpRequest):
+    user = _require_portal_user(request)
+    if not user:
+        return JsonResponse({"error": "Portal user role is required"}, status=403)
+    data = _parse_json(request) or {}
+    review_id = data.get("review_id")
+    if not review_id:
+        return JsonResponse({"error": "review_id is required"}, status=400)
+    review = InstitutionReview.objects.filter(id=review_id, user=user).first()
+    if not review:
+        return JsonResponse({"error": "Отзыв не найден"}, status=404)
+    review.delete()
+    return JsonResponse({"success": True})
+
+
+@csrf_exempt
 @require_POST
 @transaction.atomic
 def create_institution(request: HttpRequest):
@@ -1117,10 +1679,15 @@ def create_institution(request: HttpRequest):
     data = _parse_json(request)
     if not data:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
+    name = (data.get("name") or "").strip()
+    if not name:
+        return JsonResponse({"error": "Название учреждения обязательно"}, status=400)
+    if Institution.objects.filter(name=name).exists():
+        return JsonResponse({"error": "Учреждение с таким названием уже существует"}, status=409)
 
     director = _upsert_director(data)
     inst = Institution.objects.create(
-        name=data.get("name"),
+        name=name,
         district_id=data.get("district_id"),
         type_id=data.get("type"),
         director=director,
@@ -1132,7 +1699,38 @@ def create_institution(request: HttpRequest):
         address=data.get("address"),
     )
     _sync_relations(inst, data)
-    ActionLog.objects.create(administrator=admin, action="CREATE", entity="institutions", record_id=inst.id, new_data=data)
+    action_log = ActionLog.objects.create(
+        administrator=admin,
+        action="CREATE",
+        entity="institutions",
+        record_id=inst.id,
+        new_data=data,
+    )
+    subscribed_user_ids = list(
+        UserDistrictPreference.objects.filter(
+            district_id=inst.district_id,
+            notify_new_institutions=True,
+            user__is_superuser=False,
+        )
+        .exclude(user__groups__name="administrators")
+        .values_list("user_id", flat=True)
+        .distinct()
+    )
+    if subscribed_user_ids:
+        district_name = inst.district.name if inst.district_id else "указанном районе"
+        message = f'В вашем районе "{district_name}" добавлено новое учреждение "{inst.name}".'
+        ProfileNotification.objects.bulk_create(
+            [
+                ProfileNotification(
+                    user_id=user_id,
+                    institution=inst,
+                    action_log=action_log,
+                    message=message,
+                )
+                for user_id in subscribed_user_ids
+            ],
+            ignore_conflicts=True,
+        )
     return JsonResponse({"id": inst.id}, status=201)
 
 
@@ -1146,12 +1744,17 @@ def update_institution(request: HttpRequest):
     data = _parse_json(request)
     if not data or not data.get("id"):
         return JsonResponse({"error": "Invalid JSON or missing id"}, status=400)
+    name = (data.get("name") or "").strip()
+    if not name:
+        return JsonResponse({"error": "Название учреждения обязательно"}, status=400)
 
     inst = get_object_or_404(Institution, id=data["id"])
+    if Institution.objects.filter(name=name).exclude(id=inst.id).exists():
+        return JsonResponse({"error": "Учреждение с таким названием уже существует"}, status=409)
     old_data = _serialize_institution(inst)
     director = _upsert_director(data)
 
-    inst.name = data.get("name")
+    inst.name = name
     inst.district_id = data.get("district_id")
     inst.type_id = data.get("type")
     inst.director = director

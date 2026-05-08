@@ -44,6 +44,7 @@
                         <div class="admin-tab-panel" data-admin-panel="dashboard">
                             <div class="admin-dashboard-header-row">
                                 <h2 class="profile-title profile-title--dashboard">Обзор системы</h2>
+                                <button id="adminExportReportBtn" class="btn btn-secondary admin-export-btn" type="button">Экспорт отчета</button>
                             </div>
                             <div class="admin-stats-grid">
                                 <article class="admin-stat-card">
@@ -56,12 +57,29 @@
                                     <p class="admin-stat-label">Зарегистрированных пользователей</p>
                                     <p class="admin-stat-delta">+{{ admin_users_month_delta|default:0 }} за месяц</p>
                                 </article>
+                                <article class="admin-stat-card">
+                                    <p class="admin-stat-value">{{ admin_moderation_total|default:0 }}</p>
+                                    <p class="admin-stat-label">Отзывов на модерации</p>
+                                    <p class="admin-stat-delta">+{{ admin_moderation_month_delta|default:0 }} за месяц</p>
+                                </article>
                             </div>
                             <div class="admin-chart-card">
                                 <h3 class="admin-chart-title">Распределение по типам учреждений</h3>
                                 <div class="admin-chart-wrap">
                                     <div class="admin-chart-pie" id="adminTypePie"></div>
                                     <ul class="admin-chart-legend" id="adminTypeLegend"></ul>
+                                </div>
+                            </div>
+                            <div class="admin-bars-row">
+                                <div class="admin-chart-card admin-bars-card">
+                                    <h3 class="admin-chart-title">Пользователи по числу отзывов</h3>
+                                    <input id="adminUserBarsSearch" class="admin-users-search" type="text" placeholder="Поиск по имени или логину...">
+                                    <div class="admin-bars-scroll" id="adminUserBarsList"></div>
+                                </div>
+                                <div class="admin-chart-card admin-bars-card">
+                                    <h3 class="admin-chart-title">Учреждения по среднему рейтингу</h3>
+                                    <input id="adminInstitutionBarsSearch" class="admin-users-search" type="text" placeholder="Поиск учреждения...">
+                                    <div class="admin-bars-scroll" id="adminInstitutionBarsList"></div>
                                 </div>
                             </div>
                         </div>
@@ -118,6 +136,8 @@
                                         <tr>
                                             <th>Пользователь</th>
                                             <th>Почта</th>
+                                            <th>Средняя оценка</th>
+                                            <th>Всего отзывов</th>
                                             <th>Действие</th>
                                         </tr>
                                     </thead>
@@ -134,6 +154,8 @@
                                                     </div>
                                                 </td>
                                                 <td>{{ item.email }}</td>
+                                                <td>{% if item.avg_rating is not None %}{{ item.avg_rating|floatformat:2 }}{% else %}—{% endif %}</td>
+                                                <td>{{ item.reviews_count }}</td>
                                                 <td>
                                                     {% if item.is_current_user %}
                                                         <span class="admin-user-self-mark">Вы</span>
@@ -143,7 +165,7 @@
                                                 </td>
                                             </tr>
                                         {% empty %}
-                                            <tr><td colspan="3" class="admin-users-empty">Пользователей пока нет</td></tr>
+                                            <tr><td colspan="5" class="admin-users-empty">Пользователей пока нет</td></tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
@@ -158,6 +180,8 @@
                             <a href="{% url 'index' %}" class="btn btn-primary">На карту</a>
                         </div>
                         {{ admin_type_distribution|json_script:"adminTypeDistributionData" }}
+                        {{ admin_user_reviews_chart|json_script:"adminUserReviewsChartData" }}
+                        {{ admin_institution_rating_chart|json_script:"adminInstitutionRatingChartData" }}
                     </section>
                 </div>
                 <div class="admin-review-modal hidden" id="adminReviewEditModal">
@@ -210,6 +234,46 @@
                         </form>
                     </div>
                 </div>
+                <div class="admin-export-modal hidden" id="adminExportModal">
+                    <div class="admin-export-modal-card">
+                        <div class="admin-export-modal-header">
+                            <h3>Экспорт отчета</h3>
+                            <button class="admin-review-modal-close" id="adminExportCloseBtn" type="button">×</button>
+                        </div>
+                        <div class="admin-export-modal-body">
+                            <p class="admin-export-subtitle">Выберите формат для экспорта статистического отчета</p>
+                            <div class="form-group admin-export-month-group">
+                                <label for="adminExportMonth">Месяц отчета</label>
+                                <input id="adminExportMonth" class="admin-users-search" type="month">
+                            </div>
+                            <div class="admin-export-format-grid">
+                                <button class="admin-export-format-btn is-active" data-export-format="pdf" type="button">
+                                    <span class="admin-export-format-title">PDF</span>
+                                    <span class="admin-export-format-note">Для печати и просмотра</span>
+                                </button>
+                                <button class="admin-export-format-btn" data-export-format="excel" type="button">
+                                    <span class="admin-export-format-title">Excel</span>
+                                    <span class="admin-export-format-note">Для анализа данных</span>
+                                </button>
+                                <button class="admin-export-format-btn" data-export-format="csv" type="button">
+                                    <span class="admin-export-format-title">CSV</span>
+                                    <span class="admin-export-format-note">Для импорта в системы</span>
+                                </button>
+                            </div>
+                            <div class="admin-export-summary">
+                                <div class="admin-export-summary-row"><span>Период:</span><strong id="adminExportPeriodValue">{% now "Y-m" %}</strong></div>
+                                <div class="admin-export-summary-row"><span>Учреждения:</span><strong>{{ admin_total_institutions|default:0 }}</strong></div>
+                                <div class="admin-export-summary-row"><span>Пользователи:</span><strong>{{ admin_total_users|default:0 }}</strong></div>
+                                <div class="admin-export-summary-row"><span>Отзывы:</span><strong>{{ admin_moderation_month_delta|default:0 }} новых</strong></div>
+                            </div>
+                            <div id="adminExportMessage" class="profile-settings-message hidden" aria-live="polite"></div>
+                        </div>
+                        <div class="admin-export-modal-actions">
+                            <button class="btn btn-secondary" id="adminExportCancelBtn" type="button">Отмена</button>
+                            <button class="btn btn-primary" id="adminExportGenerateBtn" type="button">Сгенерировать отчет</button>
+                        </div>
+                    </div>
+                </div>
             {% endif %}
         </div>
     </main>
@@ -223,6 +287,7 @@
                 <p class="profile-user-email">{{ display_email }}</p>
                 <div class="profile-nav">
                     <button class="profile-nav-btn active" data-profile-tab="overview" type="button">Обзор</button>
+                    <button class="profile-nav-btn" data-profile-tab="notifications" type="button">Уведомления</button>
                     <button class="profile-nav-btn" data-profile-tab="settings" type="button">Настройки</button>
                 </div>
             </aside>
@@ -231,11 +296,24 @@
                     <h1 class="profile-title profile-title--dashboard">Личный кабинет</h1>
                     <section class="profile-content">
                         <div class="profile-tab-content" data-tab-panel="overview">
+                            <div class="profile-overview-stats">
+                                <article class="profile-overview-stat-card">
+                                    <p class="profile-overview-stat-value">{{ favorites_count|default:0 }}</p>
+                                    <p class="profile-overview-stat-label">В избранном</p>
+                                </article>
+                                <article class="profile-overview-stat-card">
+                                    <p class="profile-overview-stat-value">{{ user_reviews_count|default:0 }}</p>
+                                    <p class="profile-overview-stat-label">Оставлено отзывов</p>
+                                </article>
+                            </div>
                             <div class="profile-favorites-head">
                                 <h2 class="profile-favorites-title">Избранные учреждения ({{ favorites_count|default:0 }})</h2>
                                 {% if favorites_count|default:0 > 4 %}
                                     <button id="showAllFavoritesBtn" class="btn btn-secondary profile-show-all-btn" type="button">Все избранные</button>
                                 {% endif %}
+                            </div>
+                            <div class="profile-favorites-search-wrap">
+                                <input id="profileFavoritesSearch" class="profile-favorites-search" type="text" placeholder="Поиск по избранным учреждениям...">
                             </div>
                             {% if favorite_institutions %}
                                 <div class="profile-favorites-list">
@@ -268,25 +346,74 @@
                             {% endif %}
                             <div class="profile-notifications-block">
                                 <div class="profile-favorites-head">
-                                    <h2 class="profile-favorites-title">Уведомления ({{ notifications_count|default:0 }})</h2>
-                                    {% if notifications_count|default:0 > 2 %}
-                                        <button id="showAllNotificationsBtn" class="btn btn-secondary profile-show-all-btn" type="button">Все уведомления</button>
+                                    <h2 class="profile-favorites-title">Последние отзывы ({{ user_reviews_count|default:0 }})</h2>
+                                    {% if user_reviews_count|default:0 > 3 %}
+                                        <button id="showAllUserReviewsBtn" class="btn btn-secondary profile-show-all-btn" type="button">Все отзывы</button>
                                     {% endif %}
                                 </div>
-                                {% if notifications %}
+                                {% if user_reviews %}
                                     <div class="profile-notifications-list">
-                                        {% for notification in notifications %}
-                                            <article class="profile-notification-card{% if forloop.counter > 2 %} profile-notification-card--extra hidden{% endif %}">
-                                                <p class="profile-notification-title">{{ notification.institution_name }}</p>
-                                                <p class="profile-notification-message">{{ notification.message }}</p>
-                                                <p class="profile-notification-date">{{ notification.created_at|date:"d.m.Y H:i" }}</p>
+                                        {% for review in user_reviews %}
+                                            <article class="profile-notification-card profile-user-review-card{% if forloop.counter > 3 %} profile-user-review-card--extra hidden{% endif %}"
+                                                     data-review-id="{{ review.id }}"
+                                                     data-review-status="{{ review.status_value }}"
+                                                     data-review-comment="{{ review.comment }}"
+                                                     data-review-city="{{ review.district_name }}"
+                                                     data-review-type="{{ review.type_name }}"
+                                                     data-review-institution="{{ review.institution_name }}"
+                                                     data-review-rating="{{ review.rating|stringformat:'.2f' }}"
+                                                     data-review-date="{{ review.created_at_display }}">
+                                                <div class="profile-user-review-head">
+                                                    <p class="profile-review-meta-line">{{ review.district_name }} | {{ review.type_name }} | {{ review.institution_name }}</p>
+                                                    <p class="profile-notification-date">{{ review.created_at|date:"d.m.Y H:i" }}</p>
+                                                </div>
+                                                <p class="profile-notification-message">{{ review.comment }}</p>
+                                                <div class="profile-review-rating-line">Оценка: <span class="profile-review-rating-value">{{ review.rating|floatformat:2 }}/5</span></div>
+                                                <div class="profile-review-footer">
+                                                    <p class="profile-review-status-line">
+                                                        Статус:
+                                                        <span class="profile-review-status-badge status-{{ review.status_value }}">{{ review.status_label }}</span>
+                                                    </p>
+                                                    <button class="btn btn-primary profile-review-edit-btn" data-review-edit type="button">Редактировать</button>
+                                                    <button class="btn btn-danger profile-review-delete-btn" data-review-delete type="button">Удалить</button>
+                                                </div>
                                             </article>
                                         {% endfor %}
                                     </div>
                                 {% else %}
-                                    <p class="profile-hint">Изменений по избранным учреждениям пока нет.</p>
+                                    <p class="profile-hint">Вы пока не оставляли отзывов.</p>
                                 {% endif %}
                             </div>
+                        </div>
+                        <div class="profile-tab-content hidden" data-tab-panel="notifications">
+                            <div class="profile-favorites-head">
+                                <h2 class="profile-favorites-title">Уведомления ({{ notifications_count|default:0 }})</h2>
+                            </div>
+                            <div class="profile-favorites-search-wrap">
+                                <input id="profileNotificationsSearch" class="profile-favorites-search" type="text" placeholder="Поиск по уведомлениям...">
+                            </div>
+                            {% if notifications %}
+                                <div class="profile-notifications-list">
+                                    {% for notification in notifications %}
+                                        <article class="profile-notification-card profile-user-notification-card">
+                                            <div class="profile-user-review-head">
+                                                <p class="profile-review-meta-line">{{ notification.district_name }} | {{ notification.type_name }} | {{ notification.institution_name }}</p>
+                                                <p class="profile-notification-date">{{ notification.created_at|date:"d.m.Y H:i" }}</p>
+                                            </div>
+                                            <p class="profile-notification-message">{{ notification.message }}</p>
+                                            <div class="profile-notification-actions">
+                                                {% if notification.district_id %}
+                                                    <a class="btn btn-primary profile-notification-open-btn" href="/district/{{ notification.district_id }}/">Подробнее</a>
+                                                {% else %}
+                                                    <a class="btn btn-primary profile-notification-open-btn" href="{% url 'index' %}">Подробнее</a>
+                                                {% endif %}
+                                            </div>
+                                        </article>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="profile-hint">Уведомлений пока нет.</p>
+                            {% endif %}
                         </div>
                         <div class="profile-tab-content hidden" data-tab-panel="settings">
                             <h2 class="profile-favorites-title">Настройки</h2>
@@ -304,6 +431,27 @@
                                 <div class="form-group">
                                     <label for="profileEmail">Почта</label>
                                     <input id="profileEmail" name="email" type="email" value="{{ settings_email|default:'' }}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="profileDistrict">Ваш район (необязательно)</label>
+                                    <select id="profileDistrict" name="district_id">
+                                        <option value="">Не выбран</option>
+                                        {% for district in settings_districts %}
+                                            <option value="{{ district.id }}" {% if settings_district_id == district.id %}selected{% endif %}>{{ district.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group profile-switch-group">
+                                    <div class="profile-switch-row">
+                                        <div class="profile-switch-texts">
+                                            <p class="profile-switch-title">Новые учреждения</p>
+                                            <p class="profile-switch-subtitle">Уведомлять о новых образовательных учреждениях в вашем районе</p>
+                                        </div>
+                                        <label class="profile-switch-toggle" for="profileNotifyDistrict">
+                                            <input id="profileNotifyDistrict" name="notify_new_institutions" type="checkbox" {% if settings_notify_new_institutions %}checked{% endif %}>
+                                            <span class="profile-switch-slider" aria-hidden="true"></span>
+                                        </label>
+                                    </div>
                                 </div>
                                 <div id="profileSettingsMessage" class="profile-settings-message hidden" aria-live="polite"></div>
                                 <div class="profile-settings-actions">
@@ -342,6 +490,63 @@
             </div>
         </div>
     </main>
+    <div class="profile-review-modal hidden" id="profileReviewEditModal">
+        <div class="profile-review-modal-card">
+            <div class="profile-review-modal-header">
+                <h3>Редактирование отзыва</h3>
+                <button id="profileReviewEditCloseBtn" class="admin-review-modal-close" type="button">×</button>
+            </div>
+            <form id="profileReviewEditForm" class="admin-review-edit-form">
+                <input id="profileReviewEditId" type="hidden">
+                <div class="admin-review-form-grid">
+                    <div class="form-group">
+                        <label for="profileReviewEditCity">Город</label>
+                        <input id="profileReviewEditCity" type="text" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="profileReviewEditType">Тип учреждения</label>
+                        <input id="profileReviewEditType" type="text" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="profileReviewEditInstitution">Название учреждения</label>
+                        <input id="profileReviewEditInstitution" type="text" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="profileReviewEditDate">Дата отзыва</label>
+                        <input id="profileReviewEditDate" type="text" readonly>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="profileReviewCurrentStatus">Текущий статус</label>
+                    <input id="profileReviewCurrentStatus" type="text" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="profileReviewEditRating">Оценка учреждения</label>
+                    <select id="profileReviewEditRating" required>
+                        <option value="">Выберите оценку</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Оценка критериев доступности</label>
+                    <div id="profileReviewCriteriaList" class="review-criteria-list"></div>
+                </div>
+                <div class="form-group">
+                    <label for="profileReviewEditText">Текст отзыва</label>
+                    <textarea id="profileReviewEditText" rows="5" required></textarea>
+                </div>
+                <div id="profileReviewEditMessage" class="profile-settings-message hidden" aria-live="polite"></div>
+                <div class="admin-review-modal-actions">
+                    <button id="profileReviewEditCancelBtn" class="btn btn-secondary" type="button">Отмена</button>
+                    <button id="profileReviewEditSaveBtn" class="btn btn-primary" type="submit">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
     {% endif %}
 
     <script>
@@ -409,6 +614,96 @@
           }
         }
 
+        const renderHorizontalBars = (listEl, items, maxValue, formatter) => {
+          if (!listEl) return;
+          if (!Array.isArray(items) || !items.length) {
+            listEl.innerHTML = '<p class="admin-users-empty">Нет данных для отображения</p>';
+            return;
+          }
+          listEl.innerHTML = "";
+          items.forEach((item) => {
+            const row = document.createElement("div");
+            row.className = "admin-bar-row";
+            row.dataset.search = `${item.name || ""} ${item.username || ""} ${item.district_name || ""}`.toLowerCase();
+            const left = document.createElement("div");
+            left.className = "admin-bar-label";
+            const title = document.createElement("p");
+            title.className = "admin-bar-title";
+            title.textContent = item.name || "Без названия";
+            left.appendChild(title);
+            if (item.username) {
+              const subtitle = document.createElement("p");
+              subtitle.className = "admin-bar-subtitle";
+              subtitle.textContent = item.username;
+              left.appendChild(subtitle);
+            } else if (item.district_name) {
+              const subtitle = document.createElement("p");
+              subtitle.className = "admin-bar-subtitle";
+              subtitle.textContent = item.district_name;
+              left.appendChild(subtitle);
+            }
+            const valueNum = Number(item.value || 0);
+            const right = document.createElement("div");
+            right.className = "admin-bar-track";
+            const fill = document.createElement("div");
+            fill.className = "admin-bar-fill";
+            const percent = maxValue > 0 ? Math.max(0, Math.min(100, (valueNum / maxValue) * 100)) : 0;
+            fill.style.width = `${percent}%`;
+            const valueText = document.createElement("span");
+            valueText.className = "admin-bar-value";
+            valueText.textContent = formatter(valueNum);
+            fill.appendChild(valueText);
+            right.appendChild(fill);
+            row.appendChild(left);
+            row.appendChild(right);
+            listEl.appendChild(row);
+          });
+        };
+
+        const setupBarsSearch = (inputEl, listEl) => {
+          if (!inputEl || !listEl) return;
+          inputEl.addEventListener("input", () => {
+            const q = (inputEl.value || "").trim().toLowerCase();
+            const rows = Array.from(listEl.querySelectorAll(".admin-bar-row"));
+            rows.forEach((row) => row.classList.remove("admin-bar-row--focus"));
+            if (!q) return;
+            const matched = rows.find((row) => (row.dataset.search || "").includes(q));
+            if (matched) {
+              matched.classList.add("admin-bar-row--focus");
+              matched.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            }
+          });
+        };
+
+        const userBarsDataNode = document.getElementById("adminUserReviewsChartData");
+        const userBarsListEl = document.getElementById("adminUserBarsList");
+        const userBarsSearchEl = document.getElementById("adminUserBarsSearch");
+        if (userBarsDataNode && userBarsListEl) {
+          let userBars = [];
+          try {
+            userBars = JSON.parse(userBarsDataNode.textContent || "[]");
+          } catch (e) {
+            userBars = [];
+          }
+          const maxReviews = userBars.reduce((m, x) => Math.max(m, Number(x.value || 0)), 0);
+          renderHorizontalBars(userBarsListEl, userBars, maxReviews, (v) => `${Math.round(v)}`);
+          setupBarsSearch(userBarsSearchEl, userBarsListEl);
+        }
+
+        const institutionBarsDataNode = document.getElementById("adminInstitutionRatingChartData");
+        const institutionBarsListEl = document.getElementById("adminInstitutionBarsList");
+        const institutionBarsSearchEl = document.getElementById("adminInstitutionBarsSearch");
+        if (institutionBarsDataNode && institutionBarsListEl) {
+          let institutionBars = [];
+          try {
+            institutionBars = JSON.parse(institutionBarsDataNode.textContent || "[]");
+          } catch (e) {
+            institutionBars = [];
+          }
+          renderHorizontalBars(institutionBarsListEl, institutionBars, 5, (v) => `${Number(v).toFixed(2)}`);
+          setupBarsSearch(institutionBarsSearchEl, institutionBarsListEl);
+        }
+
         const adminTabButtons = document.querySelectorAll("[data-admin-tab]");
         const adminPanels = document.querySelectorAll("[data-admin-panel]");
         adminTabButtons.forEach((btn) => {
@@ -422,6 +717,15 @@
         });
 
         const usersSearchInput = document.getElementById("adminUsersSearch");
+        const adminExportReportBtn = document.getElementById("adminExportReportBtn");
+        const adminExportModal = document.getElementById("adminExportModal");
+        const adminExportCloseBtn = document.getElementById("adminExportCloseBtn");
+        const adminExportCancelBtn = document.getElementById("adminExportCancelBtn");
+        const adminExportGenerateBtn = document.getElementById("adminExportGenerateBtn");
+        const adminExportMessage = document.getElementById("adminExportMessage");
+        const adminExportMonthInput = document.getElementById("adminExportMonth");
+        const adminExportPeriodValue = document.getElementById("adminExportPeriodValue");
+        const adminExportFormatBtns = Array.from(document.querySelectorAll("[data-export-format]"));
         const userRows = Array.from(document.querySelectorAll(".admin-user-row"));
         const usersPagination = document.getElementById("adminUsersPagination");
         const usersPrevBtn = document.getElementById("adminUsersPrevBtn");
@@ -430,6 +734,94 @@
         const pageSize = 10;
         let usersCurrentPage = 1;
         let usersFilteredRows = [...userRows];
+
+        let selectedExportFormat = "pdf";
+        const setExportMessage = (text, isError = false) => {
+          if (!adminExportMessage) return;
+          adminExportMessage.textContent = text || "";
+          adminExportMessage.classList.toggle("hidden", !text);
+          adminExportMessage.classList.toggle("error", Boolean(text) && isError);
+          adminExportMessage.classList.toggle("success", Boolean(text) && !isError);
+        };
+        const updateActiveExportFormat = (format) => {
+          selectedExportFormat = format;
+          adminExportFormatBtns.forEach((btn) => {
+            btn.classList.toggle("is-active", btn.dataset.exportFormat === format);
+          });
+        };
+        const getDefaultExportMonth = () => {
+          const now = new Date();
+          const y = now.getFullYear();
+          const m = String(now.getMonth() + 1).padStart(2, "0");
+          return `${y}-${m}`;
+        };
+        const updateExportPeriodLabel = () => {
+          if (!adminExportPeriodValue) return;
+          adminExportPeriodValue.textContent = (adminExportMonthInput?.value || getDefaultExportMonth());
+        };
+        const openExportModal = () => {
+          if (!adminExportModal) return;
+          setExportMessage("");
+          updateActiveExportFormat("pdf");
+          if (adminExportMonthInput && !adminExportMonthInput.value) {
+            adminExportMonthInput.value = getDefaultExportMonth();
+          }
+          updateExportPeriodLabel();
+          adminExportModal.classList.remove("hidden");
+        };
+        const closeExportModal = () => {
+          if (!adminExportModal) return;
+          adminExportModal.classList.add("hidden");
+          setExportMessage("");
+        };
+        if (adminExportReportBtn) {
+          adminExportReportBtn.addEventListener("click", openExportModal);
+        }
+        adminExportCloseBtn?.addEventListener("click", closeExportModal);
+        adminExportCancelBtn?.addEventListener("click", closeExportModal);
+        adminExportModal?.addEventListener("click", (event) => {
+          if (event.target === adminExportModal) closeExportModal();
+        });
+        adminExportFormatBtns.forEach((btn) => {
+          btn.addEventListener("click", () => updateActiveExportFormat(btn.dataset.exportFormat || "pdf"));
+        });
+        adminExportMonthInput?.addEventListener("change", updateExportPeriodLabel);
+        adminExportGenerateBtn?.addEventListener("click", async () => {
+          if (selectedExportFormat !== "pdf") {
+            setExportMessage(`Формат ${selectedExportFormat.toUpperCase()} пока в разработке.`, true);
+            return;
+          }
+          setExportMessage("");
+          adminExportGenerateBtn.disabled = true;
+          try {
+            const month = adminExportMonthInput?.value || getDefaultExportMonth();
+            const params = new URLSearchParams({ format: "pdf", month });
+            const response = await fetch(`/api/export_report.php?${params.toString()}`, { method: "GET" });
+            if (!response.ok) {
+              let errorText = "Не удалось сформировать отчет.";
+              try {
+                const data = await response.json();
+                errorText = data.error || errorText;
+              } catch (e) {}
+              throw new Error(errorText);
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `admin_dashboard_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            setExportMessage("PDF-отчет сформирован и скачивается.", false);
+            setTimeout(closeExportModal, 500);
+          } catch (error) {
+            setExportMessage(error.message || "Ошибка формирования отчета.", true);
+          } finally {
+            adminExportGenerateBtn.disabled = false;
+          }
+        });
 
         const renderUsersPage = () => {
           if (!userRows.length) return;
@@ -701,33 +1093,259 @@
         const messageBox = document.getElementById("profileSettingsMessage");
         const applyBtn = document.getElementById("profileApplyBtn");
         const showAllFavoritesBtn = document.getElementById("showAllFavoritesBtn");
-        const showAllNotificationsBtn = document.getElementById("showAllNotificationsBtn");
+        const showAllUserReviewsBtn = document.getElementById("showAllUserReviewsBtn");
+        const favoritesSearchInput = document.getElementById("profileFavoritesSearch");
+        const notificationsSearchInput = document.getElementById("profileNotificationsSearch");
         const themeButtons = document.querySelectorAll(".profile-theme-option");
         const nameBadge = document.querySelector(".profile-user-name");
         const emailBadge = document.querySelector(".profile-user-email");
         const avatar = document.querySelector(".profile-avatar");
+        const profileReviewModal = document.getElementById("profileReviewEditModal");
+        const profileReviewForm = document.getElementById("profileReviewEditForm");
+        const profileReviewMessage = document.getElementById("profileReviewEditMessage");
+        const profileReviewSaveBtn = document.getElementById("profileReviewEditSaveBtn");
+        let editingUserReviewCard = null;
+        let expandedFavorites = false;
+
+        const applyFavoritesFilter = () => {
+          const q = (favoritesSearchInput?.value || "").trim().toLowerCase();
+          document.querySelectorAll(".profile-favorite-card").forEach((card) => {
+            const text = (card.textContent || "").toLowerCase();
+            const extra = card.classList.contains("profile-favorite-card--extra");
+            const match = !q || text.includes(q);
+            const shouldHideByExpand = !q && extra && !expandedFavorites;
+            card.classList.toggle("hidden", !match || shouldHideByExpand);
+          });
+        };
 
         if (showAllFavoritesBtn) {
-          let expandedFavorites = false;
           showAllFavoritesBtn.addEventListener("click", () => {
             expandedFavorites = !expandedFavorites;
-            document.querySelectorAll(".profile-favorite-card--extra").forEach((card) => {
-              card.classList.toggle("hidden", !expandedFavorites);
-            });
             showAllFavoritesBtn.textContent = expandedFavorites ? "Свернуть" : "Все избранные";
+            applyFavoritesFilter();
+          });
+        }
+        favoritesSearchInput?.addEventListener("input", applyFavoritesFilter);
+        applyFavoritesFilter();
+
+        const applyNotificationsFilter = () => {
+          const q = (notificationsSearchInput?.value || "").trim().toLowerCase();
+          document.querySelectorAll(".profile-user-notification-card").forEach((card) => {
+            const text = (card.textContent || "").toLowerCase();
+            card.classList.toggle("hidden", Boolean(q) && !text.includes(q));
+          });
+        };
+        notificationsSearchInput?.addEventListener("input", applyNotificationsFilter);
+
+        if (showAllUserReviewsBtn) {
+          let expandedReviews = false;
+          showAllUserReviewsBtn.addEventListener("click", () => {
+            expandedReviews = !expandedReviews;
+            document.querySelectorAll(".profile-user-review-card--extra").forEach((card) => {
+              card.classList.toggle("hidden", !expandedReviews);
+            });
+            showAllUserReviewsBtn.textContent = expandedReviews ? "Свернуть" : "Все отзывы";
           });
         }
 
-        if (showAllNotificationsBtn) {
-          let expandedNotifications = false;
-          showAllNotificationsBtn.addEventListener("click", () => {
-            expandedNotifications = !expandedNotifications;
-            document.querySelectorAll(".profile-notification-card--extra").forEach((card) => {
-              card.classList.toggle("hidden", !expandedNotifications);
-            });
-            showAllNotificationsBtn.textContent = expandedNotifications ? "Свернуть" : "Все уведомления";
+        const setProfileReviewMessage = (text, isError = false) => {
+          if (!profileReviewMessage) return;
+          profileReviewMessage.textContent = text || "";
+          profileReviewMessage.classList.toggle("hidden", !text);
+          profileReviewMessage.classList.toggle("error", Boolean(text) && isError);
+          profileReviewMessage.classList.toggle("success", Boolean(text) && !isError);
+        };
+
+        const statusLabelByValue = (statusValue) => {
+          if (statusValue === "approved") return "Опубликован";
+          if (statusValue === "disapproved" || statusValue === "rejected") return "Отклонен";
+          return "На модерации";
+        };
+
+        const renderProfileCriteriaRows = (criteria = []) => {
+          const criteriaList = document.getElementById("profileReviewCriteriaList");
+          if (!criteriaList) return;
+          criteriaList.innerHTML = (criteria || []).map((item) => {
+            const score = Number.isInteger(Number(item.score)) ? Number(item.score) : "";
+            return `<div class="review-criterion-row">
+              <span class="review-criterion-name">${item.name || item.code || "Критерий"}</span>
+              <select class="review-criterion-select" data-code="${item.code || ""}" required>
+                <option value="">Оценка</option>
+                <option value="1" ${score === 1 ? "selected" : ""}>1</option>
+                <option value="2" ${score === 2 ? "selected" : ""}>2</option>
+                <option value="3" ${score === 3 ? "selected" : ""}>3</option>
+                <option value="4" ${score === 4 ? "selected" : ""}>4</option>
+                <option value="5" ${score === 5 ? "selected" : ""}>5</option>
+              </select>
+            </div>`;
+          }).join("");
+        };
+
+        const openProfileReviewModal = async (card) => {
+          if (!profileReviewModal || !card) return;
+          editingUserReviewCard = card;
+          setProfileReviewMessage("");
+          const idInput = document.getElementById("profileReviewEditId");
+          const cityInput = document.getElementById("profileReviewEditCity");
+          const typeInput = document.getElementById("profileReviewEditType");
+          const institutionInput = document.getElementById("profileReviewEditInstitution");
+          const dateInput = document.getElementById("profileReviewEditDate");
+          const statusInput = document.getElementById("profileReviewCurrentStatus");
+          const ratingInput = document.getElementById("profileReviewEditRating");
+          const textInput = document.getElementById("profileReviewEditText");
+          if (idInput) idInput.value = card.dataset.reviewId || "";
+          if (cityInput) cityInput.value = card.dataset.reviewCity || "";
+          if (typeInput) typeInput.value = card.dataset.reviewType || "";
+          if (institutionInput) institutionInput.value = card.dataset.reviewInstitution || "";
+          if (dateInput) dateInput.value = card.dataset.reviewDate || "";
+          if (statusInput) statusInput.value = statusLabelByValue(card.dataset.reviewStatus || "pending");
+          if (ratingInput) ratingInput.value = String(Math.round(Number.parseFloat((card.dataset.reviewRating || "0").replace(",", ".")) || 0));
+          if (textInput) textInput.value = card.dataset.reviewComment || "";
+          renderProfileCriteriaRows([]);
+          profileReviewModal.classList.remove("hidden");
+          const reviewId = Number(card.dataset.reviewId || 0);
+          if (!reviewId) return;
+          try {
+            const response = await fetch(`/api/get_my_review.php?review_id=${reviewId}`);
+            const data = await response.json();
+            if (!response.ok || !data?.review) {
+              setProfileReviewMessage(data?.error || "Не удалось загрузить данные отзыва.", true);
+              return;
+            }
+            const review = data.review;
+            if (cityInput) cityInput.value = review.district_name || cityInput.value;
+            if (typeInput) typeInput.value = review.type_name || typeInput.value;
+            if (institutionInput) institutionInput.value = review.institution_name || institutionInput.value;
+            if (dateInput) dateInput.value = review.created_at || dateInput.value;
+            if (statusInput) statusInput.value = review.status_label || statusInput.value;
+            if (ratingInput) ratingInput.value = String(Math.round(Number(review.institution_rating || 0)));
+            if (textInput) textInput.value = review.comment || "";
+            renderProfileCriteriaRows(review.criteria || []);
+          } catch (e) {
+            console.error("Load own review failed", e);
+            setProfileReviewMessage("Ошибка сети. Не удалось загрузить отзыв.", true);
+          }
+        };
+
+        const closeProfileReviewModal = () => {
+          if (!profileReviewModal) return;
+          profileReviewModal.classList.add("hidden");
+          editingUserReviewCard = null;
+          setProfileReviewMessage("");
+        };
+
+        document.getElementById("profileReviewEditCloseBtn")?.addEventListener("click", closeProfileReviewModal);
+        document.getElementById("profileReviewEditCancelBtn")?.addEventListener("click", closeProfileReviewModal);
+        profileReviewModal?.addEventListener("click", (event) => {
+          if (event.target === profileReviewModal) closeProfileReviewModal();
+        });
+
+        document.querySelectorAll("[data-review-edit]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const card = btn.closest(".profile-user-review-card");
+            if (!card) return;
+            await openProfileReviewModal(card);
           });
-        }
+        });
+
+        document.querySelectorAll("[data-review-delete]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const card = btn.closest(".profile-user-review-card");
+            const reviewId = Number(card?.dataset.reviewId || 0);
+            if (!reviewId) return;
+            const ok = window.confirm("Удалить этот отзыв?");
+            if (!ok) return;
+            btn.disabled = true;
+            try {
+              const response = await fetch("/api/delete_my_review.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ review_id: reviewId }),
+              });
+              const data = await response.json();
+              if (!response.ok || !data?.success) {
+                window.alert(data?.error || "Не удалось удалить отзыв.");
+                return;
+              }
+              card?.remove();
+              window.location.reload();
+            } catch (e) {
+              console.error("Delete own review failed", e);
+              window.alert("Ошибка сети. Попробуйте ещё раз.");
+            } finally {
+              btn.disabled = false;
+            }
+          });
+        });
+
+        profileReviewForm?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const reviewId = Number(document.getElementById("profileReviewEditId")?.value || 0);
+          const comment = (document.getElementById("profileReviewEditText")?.value || "").trim();
+          const institutionRating = Number(document.getElementById("profileReviewEditRating")?.value || 0);
+          const criteriaRatings = {};
+          let missingCriteria = false;
+          document.querySelectorAll("#profileReviewCriteriaList .review-criterion-select").forEach((node) => {
+            const code = String(node.dataset.code || "");
+            const value = Number(node.value || 0);
+            if (!code) return;
+            if (!Number.isInteger(value) || value < 1 || value > 5) {
+              missingCriteria = true;
+              return;
+            }
+            criteriaRatings[code] = value;
+          });
+          if (!reviewId) return;
+          if (!Number.isInteger(institutionRating) || institutionRating < 1 || institutionRating > 5) {
+            setProfileReviewMessage("Укажите оценку учреждения от 1 до 5.", true);
+            return;
+          }
+          if (document.querySelectorAll("#profileReviewCriteriaList .review-criterion-select").length > 0 && missingCriteria) {
+            setProfileReviewMessage("Заполните оценки по всем критериям доступности.", true);
+            return;
+          }
+          if (profileReviewSaveBtn) profileReviewSaveBtn.disabled = true;
+          setProfileReviewMessage("");
+          try {
+            const response = await fetch("/api/update_my_review.php", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                review_id: reviewId,
+                comment,
+                institution_rating: institutionRating,
+                criteria_ratings: criteriaRatings,
+              }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data?.success) {
+              setProfileReviewMessage(data?.error || "Не удалось сохранить отзыв.", true);
+              return;
+            }
+            if (editingUserReviewCard) {
+              editingUserReviewCard.dataset.reviewComment = data.comment || comment;
+              editingUserReviewCard.dataset.reviewStatus = data.status || "pending";
+              editingUserReviewCard.dataset.reviewRating = Number(data.institution_rating || institutionRating).toFixed(2);
+              const msgNode = editingUserReviewCard.querySelector(".profile-notification-message");
+              if (msgNode) msgNode.textContent = data.comment || comment || "Комментарий не указан.";
+              const ratingNode = editingUserReviewCard.querySelector(".profile-review-rating-value");
+              if (ratingNode) ratingNode.textContent = `${Number(data.institution_rating || institutionRating).toFixed(2)}/5`;
+              const badgeNode = editingUserReviewCard.querySelector(".profile-review-status-badge");
+              if (badgeNode) {
+                const statusValue = data.status || "pending";
+                badgeNode.textContent = statusLabelByValue(statusValue);
+                badgeNode.className = `profile-review-status-badge status-${statusValue}`;
+              }
+            }
+            setProfileReviewMessage("Изменения сохранены. Отзыв отправлен на повторную модерацию.");
+            setTimeout(closeProfileReviewModal, 700);
+          } catch (e) {
+            console.error("Update own review failed", e);
+            setProfileReviewMessage("Ошибка сети. Попробуйте еще раз.", true);
+          } finally {
+            if (profileReviewSaveBtn) profileReviewSaveBtn.disabled = false;
+          }
+        });
 
         const applyTheme = (theme) => {
           const resolved = theme || "blue";
@@ -770,10 +1388,14 @@
           const firstNameInput = document.getElementById("profileFirstName");
           const usernameInput = document.getElementById("profileUsername");
           const emailInput = document.getElementById("profileEmail");
+          const districtInput = document.getElementById("profileDistrict");
+          const notifyInput = document.getElementById("profileNotifyDistrict");
           const payload = {
             first_name: (firstNameInput?.value || "").trim(),
             username: (usernameInput?.value || "").trim(),
             email: (emailInput?.value || "").trim(),
+            district_id: districtInput?.value || null,
+            notify_new_institutions: Boolean(notifyInput?.checked),
           };
 
           if (!payload.first_name || !payload.username || !payload.email) {

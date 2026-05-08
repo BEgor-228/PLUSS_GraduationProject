@@ -50,7 +50,7 @@ class Director(models.Model):
 
 
 class Institution(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     district = models.ForeignKey(District, on_delete=models.PROTECT, related_name="institutions")
     type = models.ForeignKey(InstitutionType, on_delete=models.PROTECT)
     director = models.OneToOneField(Director, on_delete=models.SET_NULL, blank=True, null=True)
@@ -167,3 +167,21 @@ class InstitutionReview(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["user", "institution"], name="uniq_user_institution_review"),
         ]
+
+
+class UserDistrictPreference(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="district_preference",
+    )
+    district = models.ForeignKey(
+        District,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_preferences",
+    )
+    notify_new_institutions = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)

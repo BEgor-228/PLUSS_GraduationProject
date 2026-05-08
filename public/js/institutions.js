@@ -594,6 +594,33 @@ Object.assign(LipetskMap.prototype, {
             : ''}
           </div>`
           : "";
+      const approvedReviews = Array.isArray(institution.approved_reviews) ? institution.approved_reviews : [];
+      const approvedReviewsCount = Number(institution.approved_reviews_count || approvedReviews.length || 0);
+      const approvedReviewsSection = approvedReviewsCount > 0
+        ? `<div class="institution-reviews-section">
+            <h5>Отзывы пользователей (${approvedReviewsCount})</h5>
+            <div class="institution-reviews-list">
+              ${approvedReviews
+                .map((review) => {
+                  const rating = Number.parseFloat(String(review.rating ?? "0").replace(",", "."));
+                  const safeRating = Number.isFinite(rating) ? Math.max(0, Math.min(5, rating)) : 0;
+                  const stars = "★".repeat(Math.round(safeRating)) + "☆".repeat(5 - Math.round(safeRating));
+                  return `<article class="institution-review-item">
+                    <div class="institution-review-head">
+                      <span class="institution-review-author">${review.author || "Пользователь"}</span>
+                      <span class="institution-review-date">${review.created_at || ""}</span>
+                    </div>
+                    <div class="institution-review-rating" title="Оценка отзыва">${stars} ${safeRating.toFixed(2)}</div>
+                    <p class="institution-review-comment">${review.comment || "Комментарий не указан."}</p>
+                  </article>`;
+                })
+                .join("")}
+            </div>
+          </div>`
+        : `<div class="institution-reviews-section">
+            <h5>Отзывы пользователей</h5>
+            <p class="institution-review-empty">Пока нет одобренных отзывов.</p>
+          </div>`;
   
       const adminButtons = this.isAdmin
         ? `<div class="institution-actions">
@@ -646,6 +673,7 @@ Object.assign(LipetskMap.prototype, {
             : ""
         }
         ${aoopSection}
+        ${approvedReviewsSection}
         
         ${institution.director && institution.director.name
           ? `
