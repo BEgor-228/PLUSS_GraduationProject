@@ -139,6 +139,79 @@
                                     <p class="admin-users-empty" id="adminReviewsEmpty">Отзывов на модерации пока нет.</p>
                                 {% endfor %}
                             </div>
+                            <div class="admin-catalog-reviews-section">
+                                <h3 class="admin-chart-title admin-catalog-reviews-title">Отзывы</h3>
+                                <p class="admin-catalog-reviews-lead">
+                                    Все учреждения. Нажмите строку или кнопку справа, чтобы открыть список отзывов.
+                                </p>
+                                <div class="admin-users-toolbar">
+                                    <input
+                                        id="adminCatalogInstitutionsSearch"
+                                        class="admin-users-search"
+                                        type="search"
+                                        autocomplete="off"
+                                        placeholder="Поиск учреждения…"
+                                    >
+                                </div>
+                                <div class="admin-users-table-wrap admin-institutions-table-wrap admin-catalog-institutions-table-wrap">
+                                    <table class="admin-users-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Учреждение</th>
+                                                <th>Район</th>
+                                                <th>Тип</th>
+                                                <th>Средняя оценка</th>
+                                                <th>Всего отзывов</th>
+                                                <th>Действие</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="adminCatalogInstitutionsTbody">
+                                            {% for item in admin_institutions %}
+                                                <tr
+                                                    class="admin-catalog-institution-row"
+                                                    data-institution-id="{{ item.id }}"
+                                                    data-district="{{ item.district_name|default:''|escapejs }}"
+                                                    data-type="{{ item.type_name|default:''|escapejs }}"
+                                                    data-name="{{ item.name|default:''|escapejs }}"
+                                                    data-search="{{ item.district_name|default:''|lower }} {{ item.type_name|default:''|lower }} {{ item.name|default:''|lower }}"
+                                                    title="Открыть отзывы"
+                                                >
+                                                    <td>
+                                                        <div class="admin-user-cell">
+                                                            <div class="admin-user-avatar">{{ item.initials }}</div>
+                                                            <div>
+                                                                <p class="admin-user-name">{{ item.name }}</p>
+                                                                <p class="admin-user-login">{{ item.district_name }} | {{ item.type_name }}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>{{ item.district_name }}</td>
+                                                    <td>{{ item.type_name }}</td>
+                                                    <td>{% if item.avg_rating is not None %}{{ item.avg_rating|floatformat:2 }}{% else %}—{% endif %}</td>
+                                                    <td>{{ item.total_reviews_count }}</td>
+                                                    <td>
+                                                        <div class="admin-user-actions">
+                                                            <button
+                                                                type="button"
+                                                                class="admin-catalog-institution-open-btn"
+                                                                aria-label="Открыть отзывы"
+                                                            >
+                                                                <svg class="admin-user-lock-icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+                                                                    <path fill="currentColor" d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% empty %}
+                                                <tr>
+                                                    <td colspan="6" class="admin-users-empty" id="adminCatalogInstitutionsEmpty">Учреждений пока нет.</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                         <div class="admin-tab-panel hidden" data-admin-panel="users">
                             <div class="admin-dashboard-header-row">
@@ -340,6 +413,28 @@
                         </form>
                     </div>
                 </div>
+                <div class="admin-export-modal admin-institution-reviews-modal hidden" id="adminInstitutionReviewsModal" role="dialog" aria-modal="true" aria-labelledby="adminInstitutionReviewsModalTitle">
+                    <div class="admin-export-modal-card admin-institution-reviews-modal-card">
+                        <div class="admin-export-modal-header">
+                            <h3 id="adminInstitutionReviewsModalTitle">Отзывы учреждения</h3>
+                            <button class="admin-review-modal-close" id="adminInstitutionReviewsModalCloseBtn" type="button" aria-label="Закрыть">×</button>
+                        </div>
+                        <div class="admin-export-modal-body">
+                            <p class="admin-institution-reviews-subtitle" id="adminInstitutionReviewsSubtitle"></p>
+                            <div class="admin-users-toolbar">
+                                <input
+                                    id="adminInstitutionReviewsInnerSearch"
+                                    class="admin-users-search"
+                                    type="search"
+                                    autocomplete="off"
+                                    placeholder="Поиск по автору, дате, оценке или тексту отзыва…"
+                                >
+                            </div>
+                            <div class="admin-institution-reviews-scroll" id="adminInstitutionReviewsModalBody"></div>
+                            <p class="admin-users-empty hidden" id="adminInstitutionReviewsModalEmpty">Отзывов пока нет.</p>
+                        </div>
+                    </div>
+                </div>
                 <div class="admin-export-modal hidden" id="adminExportModal">
                     <div class="admin-export-modal-card">
                         <div class="admin-export-modal-header">
@@ -418,6 +513,7 @@
                 <p class="profile-user-email">{{ display_email }}</p>
                 <div class="profile-nav">
                     <button class="profile-nav-btn active" data-profile-tab="overview" type="button">Обзор</button>
+                    <button class="profile-nav-btn" data-profile-tab="main_info" type="button">Основная информация</button>
                     <button class="profile-nav-btn" data-profile-tab="notifications" type="button">Уведомления</button>
                     <button class="profile-nav-btn" data-profile-tab="settings" type="button">Настройки</button>
                 </div>
@@ -516,6 +612,101 @@
                                 {% endif %}
                             </div>
                         </div>
+                        <div class="profile-tab-content hidden" data-tab-panel="main_info">
+                            <h2 class="profile-favorites-title">Основная информация пользователя</h2>
+                            <p class="profile-hint">Укажите предпочтения для подбора. В блоке поиска обязателен только район. Условия обучения и критерии доступности можно не заполнять: при выбранных условиях обучения в список попадут только учреждения со всеми отмеченными условиями; отмеченные критерии доступности влияют только на порядок строк, а не на отбор.</p>
+                            <form id="profileMainInfoForm" class="profile-settings-form">
+                                <div class="form-group">
+                                    <label for="profileMainDistrict">Ваш район</label>
+                                    <select id="profileMainDistrict" name="district_id">
+                                        <option value="">Не выбран</option>
+                                        {% for district in settings_districts %}
+                                            <option value="{{ district.id }}" {% if main_pref_district_id == district.id %}selected{% endif %}>{{ district.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="profileMainInstitutionType">Тип учреждения (для ранжирования)</label>
+                                    <select id="profileMainInstitutionType" name="preferred_institution_type">
+                                        <option value="">Не выбран</option>
+                                        {% for t in main_institution_types %}
+                                            <option value="{{ t.code }}" {% if main_pref_institution_type == t.code %}selected{% endif %}>{{ t.name_ru }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div id="profileMainAgeRow" class="profile-main-info-age-row">
+                                    <div class="profile-settings-grid">
+                                        <div class="form-group">
+                                            <label for="profileMainAgeMin">Возраст ребёнка (от, лет)</label>
+                                            <input id="profileMainAgeMin" name="child_age_min" type="number" min="0" max="120" step="1" value="{{ main_pref_child_age_min|default_if_none:'' }}" placeholder="например, 4">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="profileMainAgeMax">Возраст ребёнка (до, лет)</label>
+                                            <input id="profileMainAgeMax" name="child_age_max" type="number" min="0" max="120" step="1" value="{{ main_pref_child_age_max|default_if_none:'' }}" placeholder="например, 6">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="profileMainClassRow" class="profile-main-info-class-row hidden">
+                                    <div class="profile-settings-grid">
+                                        <div class="form-group">
+                                            <label for="profileMainClassFrom">Класс (от)</label>
+                                            <input id="profileMainClassFrom" name="school_class_from" type="number" min="1" max="11" step="1" value="{{ main_pref_school_class_from|default_if_none:'' }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="profileMainClassTo">Класс (до)</label>
+                                            <input id="profileMainClassTo" name="school_class_to" type="number" min="1" max="11" step="1" value="{{ main_pref_school_class_to|default_if_none:'' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                <fieldset class="form-group profile-main-fieldset">
+                                    <legend>Условия обучения</legend>
+                                    <p class="profile-hint profile-main-fieldset-hint">Необязательно. Если ничего не отмечено — по условиям обучения не фильтруем. Если отмечено одно или несколько — в список попадут только учреждения, у которых есть все выбранные условия сразу.</p>
+                                    <div class="profile-main-info-checkboxes">
+                                        {% for c in main_condition_types %}
+                                            <label>
+                                                <input type="checkbox" name="main_condition" value="{{ c.code }}" {% if c.code in main_pref_condition_codes %}checked{% endif %}>
+                                                <span>{{ c.name_ru }}</span>
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                </fieldset>
+                                <fieldset class="form-group profile-main-fieldset">
+                                    <legend>Критерии физической доступности</legend>
+                                    <p class="profile-hint profile-main-fieldset-hint">Необязательно. Отмеченные критерии не обязаны полностью совпадать с учреждением: они влияют только на место в списке (релевантность), а не на то, попадёт ли учреждение в список.</p>
+                                    <div class="profile-main-info-checkboxes">
+                                        {% for a in main_accessibility_types %}
+                                            <label>
+                                                <input type="checkbox" name="main_accessibility" value="{{ a.code }}" {% if a.code in main_pref_accessibility_codes %}checked{% endif %}>
+                                                <span>{{ a.name_ru }}</span>
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                </fieldset>
+                                <div class="form-group profile-switch-group">
+                                    <div class="profile-switch-row">
+                                        <div class="profile-switch-texts">
+                                            <p class="profile-switch-title">Программы АООП</p>
+                                            <p class="profile-switch-subtitle">Повышать в списке учреждения с программами АООП</p>
+                                        </div>
+                                        <label class="profile-switch-toggle" for="profileMainPreferAoop">
+                                            <input id="profileMainPreferAoop" name="prefer_aoop" type="checkbox" {% if main_pref_prefer_aoop %}checked{% endif %}>
+                                            <span class="profile-switch-slider" aria-hidden="true"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div id="profileMainInfoMessage" class="profile-settings-message hidden" aria-live="polite"></div>
+                                <div class="profile-settings-actions">
+                                    <button id="profileMainSaveBtn" class="btn btn-primary" type="submit">Сохранить</button>
+                                </div>
+                            </form>
+                            <section class="profile-main-match-block">
+                                <h2 class="profile-favorites-title">Поиск подходящих учреждений</h2>
+                                <p class="profile-hint">По сохранённым данным: в список входят учреждения выбранного района; если заданы условия обучения — у каждого должны быть все отмеченные. Порядок строк — как на карте района (тип, возраст или классы, условия, доступность, АООП).</p>
+                                <button id="profileMainMatchBtn" class="btn btn-secondary" type="button">Обновить список</button>
+                                <div id="profileMainMatchMessage" class="profile-settings-message hidden" aria-live="polite"></div>
+                                <div id="profileMainMatchList" class="profile-main-match-list"></div>
+                            </section>
+                        </div>
                         <div class="profile-tab-content hidden" data-tab-panel="notifications">
                             <div class="profile-favorites-head">
                                 <h2 class="profile-favorites-title">Уведомления ({{ notifications_count|default:0 }})</h2>
@@ -562,15 +753,6 @@
                                 <div class="form-group">
                                     <label for="profileEmail">Почта</label>
                                     <input id="profileEmail" name="email" type="email" value="{{ settings_email|default:'' }}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="profileDistrict">Ваш район (необязательно)</label>
-                                    <select id="profileDistrict" name="district_id">
-                                        <option value="">Не выбран</option>
-                                        {% for district in settings_districts %}
-                                            <option value="{{ district.id }}" {% if settings_district_id == district.id %}selected{% endif %}>{{ district.name }}</option>
-                                        {% endfor %}
-                                    </select>
                                 </div>
                                 <div class="form-group profile-switch-group">
                                     <div class="profile-switch-row">
@@ -1212,6 +1394,17 @@
         const reviewCommentInput = document.getElementById("adminReviewComment");
         const reviewPreviewText = document.getElementById("adminReviewPreviewText");
         let editingReviewCard = null;
+        let editingFromInstitutionCatalog = false;
+        let catalogInstitutionReviewsId = null;
+        let catalogInstitutionLine = "";
+
+        const institutionReviewsModal = document.getElementById("adminInstitutionReviewsModal");
+        const institutionReviewsModalBody = document.getElementById("adminInstitutionReviewsModalBody");
+        const institutionReviewsSubtitle = document.getElementById("adminInstitutionReviewsSubtitle");
+        const institutionReviewsInnerSearch = document.getElementById("adminInstitutionReviewsInnerSearch");
+        const institutionReviewsModalEmpty = document.getElementById("adminInstitutionReviewsModalEmpty");
+        const catalogInstitutionsSearch = document.getElementById("adminCatalogInstitutionsSearch");
+        const catalogInstitutionsTbody = document.getElementById("adminCatalogInstitutionsTbody");
 
         const statusToLabel = (status) => {
           if (status === "approved") return "Одобрено";
@@ -1263,30 +1456,69 @@
           const commentNode = card.querySelector(".admin-review-comment");
           if (commentNode) commentNode.textContent = comment || "Комментарий не указан.";
         };
-        const openReviewModal = (card) => {
-          if (!reviewModal || !reviewForm || !card) return;
-          editingReviewCard = card;
-          setReviewMessage("");
+        const fillReviewEditFormFields = ({
+          reviewId,
+          institutionLine,
+          author,
+          dateStr,
+          ratingNum,
+          statusRaw,
+          comment,
+        }) => {
           const idInput = document.getElementById("adminReviewId");
           const institutionInput = document.getElementById("adminReviewInstitution");
           const authorInput = document.getElementById("adminReviewAuthor");
           const dateInput = document.getElementById("adminReviewDate");
           const statusInput = document.getElementById("adminReviewStatus");
-          if (idInput) idInput.value = card.dataset.reviewId || "";
-          if (institutionInput) institutionInput.value = card.dataset.reviewInstitution || "";
-          if (authorInput) authorInput.value = card.dataset.reviewAuthor || "";
-          if (dateInput) dateInput.value = card.dataset.reviewDate || "";
-          const rawRating = String(card.dataset.reviewRating || "").replace(",", ".").trim();
+          if (idInput) idInput.value = String(reviewId || "");
+          if (institutionInput) institutionInput.value = institutionLine || "";
+          if (authorInput) authorInput.value = author || "";
+          if (dateInput) dateInput.value = dateStr || "";
+          const rawRating = String(ratingNum ?? "").replace(",", ".").trim();
           renderReviewRating(Number.parseFloat(rawRating));
-          if (statusInput) statusInput.value = statusToValue(card.dataset.reviewStatus || "pending");
-          if (reviewCommentInput) reviewCommentInput.value = card.dataset.reviewComment || "";
-          if (reviewPreviewText) reviewPreviewText.textContent = (card.dataset.reviewComment || "").trim() || "Текст отзыва отсутствует.";
+          if (statusInput) statusInput.value = statusToValue(statusRaw || "pending");
+          if (reviewCommentInput) reviewCommentInput.value = comment || "";
+          if (reviewPreviewText) {
+            reviewPreviewText.textContent = (comment || "").trim() || "Текст отзыва отсутствует.";
+          }
+        };
+        const openReviewModal = (card) => {
+          if (!reviewModal || !reviewForm || !card) return;
+          editingFromInstitutionCatalog = false;
+          editingReviewCard = card;
+          setReviewMessage("");
+          fillReviewEditFormFields({
+            reviewId: card.dataset.reviewId,
+            institutionLine: card.dataset.reviewInstitution || "",
+            author: card.dataset.reviewAuthor || "",
+            dateStr: card.dataset.reviewDate || "",
+            ratingNum: card.dataset.reviewRating,
+            statusRaw: card.dataset.reviewStatus || "pending",
+            comment: card.dataset.reviewComment || "",
+          });
+          reviewModal.classList.remove("hidden");
+        };
+        const openReviewModalFromCatalogRow = (row) => {
+          if (!reviewModal || !reviewForm || !row) return;
+          editingFromInstitutionCatalog = true;
+          editingReviewCard = null;
+          setReviewMessage("");
+          fillReviewEditFormFields({
+            reviewId: row.dataset.reviewId,
+            institutionLine: catalogInstitutionLine,
+            author: row.dataset.userName || "",
+            dateStr: row.dataset.createdAt || "",
+            ratingNum: row.dataset.rating,
+            statusRaw: row.dataset.reviewStatus || "pending",
+            comment: row.dataset.comment || "",
+          });
           reviewModal.classList.remove("hidden");
         };
         const closeReviewModal = () => {
           if (!reviewModal) return;
           reviewModal.classList.add("hidden");
           editingReviewCard = null;
+          editingFromInstitutionCatalog = false;
           setReviewMessage("");
           reviewForm?.reset();
         };
@@ -1325,6 +1557,14 @@
             }
             const finalStatus = data?.status || status;
             const finalComment = data?.comment ?? comment;
+            if (editingFromInstitutionCatalog && catalogInstitutionReviewsId) {
+              document.querySelector(`.admin-review-card[data-review-id="${reviewId}"]`)?.remove();
+              ensureEmptyState();
+              closeReviewModal();
+              await loadInstitutionReviewsForModal(catalogInstitutionReviewsId);
+              setReviewMessage("");
+              return;
+            }
             if (finalStatus === "approved") {
               editingReviewCard?.remove();
               ensureEmptyState();
@@ -1382,6 +1622,191 @@
             }
           });
         }
+
+        const escapeHtml = (s) => {
+          const d = document.createElement("div");
+          d.textContent = s == null ? "" : String(s);
+          return d.innerHTML;
+        };
+
+        const applyCatalogInstitutionFilter = () => {
+          if (!catalogInstitutionsTbody) return;
+          const q = (catalogInstitutionsSearch?.value || "").trim().toLowerCase();
+          catalogInstitutionsTbody.querySelectorAll(".admin-catalog-institution-row").forEach((row) => {
+            const hay = (row.dataset.search || "").toLowerCase();
+            row.classList.toggle("hidden", q.length > 0 && !hay.includes(q));
+          });
+        };
+
+        catalogInstitutionsSearch?.addEventListener("input", applyCatalogInstitutionFilter);
+
+        const applyInstitutionReviewsInnerFilter = () => {
+          if (!institutionReviewsModalBody) return;
+          const q = (institutionReviewsInnerSearch?.value || "").trim().toLowerCase();
+          institutionReviewsModalBody.querySelectorAll(".admin-catalog-review-row").forEach((row) => {
+            const hay = (row.dataset.search || "").toLowerCase();
+            row.classList.toggle("hidden", q.length > 0 && !hay.includes(q));
+          });
+        };
+
+        institutionReviewsInnerSearch?.addEventListener("input", applyInstitutionReviewsInnerFilter);
+
+        const catalogReviewStatusBadgeClass = (status) => {
+          const s = String(status || "").toLowerCase();
+          if (s === "approved") return "admin-catalog-review-status-badge is-approved";
+          if (s === "disapproved" || s === "rejected") return "admin-catalog-review-status-badge is-rejected";
+          return "admin-catalog-review-status-badge is-pending";
+        };
+        const catalogReviewStatusLabel = (status) => {
+          const s = String(status || "").toLowerCase();
+          if (s === "approved") return "Опубликован";
+          if (s === "disapproved" || s === "rejected") return "Отклонён";
+          return "На модерации";
+        };
+
+        const renderInstitutionReviewsIntoModal = (reviews) => {
+          if (!institutionReviewsModalBody || !institutionReviewsModalEmpty) return;
+          institutionReviewsModalBody.innerHTML = "";
+          if (!reviews.length) {
+            institutionReviewsModalEmpty.classList.remove("hidden");
+            return;
+          }
+          institutionReviewsModalEmpty.classList.add("hidden");
+          reviews.forEach((rev) => {
+            const article = document.createElement("article");
+            article.className = "admin-catalog-review-row";
+            const userName = rev.user_name || "Пользователь";
+            const dateStr = rev.created_at_display || "";
+            const ratingVal = Number.isFinite(Number(rev.rating)) ? Number(rev.rating) : 0;
+            const mainStars = Math.round(Math.min(5, Math.max(0, ratingVal)));
+            const comment = rev.comment || "";
+            const statusRaw = rev.status || "pending";
+            const statusLabel = catalogReviewStatusLabel(statusRaw);
+            const statusBadgeClass = catalogReviewStatusBadgeClass(statusRaw);
+            article.dataset.reviewId = String(rev.id);
+            article.dataset.userName = userName;
+            article.dataset.createdAt = dateStr;
+            article.dataset.rating = String(ratingVal);
+            article.dataset.comment = comment;
+            article.dataset.reviewStatus = statusRaw;
+            article.dataset.search = `${userName} ${dateStr} ${mainStars} ${ratingVal} ${comment} ${statusLabel}`.toLowerCase();
+            article.innerHTML = `
+              <div class="admin-catalog-review-head">
+                <span class="admin-catalog-review-author">${escapeHtml(userName)}</span>
+                <span class="${statusBadgeClass}">${escapeHtml(statusLabel)}</span>
+                <span class="admin-catalog-review-date">${escapeHtml(dateStr)}</span>
+                <span class="admin-catalog-review-rating-main" title="Оценка учреждения">${"★".repeat(mainStars)}${"☆".repeat(5 - mainStars)} <span class="admin-catalog-review-rating-num">${mainStars}</span></span>
+              </div>
+              <p class="admin-catalog-review-comment"></p>
+              <div class="admin-catalog-review-actions">
+                <button type="button" class="admin-review-btn admin-review-btn--edit" data-catalog-review-edit>Редактировать</button>
+                <button type="button" class="admin-review-btn admin-review-btn--disapprove" data-catalog-review-delete>Удалить</button>
+              </div>
+            `;
+            const p = article.querySelector(".admin-catalog-review-comment");
+            if (p) p.textContent = comment || "—";
+            institutionReviewsModalBody.appendChild(article);
+          });
+          applyInstitutionReviewsInnerFilter();
+        };
+
+        const loadInstitutionReviewsForModal = async (instId) => {
+          if (!institutionReviewsModalBody) return;
+          institutionReviewsModalBody.innerHTML =
+            '<p class="admin-users-empty admin-catalog-reviews-loading">Загрузка…</p>';
+          institutionReviewsModalEmpty?.classList.add("hidden");
+          try {
+            const response = await fetch(`/api/get_admin_institution_reviews.php?institution_id=${encodeURIComponent(instId)}`);
+            const data = await response.json();
+            if (!response.ok) {
+              institutionReviewsModalBody.innerHTML = `<p class="admin-users-empty">${escapeHtml(data?.error || "Ошибка загрузки")}</p>`;
+              return;
+            }
+            const inst = data.institution || {};
+            catalogInstitutionLine = [inst.district_name, inst.type_name, inst.name].filter(Boolean).join(" | ");
+            if (institutionReviewsSubtitle) {
+              institutionReviewsSubtitle.textContent = catalogInstitutionLine;
+            }
+            renderInstitutionReviewsIntoModal(data.reviews || []);
+          } catch (e) {
+            console.error(e);
+            institutionReviewsModalBody.innerHTML =
+              '<p class="admin-users-empty">Ошибка сети. Попробуйте ещё раз.</p>';
+          }
+        };
+
+        const openInstitutionReviewsModal = async (row) => {
+          if (!institutionReviewsModal || !row) return;
+          catalogInstitutionReviewsId = row.dataset.institutionId || null;
+          const district = row.dataset.district || "";
+          const type = row.dataset.type || "";
+          const name = row.dataset.name || "";
+          catalogInstitutionLine = [district, type, name].filter(Boolean).join(" | ");
+          if (institutionReviewsSubtitle) institutionReviewsSubtitle.textContent = catalogInstitutionLine;
+          if (institutionReviewsInnerSearch) institutionReviewsInnerSearch.value = "";
+          institutionReviewsModal.classList.remove("hidden");
+          if (catalogInstitutionReviewsId) {
+            await loadInstitutionReviewsForModal(catalogInstitutionReviewsId);
+          }
+        };
+
+        const closeInstitutionReviewsModal = () => {
+          institutionReviewsModal?.classList.add("hidden");
+          catalogInstitutionReviewsId = null;
+          catalogInstitutionLine = "";
+          if (institutionReviewsInnerSearch) institutionReviewsInnerSearch.value = "";
+          if (institutionReviewsModalBody) institutionReviewsModalBody.innerHTML = "";
+        };
+
+        document.getElementById("adminInstitutionReviewsModalCloseBtn")?.addEventListener("click", closeInstitutionReviewsModal);
+        institutionReviewsModal?.addEventListener("click", (event) => {
+          if (event.target === institutionReviewsModal) closeInstitutionReviewsModal();
+        });
+
+        catalogInstitutionsTbody?.addEventListener("click", (event) => {
+          const row = event.target.closest(".admin-catalog-institution-row");
+          if (!row) return;
+          openInstitutionReviewsModal(row);
+        });
+
+        institutionReviewsModalBody?.addEventListener("click", async (event) => {
+          const editBtn = event.target.closest("[data-catalog-review-edit]");
+          const delBtn = event.target.closest("[data-catalog-review-delete]");
+          const row = event.target.closest(".admin-catalog-review-row");
+          if (editBtn && row) {
+            catalogInstitutionLine = institutionReviewsSubtitle?.textContent?.trim() || catalogInstitutionLine;
+            openReviewModalFromCatalogRow(row);
+            return;
+          }
+          if (!delBtn || !row) return;
+          const reviewId = Number(row.dataset.reviewId || 0);
+          if (!reviewId) return;
+          if (!window.confirm("Удалить этот отзыв из базы данных? Действие нельзя отменить.")) return;
+          delBtn.disabled = true;
+          try {
+            const response = await fetch("/api/delete_review.php", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ review_id: reviewId }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data?.success) {
+              window.alert(data?.error || "Не удалось удалить отзыв.");
+              return;
+            }
+            if (catalogInstitutionReviewsId) {
+              await loadInstitutionReviewsForModal(catalogInstitutionReviewsId);
+            }
+            const moderationCard = document.querySelector(`.admin-review-card[data-review-id="${reviewId}"]`);
+            moderationCard?.remove();
+            ensureEmptyState();
+          } catch (e) {
+            console.error(e);
+            window.alert("Ошибка сети. Попробуйте ещё раз.");
+          } finally {
+            delBtn.disabled = false;
+          }
+        });
 
         document.querySelectorAll(".admin-user-delete-btn").forEach((btn) => {
           btn.addEventListener("click", async (event) => {
@@ -1832,6 +2257,315 @@
           });
         });
 
+        const mainInfoForm = document.getElementById("profileMainInfoForm");
+        if (mainInfoForm) {
+          const typeSelect = document.getElementById("profileMainInstitutionType");
+          const ageRow = document.getElementById("profileMainAgeRow");
+          const classRow = document.getElementById("profileMainClassRow");
+          const syncMainTypeRows = () => {
+            const code = (typeSelect?.value || "").trim();
+            const isSchool = code === "school" || code === "school_internat";
+            ageRow?.classList.toggle("hidden", isSchool);
+            classRow?.classList.toggle("hidden", !isSchool);
+          };
+          typeSelect?.addEventListener("change", syncMainTypeRows);
+          syncMainTypeRows();
+
+          const mainMsg = document.getElementById("profileMainInfoMessage");
+          const setMainMsg = (text, isError = false) => {
+            if (!mainMsg) return;
+            mainMsg.textContent = text || "";
+            mainMsg.classList.toggle("hidden", !text);
+            mainMsg.classList.toggle("error", Boolean(text) && isError);
+            mainMsg.classList.toggle("success", Boolean(text) && !isError);
+          };
+
+          mainInfoForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const districtEl = document.getElementById("profileMainDistrict");
+            const code = (typeSelect?.value || "").trim();
+            const isSchool = code === "school" || code === "school_internat";
+            const payload = {
+              district_id: districtEl?.value || null,
+              preferred_institution_type: code || null,
+              preferred_condition_codes: Array.from(
+                mainInfoForm.querySelectorAll('input[name="main_condition"]:checked'),
+              ).map((el) => el.value),
+              preferred_accessibility_codes: Array.from(
+                mainInfoForm.querySelectorAll('input[name="main_accessibility"]:checked'),
+              ).map((el) => el.value),
+              prefer_aoop: Boolean(document.getElementById("profileMainPreferAoop")?.checked),
+            };
+            if (isSchool) {
+              payload.school_class_from = document.getElementById("profileMainClassFrom")?.value || null;
+              payload.school_class_to = document.getElementById("profileMainClassTo")?.value || null;
+            } else {
+              payload.child_age_min = document.getElementById("profileMainAgeMin")?.value || null;
+              payload.child_age_max = document.getElementById("profileMainAgeMax")?.value || null;
+            }
+            const saveBtn = document.getElementById("profileMainSaveBtn");
+            if (saveBtn) saveBtn.disabled = true;
+            setMainMsg("");
+            try {
+              const response = await fetch("/api/update_portal_main_info.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              const data = await response.json();
+              if (!response.ok || !data?.success) {
+                setMainMsg(data?.error || "Не удалось сохранить.", true);
+                return;
+              }
+              setMainMsg("Основная информация сохранена.");
+            } catch (e) {
+              console.error(e);
+              setMainMsg("Ошибка сети. Попробуйте ещё раз.", true);
+            } finally {
+              if (saveBtn) saveBtn.disabled = false;
+            }
+          });
+
+          const matchList = document.getElementById("profileMainMatchList");
+          const matchMsg = document.getElementById("profileMainMatchMessage");
+          const setMatchMsg = (text, isError = false) => {
+            if (!matchMsg) return;
+            matchMsg.textContent = text || "";
+            matchMsg.classList.toggle("hidden", !text);
+            matchMsg.classList.toggle("error", Boolean(text) && isError);
+            matchMsg.classList.toggle("success", Boolean(text) && !isError);
+          };
+          document.getElementById("profileMainMatchBtn")?.addEventListener("click", async () => {
+            setMatchMsg("");
+            if (matchList) matchList.innerHTML = "";
+            try {
+              const response = await fetch("/api/profile_match_institutions.php?page=1&page_size=50");
+              const data = await response.json();
+              if (!response.ok) {
+                setMatchMsg(data?.error || "Не удалось загрузить список.", true);
+                return;
+              }
+              const items = data.institutions || [];
+              const total = data.pagination?.total_items ?? items.length;
+              if (!items.length) {
+                setMatchMsg("Подходящих учреждений не найдено.");
+                return;
+              }
+              setMatchMsg(`Показано ${items.length} из ${total}.`);
+              const formatRangeLine = (row) => {
+                const min = row.range_min;
+                const max = row.range_max;
+                if (min == null && max == null) return "";
+                const lo = min != null ? String(min) : "—";
+                const hi = max != null ? String(max) : "—";
+                const t = row.type;
+                if (t === "preschool") return `Возраст (как на карте): ${lo} — ${hi}`;
+                if (t === "school" || t === "school_internat") return `Классы / диапазон: ${lo} — ${hi}`;
+                return `Диапазон: ${lo} — ${hi}`;
+              };
+              const appendDetailRow = (parent, label, text) => {
+                if (!text) return;
+                const row = document.createElement("div");
+                row.className = "detail-item";
+                const strong = document.createElement("strong");
+                strong.textContent = `${label}:`;
+                row.append(strong, document.createTextNode(` ${text}`));
+                parent.appendChild(row);
+              };
+              const appendBullets = (parent, title, names) => {
+                if (!names || !names.length) return;
+                const wrap = document.createElement("div");
+                wrap.className = "detail-item profile-main-match-detail-block";
+                const strong = document.createElement("strong");
+                strong.textContent = `${title}:`;
+                const ul = document.createElement("ul");
+                ul.className = "profile-main-match-detail-list";
+                names.forEach((name) => {
+                  const li = document.createElement("li");
+                  li.textContent = name;
+                  ul.appendChild(li);
+                });
+                wrap.append(strong, ul);
+                parent.appendChild(wrap);
+              };
+              items.forEach((inst) => {
+                const districtPart = inst.district_name || "Район не указан";
+                const typePart = inst.type_name_ru || inst.type || "Тип не указан";
+                const namePart = inst.name || "Без названия";
+                const summaryLine = `${districtPart} | ${typePart} | ${namePart}`;
+
+                const card = document.createElement("article");
+                card.className = "profile-main-match-card";
+
+                const head = document.createElement("div");
+                head.className = "profile-main-match-card-head";
+
+                const toggle = document.createElement("button");
+                toggle.type = "button";
+                toggle.className = "profile-main-match-toggle";
+                toggle.setAttribute("aria-expanded", "false");
+                toggle.setAttribute("aria-label", "Показать или скрыть подробности");
+                toggle.textContent = "▶";
+
+                const headMain = document.createElement("div");
+                headMain.className = "profile-main-match-head-main";
+
+                const lineTop = document.createElement("p");
+                lineTop.className = "profile-main-match-line";
+                lineTop.textContent = summaryLine;
+
+                const lineSub = document.createElement("p");
+                lineSub.className = "profile-main-match-subline";
+                const relBits = [`Релевантность: ${inst.relevance ?? "—"}`];
+                if (typeof inst.avg_institution_rating === "number") {
+                  relBits.push(`Средняя оценка: ${inst.avg_institution_rating.toFixed(2)}`);
+                }
+                lineSub.textContent = relBits.join(" · ");
+
+                headMain.append(lineTop, lineSub);
+
+                const headActions = document.createElement("div");
+                headActions.className = "profile-main-match-card-actions";
+                const mapLink = document.createElement("a");
+                mapLink.className = "btn btn-secondary profile-main-match-maplink";
+                mapLink.href = inst.district_id ? `/district/${inst.district_id}/` : "/";
+                mapLink.textContent = "На карту района";
+                mapLink.target = "_blank";
+                mapLink.rel = "noopener noreferrer";
+                headActions.appendChild(mapLink);
+
+                head.append(toggle, headMain, headActions);
+
+                const detail = document.createElement("div");
+                detail.className = "profile-main-match-detail hidden";
+                detail.id = `profile-match-detail-${inst.id}`;
+                detail.setAttribute("hidden", "");
+
+                if (inst.description) {
+                  const desc = document.createElement("p");
+                  desc.className = "institution-description";
+                  desc.textContent = inst.description;
+                  detail.appendChild(desc);
+                }
+
+                const rangeText = formatRangeLine(inst);
+                appendDetailRow(detail, "Возраст / классы / диапазон", rangeText);
+                appendDetailRow(detail, "Адрес", inst.address || "");
+                appendBullets(detail, "Условия обучения", inst.condition_names_ru);
+                appendBullets(detail, "Формы поступления", inst.admission_names_ru);
+                appendBullets(detail, "Критерии доступности", inst.accessibility_names_ru);
+
+                if (inst.aoop_url) {
+                  const row = document.createElement("div");
+                  row.className = "detail-item";
+                  const strong = document.createElement("strong");
+                  strong.textContent = "АООП (ссылка):";
+                  const a = document.createElement("a");
+                  a.href = inst.aoop_url;
+                  a.target = "_blank";
+                  a.rel = "noopener noreferrer";
+                  a.textContent = inst.aoop_url;
+                  row.append(strong, document.createTextNode(" "), a);
+                  detail.appendChild(row);
+                }
+                if (inst.aoop_programs && inst.aoop_programs.length) {
+                  const names = inst.aoop_programs.map((p) => p.name).filter(Boolean);
+                  appendBullets(detail, "Программы АООП", names);
+                }
+
+                const dir = inst.director || {};
+                if (dir.name) {
+                  const contacts = document.createElement("div");
+                  contacts.className = "institution-contacts";
+                  const d1 = document.createElement("div");
+                  d1.className = "contact-item";
+                  d1.appendChild(document.createElement("strong")).textContent = "Руководитель:";
+                  d1.appendChild(document.createTextNode(` ${dir.name}`));
+                  contacts.appendChild(d1);
+                  if (dir.phone) {
+                    const d2 = document.createElement("div");
+                    d2.className = "contact-item";
+                    d2.appendChild(document.createElement("strong")).textContent = "Телефон:";
+                    d2.appendChild(document.createTextNode(` ${dir.phone}`));
+                    contacts.appendChild(d2);
+                  }
+                  if (dir.email) {
+                    const d3 = document.createElement("div");
+                    d3.className = "contact-item";
+                    d3.appendChild(document.createElement("strong")).textContent = "Email:";
+                    d3.appendChild(document.createTextNode(` ${dir.email}`));
+                    contacts.appendChild(d3);
+                  }
+                  detail.appendChild(contacts);
+                }
+
+                if (inst.website) {
+                  const row = document.createElement("div");
+                  row.className = "contact-item";
+                  const strong = document.createElement("strong");
+                  strong.textContent = "Сайт:";
+                  const a = document.createElement("a");
+                  a.href = inst.website;
+                  a.target = "_blank";
+                  a.rel = "noopener noreferrer";
+                  a.textContent = inst.website;
+                  row.append(strong, document.createTextNode(" "), a);
+                  detail.appendChild(row);
+                }
+
+                const reviews = inst.approved_reviews || [];
+                if (reviews.length) {
+                  const sec = document.createElement("div");
+                  sec.className = "institution-reviews-section";
+                  const h5 = document.createElement("h5");
+                  h5.textContent = `Отзывы пользователей (${inst.approved_reviews_count ?? reviews.length})`;
+                  sec.appendChild(h5);
+                  const list = document.createElement("div");
+                  list.className = "institution-reviews-list";
+                  reviews.slice(0, 5).forEach((rev) => {
+                    const art = document.createElement("article");
+                    art.className = "institution-review-item";
+                    const headR = document.createElement("div");
+                    headR.className = "institution-review-head";
+                    const au = document.createElement("span");
+                    au.className = "institution-review-author";
+                    au.textContent = rev.author || "Пользователь";
+                    const dt = document.createElement("span");
+                    dt.className = "institution-review-date";
+                    dt.textContent = rev.created_at || "";
+                    headR.append(au, dt);
+                    const rating = document.createElement("div");
+                    rating.className = "institution-review-rating";
+                    rating.textContent = String(rev.rating ?? "");
+                    const com = document.createElement("p");
+                    com.className = "institution-review-comment";
+                    com.textContent = rev.comment || "Комментарий не указан.";
+                    art.append(headR, rating, com);
+                    list.appendChild(art);
+                  });
+                  sec.appendChild(list);
+                  detail.appendChild(sec);
+                }
+
+                toggle.addEventListener("click", () => {
+                  const open = detail.classList.contains("hidden");
+                  detail.classList.toggle("hidden", !open);
+                  toggle.textContent = open ? "▼" : "▶";
+                  toggle.setAttribute("aria-expanded", open ? "true" : "false");
+                  if (open) detail.removeAttribute("hidden");
+                  else detail.setAttribute("hidden", "");
+                });
+
+                card.append(head, detail);
+                matchList?.appendChild(card);
+              });
+            } catch (e) {
+              console.error(e);
+              setMatchMsg("Ошибка сети.", true);
+            }
+          });
+        }
+
         if (!settingsForm) return;
 
         const setMessage = (text, isError = false) => {
@@ -1853,13 +2587,11 @@
           const firstNameInput = document.getElementById("profileFirstName");
           const usernameInput = document.getElementById("profileUsername");
           const emailInput = document.getElementById("profileEmail");
-          const districtInput = document.getElementById("profileDistrict");
           const notifyInput = document.getElementById("profileNotifyDistrict");
           const payload = {
             first_name: (firstNameInput?.value || "").trim(),
             username: (usernameInput?.value || "").trim(),
             email: (emailInput?.value || "").trim(),
-            district_id: districtInput?.value || null,
             notify_new_institutions: Boolean(notifyInput?.checked),
           };
 

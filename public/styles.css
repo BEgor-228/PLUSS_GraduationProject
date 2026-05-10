@@ -3458,6 +3458,171 @@ body[data-page="institution-form"] .checkbox-group {
   gap: 10px;
 }
 
+.admin-catalog-reviews-section {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #e5ecf5;
+}
+
+.admin-catalog-reviews-title {
+  margin-bottom: 6px;
+}
+
+.admin-catalog-reviews-lead {
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+  color: #72869d;
+}
+
+.admin-catalog-institutions-table-wrap {
+  margin-top: 8px;
+}
+
+.admin-catalog-institution-row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.admin-catalog-institution-row:hover {
+  background: #f9fcff;
+}
+
+.admin-catalog-institution-open-btn {
+  pointer-events: auto;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #c9a227;
+  border-radius: 6px;
+  background: #f5d547;
+  color: #5c4a0a;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.admin-catalog-institution-open-btn:hover {
+  background: #edd03a;
+  border-color: #b89420;
+}
+
+.admin-institution-reviews-modal {
+  z-index: 2990;
+}
+
+.admin-institution-reviews-modal-card {
+  max-width: 640px;
+  max-height: min(90vh, 720px);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-institution-reviews-subtitle {
+  margin: 0 0 12px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1f5ea8;
+  line-height: 1.35;
+}
+
+.admin-institution-reviews-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.admin-catalog-reviews-loading {
+  margin: 8px 0;
+}
+
+.admin-catalog-review-row {
+  border: 1px solid #dfe7f2;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+}
+
+.admin-catalog-review-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  font-size: 0.88rem;
+}
+
+.admin-catalog-review-author {
+  font-weight: 700;
+  color: #2c425c;
+}
+
+.admin-catalog-review-status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  border: 1px solid transparent;
+}
+
+.admin-catalog-review-status-badge.is-approved {
+  background: #22a06b;
+  border-color: #1a8a5a;
+  color: #fff;
+}
+
+.admin-catalog-review-status-badge.is-pending {
+  background: #f5cd47;
+  border-color: #e6b820;
+  color: #5c4a0a;
+}
+
+.admin-catalog-review-status-badge.is-rejected {
+  background: #e5533d;
+  border-color: #d64141;
+  color: #fff;
+}
+
+.admin-catalog-review-date {
+  color: #8a9db1;
+  font-size: 0.8rem;
+}
+
+.admin-catalog-review-rating-main {
+  margin-left: auto;
+  color: #c9a227;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+}
+
+.admin-catalog-review-rating-num {
+  color: #52667a;
+  font-weight: 700;
+  margin-left: 4px;
+  letter-spacing: 0;
+}
+
+.admin-catalog-review-comment {
+  margin: 8px 0 0;
+  color: #2d4054;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.admin-catalog-review-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .admin-review-card {
   border: 1px solid #dfe7f2;
   border-radius: 10px;
@@ -4493,5 +4658,249 @@ body[data-page="institution-form"] .checkbox-group {
 
 .profile-body[data-profile-theme="dark"] .profile-theme-name {
   color: #d7dfec;
+}
+
+.profile-main-fieldset {
+  border: 1px solid #e5ebf3;
+  border-radius: 10px;
+  padding: 12px 14px 14px;
+  margin: 0 0 14px;
+}
+
+.profile-main-fieldset legend {
+  padding: 0 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #2c3d55;
+}
+
+.profile-main-fieldset-hint {
+  margin-top: 0;
+  margin-bottom: 2px;
+}
+
+.profile-main-info-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px 16px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.profile-main-info-checkboxes label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  column-gap: 10px;
+  row-gap: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #3a4d66;
+  min-width: 0;
+}
+
+.profile-main-info-checkboxes label span {
+  min-width: 0;
+}
+
+.profile-main-info-checkboxes input {
+  margin-top: 3px;
+  width: auto;
+  justify-self: start;
+}
+
+.profile-main-match-block {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #e5ebf3;
+}
+
+.profile-main-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.profile-main-match-card {
+  border: 1px solid #e5ebf3;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fafcfe;
+}
+
+.profile-main-match-card-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px 14px;
+  align-items: start;
+}
+
+.profile-main-match-toggle {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #c8d7ea;
+  border-radius: 8px;
+  background: #fff;
+  color: #1f5ea8;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.profile-main-match-toggle:hover {
+  background: #eef5fc;
+  border-color: #9fb8d8;
+}
+
+.profile-main-match-head-main {
+  min-width: 0;
+}
+
+.profile-main-match-line {
+  margin: 0 0 6px;
+  font-weight: 600;
+  font-size: 0.96rem;
+  color: #1f3146;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.profile-main-match-subline {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #5a6b82;
+  line-height: 1.35;
+}
+
+.profile-main-match-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.profile-main-match-maplink {
+  font-size: 0.82rem;
+  padding: 8px 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.profile-main-match-detail {
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #e1eaf5;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.profile-main-match-detail > * {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Не используем .institution-details здесь: у него сетка auto-fit и колонки ~150px — ломает вёрстку. */
+.profile-main-match-detail .detail-item {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  align-items: unset;
+  padding: 8px 10px;
+}
+
+.profile-main-match-detail .detail-item strong {
+  display: inline;
+  min-width: 0;
+  margin-right: 0.35em;
+  vertical-align: baseline;
+}
+
+.profile-main-match-detail .profile-main-match-detail-block.detail-item {
+  display: block;
+}
+
+.profile-main-match-detail .profile-main-match-detail-block.detail-item > strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.profile-main-match-detail .institution-contacts {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 0;
+  border-top: 1px solid #e1eaf5;
+}
+
+.profile-main-match-detail .contact-item {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  max-width: 100%;
+}
+
+.profile-main-match-detail .contact-item a {
+  word-break: break-all;
+}
+
+.profile-main-match-detail .institution-reviews-section {
+  width: 100%;
+  max-width: 100%;
+}
+
+.profile-main-match-detail .institution-description {
+  margin-top: 0;
+}
+
+.profile-main-match-detail-list {
+  margin: 6px 0 0;
+  padding-left: 1.2rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.profile-main-match-detail-list li {
+  margin: 4px 0;
+  line-height: 1.4;
+}
+
+.profile-body[data-profile-theme="dark"] .profile-main-fieldset {
+  border-color: #4b566b;
+}
+
+.profile-body[data-profile-theme="dark"] .profile-main-match-card {
+  background: #2a303a;
+  border-color: #4b566b;
+}
+
+.profile-body[data-profile-theme="dark"] .profile-main-match-line {
+  color: #e8eef8;
+}
+
+.profile-body[data-profile-theme="dark"] .profile-main-match-subline {
+  color: #aab4c6;
+}
+
+.profile-body[data-profile-theme="dark"] .profile-main-match-toggle {
+  background: #2f3642;
+  border-color: #4b566b;
+  color: #9ec5ff;
+}
+
+.profile-body[data-profile-theme="dark"] .profile-main-match-detail {
+  border-top-color: #4b566b;
 }
 

@@ -33,6 +33,9 @@ from .models import (
 )
 
 
+BAYESIAN_CONFIDENCE_THRESHOLD = 10
+
+
 def index(request: HttpRequest):
     return render(request, "mapapp/index.html")
 
@@ -117,25 +120,38 @@ def profile_page(request: HttpRequest):
                         "value": int(row["reviews_count"] or 0),
                     }
                 )
+            global_rating_mean = _get_global_approved_rating_mean()
             institution_rating_chart_qs = (
                 Institution.objects.annotate(
                     avg_rating=Avg(
                         "reviews__rating",
                         filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED),
-                    )
+                    ),
+                    approved_reviews_count=Count(
+                        "reviews",
+                        filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED),
+                    ),
                 )
                 .filter(avg_rating__isnull=False)
                 .select_related("district")
                 .order_by("-avg_rating", "name")
             )
-            institution_rating_chart = [
-                {
-                    "name": inst.name,
-                    "district_name": inst.district.name if inst.district_id else "",
-                    "value": round(float(inst.avg_rating or 0), 2),
-                }
-                for inst in institution_rating_chart_qs
-            ]
+            institution_rating_chart = []
+            for inst in institution_rating_chart_qs:
+                bayesian_value = _calc_bayesian_rating(
+                    float(inst.avg_rating or 0),
+                    int(inst.approved_reviews_count or 0),
+                    global_rating_mean,
+                )
+                if bayesian_value is None:
+                    continue
+                institution_rating_chart.append(
+                    {
+                        "name": inst.name,
+                        "district_name": inst.district.name if inst.district_id else "",
+                        "value": bayesian_value,
+                    }
+                )
             activity_qs = (
                 User.objects.filter(is_superuser=False)
                 .annotate(month=TruncMonth("date_joined"))
@@ -206,21 +222,33 @@ def profile_page(request: HttpRequest):
                         "reviews",
                         filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED),
                     ),
+                    total_reviews_count=Count("reviews"),
                 )
                 .select_related("district", "type")
                 .order_by("name")
             )
-            admin_institutions = [
-                {
-                    "id": inst.id,
-                    "name": inst.name or "Учреждение",
-                    "district_name": inst.district.name if inst.district_id else "Район не указан",
-                    "type_name": inst.type.name_ru if inst.type_id else "Без типа",
-                    "avg_rating": round(float(inst.avg_rating), 2) if inst.avg_rating is not None else None,
-                    "approved_reviews_count": int(inst.approved_reviews_count or 0),
-                }
-                for inst in admin_institutions_qs
-            ]
+            admin_institutions = []
+            for inst in admin_institutions_qs:
+                display_name = inst.name or "Учреждение"
+                initials_source = display_name.strip() or "У"
+                letters_inst = [ch for ch in initials_source if ch.isalnum()]
+                inst_initials = "".join(letters_inst[:2]).upper() if letters_inst else "У"
+                admin_institutions.append(
+                    {
+                        "id": inst.id,
+                        "name": display_name,
+                        "district_name": inst.district.name if inst.district_id else "Район не указан",
+                        "type_name": inst.type.name_ru if inst.type_id else "Без типа",
+                        "initials": inst_initials,
+                        "avg_rating": _calc_bayesian_rating(
+                            float(inst.avg_rating) if inst.avg_rating is not None else None,
+                            int(inst.approved_reviews_count or 0),
+                            global_rating_mean,
+                        ),
+                        "approved_reviews_count": int(inst.approved_reviews_count or 0),
+                        "total_reviews_count": int(inst.total_reviews_count or 0),
+                    }
+                )
             moderation_reviews_qs = (
                 InstitutionReview.objects.filter(
                     status__in=[
@@ -276,10 +304,28 @@ def profile_page(request: HttpRequest):
             ctx["settings_first_name"] = user.first_name or ""
             ctx["settings_username"] = user.username or ""
             ctx["settings_email"] = user.email or ""
-            preference = UserDistrictPreference.objects.filter(user=user).select_related("district").first()
-            ctx["settings_district_id"] = preference.district_id if preference else None
-            ctx["settings_notify_new_institutions"] = bool(preference and preference.notify_new_institutions)
+            preference = (
+                UserDistrictPreference.objects.filter(user=user)
+                .select_related("district", "preferred_institution_type")
+                .first()
+            )
+            pref = preference
+            ctx["settings_notify_new_institutions"] = bool(pref and pref.notify_new_institutions)
             ctx["settings_districts"] = list(District.objects.order_by("name").values("id", "name"))
+            ctx["main_pref_district_id"] = pref.district_id if pref else None
+            ctx["main_pref_institution_type"] = pref.preferred_institution_type_id if pref else None
+            ctx["main_pref_child_age_min"] = pref.child_age_min if pref else None
+            ctx["main_pref_child_age_max"] = pref.child_age_max if pref else None
+            ctx["main_pref_school_class_from"] = pref.school_class_from if pref else None
+            ctx["main_pref_school_class_to"] = pref.school_class_to if pref else None
+            ctx["main_pref_condition_codes"] = list(pref.preferred_condition_codes or []) if pref else []
+            ctx["main_pref_accessibility_codes"] = list(pref.preferred_accessibility_codes or []) if pref else []
+            ctx["main_pref_prefer_aoop"] = bool(pref and pref.prefer_aoop)
+            ctx["main_institution_types"] = list(InstitutionType.objects.order_by("name_ru").values("code", "name_ru"))
+            ctx["main_condition_types"] = list(ConditionType.objects.order_by("name_ru").values("code", "name_ru"))
+            ctx["main_accessibility_types"] = list(
+                AccessibilityCriterionType.objects.order_by("name_ru").values("code", "name_ru")
+            )
             favorites = (
                 Favorite.objects.filter(user=user)
                 .select_related("institution__district", "institution__type")
@@ -515,6 +561,24 @@ def _create_user_with_repaired_sequence(**kwargs):
         return User.objects.create_user(**kwargs)
 
 
+def _get_global_approved_rating_mean() -> float:
+    value = (
+        InstitutionReview.objects.filter(status=InstitutionReview.STATUS_APPROVED)
+        .aggregate(v=Avg("rating"))
+        .get("v")
+    )
+    return float(value) if value is not None else 0.0
+
+
+def _calc_bayesian_rating(avg_rating: float | None, rating_count: int, global_mean: float) -> float | None:
+    if avg_rating is None or rating_count <= 0:
+        return None
+    v = float(rating_count)
+    m = float(BAYESIAN_CONFIDENCE_THRESHOLD)
+    weighted = ((v / (v + m)) * float(avg_rating)) + ((m / (v + m)) * global_mean)
+    return round(weighted, 2)
+
+
 def _get_reviews_aggregates_for_institutions(institution_ids: list[int]) -> dict[int, dict]:
     if not institution_ids:
         return {}
@@ -550,11 +614,14 @@ def _get_reviews_aggregates_for_institutions(institution_ids: list[int]) -> dict
                 criteria_sum[inst_id][code_s] += float(score_int)
                 criteria_count[inst_id][code_s] += 1
 
+    global_mean = _get_global_approved_rating_mean()
     aggregates: dict[int, dict] = {}
     for inst_id in institution_ids:
-        rating_avg = None
-        if inst_rating_count.get(inst_id):
-            rating_avg = round(inst_rating_sum[inst_id] / inst_rating_count[inst_id], 2)
+        rating_avg_raw = None
+        rating_count = int(inst_rating_count.get(inst_id) or 0)
+        if rating_count:
+            rating_avg_raw = inst_rating_sum[inst_id] / rating_count
+        rating_avg = _calc_bayesian_rating(rating_avg_raw, rating_count, global_mean)
 
         avg_criteria: dict[str, float] = {}
         codes_for_inst = criteria_sum.get(inst_id, {})
@@ -625,6 +692,11 @@ def _serialize_institution(
     is_favorite = bool(favorite_ids and inst.id in favorite_ids)
     review_agg = (review_aggs or {}).get(inst.id) if review_aggs else None
     approved_reviews_payload = (approved_reviews_map or {}).get(inst.id, {})
+    conditions_ordered = sorted(inst.conditions.all(), key=lambda c: (c.name_ru or "").lower())
+    admission_ordered = sorted(inst.admission.all(), key=lambda a: (a.name_ru or "").lower())
+    accessibility_ordered = sorted(
+        inst.accessibility_criteria.all(), key=lambda a: (a.name_ru or "").lower()
+    )
     return {
         "id": inst.id,
         "name": inst.name,
@@ -635,10 +707,15 @@ def _serialize_institution(
         "website": inst.website,
         "aoop_url": inst.aoop_url,
         "district_id": inst.district_id,
+        "district_name": inst.district.name if inst.district_id else "",
         "type": inst.type_id,
+        "type_name_ru": inst.type.name_ru if inst.type_id else "",
         "conditions": list(inst.conditions.values_list("code", flat=True)),
+        "condition_names_ru": [c.name_ru for c in conditions_ordered],
         "conditionsAdmission": list(inst.admission.values_list("code", flat=True)),
+        "admission_names_ru": [a.name_ru for a in admission_ordered],
         "accessibility_criteria": list(inst.accessibility_criteria.values_list("code", flat=True)),
+        "accessibility_names_ru": [a.name_ru for a in accessibility_ordered],
         "aoop_programs": [{"id": p.id, "name": p.name} for p in inst.aoop_programs.all()],
         "is_favorite": is_favorite,
         "avg_institution_rating": review_agg.get("avg_institution_rating") if review_agg else None,
@@ -690,6 +767,60 @@ def _matches_age_bucket(inst_payload: dict, age_bucket: str) -> bool:
             return False
         return range_max >= min_value
     return False
+
+
+def _age_year_to_buckets(age_int: int) -> set[str]:
+    buckets: set[str] = set()
+    if age_int <= 3:
+        buckets.add("1.5-3")
+    if 3 <= age_int <= 5:
+        buckets.add("3-5")
+    if 5 <= age_int <= 7:
+        buckets.add("5-7")
+    if age_int >= 7:
+        buckets.add("7+")
+    return buckets
+
+
+def _years_span_to_age_buckets(age_min: int | None, age_max: int | None) -> list[str]:
+    if age_min is None and age_max is None:
+        return []
+    lo = int(age_min) if age_min is not None else 0
+    hi = int(age_max) if age_max is not None else 25
+    if lo > hi:
+        lo, hi = hi, lo
+    acc: set[str] = set()
+    for age_int in range(lo, hi + 1):
+        acc |= _age_year_to_buckets(age_int)
+    order = ["1.5-3", "3-5", "5-7", "7+"]
+    return [b for b in order if b in acc]
+
+
+def _school_classes_to_age_bounds(class_from: int | None, class_to: int | None) -> tuple[int | None, int | None]:
+    if class_from is None:
+        return None, None
+    cf = int(class_from)
+    ct = int(class_to) if class_to is not None else cf
+    if cf > ct:
+        cf, ct = ct, cf
+    age_min = 6 + cf
+    age_max = 7 + ct
+    return age_min, age_max
+
+
+def _preference_ranking_inputs(pref: UserDistrictPreference) -> tuple[list[str], list[str], list[str], list[str], bool]:
+    type_codes: list[str] = []
+    if pref.preferred_institution_type_id:
+        type_codes = [pref.preferred_institution_type_id]
+    pt = pref.preferred_institution_type_id
+    if pt in {"school", "school_internat"}:
+        amin, amax = _school_classes_to_age_bounds(pref.school_class_from, pref.school_class_to)
+        age_buckets = _years_span_to_age_buckets(amin, amax)
+    else:
+        age_buckets = _years_span_to_age_buckets(pref.child_age_min, pref.child_age_max)
+    cond = pref.preferred_condition_codes if isinstance(pref.preferred_condition_codes, list) else []
+    acc = pref.preferred_accessibility_codes if isinstance(pref.preferred_accessibility_codes, list) else []
+    return type_codes, age_buckets, cond, acc, bool(pref.prefer_aoop)
 
 
 def _search_match(inst_payload: dict, search_term: str) -> bool:
@@ -866,7 +997,7 @@ def get_institutions(request: HttpRequest):
 
     queryset = (
         Institution.objects.filter(district_id=district_id)
-        .select_related("director", "type")
+        .select_related("director", "type", "district")
         .prefetch_related("conditions", "admission", "aoop_programs", "accessibility_criteria")
         .order_by("name")
     )
@@ -905,7 +1036,7 @@ def search_institutions(request: HttpRequest):
 
     queryset = (
         Institution.objects.filter(district_id=district_id)
-        .select_related("director", "type")
+        .select_related("director", "type", "district")
         .prefetch_related("conditions", "admission", "aoop_programs", "accessibility_criteria")
     )
     institution_ids = list(queryset.values_list("id", flat=True))
@@ -948,8 +1079,8 @@ def get_institution(request: HttpRequest):
     if not inst_id:
         return JsonResponse({"error": "id required and must be integer"}, status=400)
     inst = get_object_or_404(
-        Institution.objects.select_related("director", "type").prefetch_related(
-            "conditions", "admission", "aoop_programs"
+        Institution.objects.select_related("director", "type", "district").prefetch_related(
+            "conditions", "admission", "aoop_programs", "accessibility_criteria"
         ),
         pk=inst_id,
     )
@@ -993,7 +1124,6 @@ def update_profile(request: HttpRequest):
     first_name = (data.get("first_name") or "").strip()
     username = (data.get("username") or "").strip()
     email = (data.get("email") or "").strip().lower()
-    district_id = data.get("district_id")
     notify_new_institutions = bool(data.get("notify_new_institutions", False))
 
     if not first_name:
@@ -1016,14 +1146,25 @@ def update_profile(request: HttpRequest):
     user.email = email
     user.save(update_fields=["first_name", "username", "email"])
     preference, _ = UserDistrictPreference.objects.get_or_create(user=user)
-    district_obj = None
-    if district_id not in (None, "", 0, "0"):
-        district_obj = District.objects.filter(id=district_id).first()
-        if not district_obj:
-            return JsonResponse({"error": "Выбранный район не найден"}, status=400)
-    preference.district = district_obj
-    preference.notify_new_institutions = bool(notify_new_institutions and district_obj is not None)
-    preference.save(update_fields=["district", "notify_new_institutions", "updated_at"])
+    pref_fields: list[str] = []
+    if "district_id" in data:
+        district_id = data.get("district_id")
+        district_obj = None
+        if district_id not in (None, "", 0, "0"):
+            district_obj = District.objects.filter(id=district_id).first()
+            if not district_obj:
+                return JsonResponse({"error": "Выбранный район не найден"}, status=400)
+            preference.district = district_obj
+        else:
+            preference.district = None
+        pref_fields.extend(["district", "updated_at"])
+    if "notify_new_institutions" in data:
+        preference.notify_new_institutions = bool(
+            notify_new_institutions and preference.district_id is not None
+        )
+        pref_fields.extend(["notify_new_institutions", "updated_at"])
+    if pref_fields:
+        preference.save(update_fields=list(dict.fromkeys(pref_fields)))
     return JsonResponse(
         {
             "success": True,
@@ -1036,6 +1177,187 @@ def update_profile(request: HttpRequest):
             },
         }
     )
+
+
+def _coerce_str_code_list(raw) -> list[str]:
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        return []
+    return [str(item).strip() for item in raw if str(item).strip()]
+
+
+def _parse_optional_positive_int(raw) -> int | None:
+    if raw in (None, "", 0, "0"):
+        return None
+    try:
+        v = int(raw)
+    except (TypeError, ValueError):
+        return None
+    if v < 0:
+        return None
+    return v
+
+
+@csrf_exempt
+@require_POST
+def update_portal_main_info(request: HttpRequest):
+    user = _require_portal_user(request)
+    if not user:
+        return JsonResponse({"error": "Portal user role is required"}, status=403)
+    data = _parse_json(request)
+    if data is None:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    pref, _ = UserDistrictPreference.objects.get_or_create(user=user)
+
+    district_id = data.get("district_id")
+    district_obj = None
+    if district_id not in (None, "", 0, "0"):
+        district_obj = District.objects.filter(id=district_id).first()
+        if not district_obj:
+            return JsonResponse({"error": "Выбранный район не найден"}, status=400)
+    pref.district = district_obj
+
+    type_code = data.get("preferred_institution_type")
+    if type_code in (None, "", 0, "0"):
+        pref.preferred_institution_type = None
+    else:
+        type_code = str(type_code).strip()
+        if not InstitutionType.objects.filter(pk=type_code).exists():
+            return JsonResponse({"error": "Неизвестный тип учреждения"}, status=400)
+        pref.preferred_institution_type_id = type_code
+
+    pt = pref.preferred_institution_type_id
+    if pt in {"school", "school_internat"}:
+        scf = _parse_optional_positive_int(data.get("school_class_from"))
+        sct = _parse_optional_positive_int(data.get("school_class_to"))
+        if scf is None:
+            return JsonResponse({"error": "Укажите класс (от) для школы или школы-интерната"}, status=400)
+        if scf < 1 or scf > 11:
+            return JsonResponse({"error": "Класс должен быть от 1 до 11"}, status=400)
+        if sct is not None and (sct < 1 or sct > 11):
+            return JsonResponse({"error": "Класс должен быть от 1 до 11"}, status=400)
+        pref.school_class_from = scf
+        pref.school_class_to = sct if sct is not None else scf
+        pref.child_age_min = None
+        pref.child_age_max = None
+    else:
+        amin = _parse_optional_positive_int(data.get("child_age_min"))
+        amax = _parse_optional_positive_int(data.get("child_age_max"))
+        if amin is not None and amin > 120:
+            return JsonResponse({"error": "Некорректный возраст"}, status=400)
+        if amax is not None and amax > 120:
+            return JsonResponse({"error": "Некорректный возраст"}, status=400)
+        if amin is not None and amax is not None and amin > amax:
+            return JsonResponse({"error": "Возраст «от» не может быть больше «до»"}, status=400)
+        pref.child_age_min = amin
+        pref.child_age_max = amax
+        pref.school_class_from = None
+        pref.school_class_to = None
+
+    cond_codes = _coerce_str_code_list(data.get("preferred_condition_codes"))
+    valid_conditions = set(ConditionType.objects.values_list("code", flat=True))
+    if any(c not in valid_conditions for c in cond_codes):
+        return JsonResponse({"error": "Неизвестный код условия обучения"}, status=400)
+    pref.preferred_condition_codes = cond_codes
+
+    acc_codes = _coerce_str_code_list(data.get("preferred_accessibility_codes"))
+    valid_acc = set(AccessibilityCriterionType.objects.values_list("code", flat=True))
+    if any(c not in valid_acc for c in acc_codes):
+        return JsonResponse({"error": "Неизвестный код критерия доступности"}, status=400)
+    pref.preferred_accessibility_codes = acc_codes
+
+    pref.prefer_aoop = bool(data.get("prefer_aoop", False))
+
+    pref.save(
+        update_fields=[
+            "district",
+            "preferred_institution_type",
+            "child_age_min",
+            "child_age_max",
+            "school_class_from",
+            "school_class_to",
+            "preferred_condition_codes",
+            "preferred_accessibility_codes",
+            "prefer_aoop",
+            "updated_at",
+        ]
+    )
+    return JsonResponse(
+        {
+            "success": True,
+            "preference": {
+                "district_id": pref.district_id,
+                "preferred_institution_type": pref.preferred_institution_type_id,
+                "child_age_min": pref.child_age_min,
+                "child_age_max": pref.child_age_max,
+                "school_class_from": pref.school_class_from,
+                "school_class_to": pref.school_class_to,
+                "preferred_condition_codes": list(pref.preferred_condition_codes or []),
+                "preferred_accessibility_codes": list(pref.preferred_accessibility_codes or []),
+                "prefer_aoop": pref.prefer_aoop,
+            },
+        }
+    )
+
+
+@require_GET
+def profile_match_institutions(request: HttpRequest):
+    user = _require_portal_user(request)
+    if not user:
+        return JsonResponse({"error": "Portal user role is required"}, status=403)
+    pref = UserDistrictPreference.objects.filter(user=user).first()
+    if not pref or not pref.district_id:
+        return JsonResponse(
+            {"error": "Укажите и сохраните район в основной информации профиля.", "institutions": []},
+            status=400,
+        )
+    cond_codes = pref.preferred_condition_codes if isinstance(pref.preferred_condition_codes, list) else []
+    valid_conditions = set(ConditionType.objects.values_list("code", flat=True))
+    if any(c not in valid_conditions for c in cond_codes):
+        return JsonResponse({"error": "Сохранённые условия обучения недействительны.", "institutions": []}, status=400)
+
+    qs = Institution.objects.filter(district_id=pref.district_id)
+    for code in cond_codes:
+        qs = qs.filter(conditions__code=code)
+    qs = (
+        qs.distinct()
+        .select_related("director", "type", "district")
+        .prefetch_related("conditions", "admission", "aoop_programs", "accessibility_criteria")
+    )
+    institution_ids = list(qs.values_list("id", flat=True))
+    review_aggs = _get_reviews_aggregates_for_institutions(institution_ids)
+    approved_reviews_map = _get_approved_reviews_for_institutions(institution_ids)
+    favorite_ids = _get_favorite_ids_for_request(request)
+    institutions = [_serialize_institution(inst, favorite_ids, review_aggs, approved_reviews_map) for inst in qs]
+    type_codes, age_buckets, cond_rank, acc_rank, aoop_sel = _preference_ranking_inputs(pref)
+    ranked_with_relevance = [
+        (
+            inst,
+            _calc_relevance(
+                inst,
+                type_codes,
+                age_buckets,
+                cond_rank,
+                acc_rank,
+                aoop_sel,
+            ),
+        )
+        for inst in institutions
+    ]
+    ranked_with_relevance.sort(key=lambda pair: pair[1], reverse=True)
+    ranked = []
+    for inst, relevance in ranked_with_relevance:
+        inst_with_score = dict(inst)
+        inst_with_score["relevance"] = round(float(relevance), 3)
+        ranked.append(inst_with_score)
+    page, page_size = _get_pagination(request)
+    total_items = len(ranked)
+    pagination = _build_pagination(total_items=total_items, page=page, page_size=page_size)
+    start_idx = (pagination["page"] - 1) * page_size
+    end_idx = start_idx + page_size
+    return JsonResponse({"institutions": ranked[start_idx:end_idx], "pagination": pagination})
 
 
 @csrf_exempt
@@ -1359,19 +1681,25 @@ def export_admin_report(request: HttpRequest):
             }
         )
 
+    global_rating_mean = _get_global_approved_rating_mean()
     institutions_list_rows = (
         Institution.objects.annotate(
-            avg_rating=Avg("reviews__rating", filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED))
+            avg_rating=Avg("reviews__rating", filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED)),
+            approved_reviews_count=Count("reviews", filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED)),
         )
         .select_related("district")
         .order_by("-avg_rating", "name")
-        .values("name", "district__name", "avg_rating")
+        .values("name", "district__name", "avg_rating", "approved_reviews_count")
     )
     institutions_list = [
         {
             "name": row["name"] or "Учреждение",
             "district_name": row["district__name"] or "",
-            "avg_rating": round(float(row["avg_rating"]), 2) if row["avg_rating"] is not None else None,
+            "avg_rating": _calc_bayesian_rating(
+                float(row["avg_rating"]) if row["avg_rating"] is not None else None,
+                int(row.get("approved_reviews_count") or 0),
+                global_rating_mean,
+            ),
         }
         for row in institutions_list_rows
     ]
@@ -1736,6 +2064,42 @@ def create_review(request: HttpRequest):
     )
 
 
+def _notify_review_author_status_changed(
+    administrator,
+    review: InstitutionReview,
+    old_status: str,
+    new_status: str,
+) -> None:
+    if old_status == new_status:
+        return
+    institution = review.institution
+    if institution is None:
+        return
+    author = review.user
+    inst_name = institution.name or "учреждении"
+    messages = {
+        InstitutionReview.STATUS_APPROVED: f"Ваш отзыв об учреждении «{inst_name}» одобрен и опубликован на карте.",
+        InstitutionReview.STATUS_DISAPPROVED: f"Ваш отзыв об учреждении «{inst_name}» отклонён.",
+        InstitutionReview.STATUS_PENDING: f"Ваш отзыв об учреждении «{inst_name}» снова отправлен на модерацию.",
+    }
+    message = messages.get(new_status) or f"Статус вашего отзыва об учреждении «{inst_name}» обновлён."
+    with transaction.atomic():
+        action_log = ActionLog.objects.create(
+            administrator=administrator,
+            action="UPDATE",
+            entity="reviews",
+            record_id=review.id,
+            old_data={"status": old_status},
+            new_data={"status": new_status},
+        )
+        ProfileNotification.objects.create(
+            user=author,
+            institution=institution,
+            action_log=action_log,
+            message=message,
+        )
+
+
 @csrf_exempt
 @require_POST
 def approve_review(request: HttpRequest):
@@ -1746,11 +2110,13 @@ def approve_review(request: HttpRequest):
     review_id = data.get("review_id")
     if not review_id:
         return JsonResponse({"error": "review_id is required"}, status=400)
-    review = InstitutionReview.objects.filter(id=review_id).first()
+    review = InstitutionReview.objects.select_related("institution", "user").filter(id=review_id).first()
     if not review:
         return JsonResponse({"error": "Отзыв не найден"}, status=404)
+    old_status = review.status
     review.status = InstitutionReview.STATUS_APPROVED
     review.save(update_fields=["status", "updated_at"])
+    _notify_review_author_status_changed(admin, review, old_status, review.status)
     return JsonResponse({"success": True, "status": review.status})
 
 
@@ -1764,11 +2130,13 @@ def disapprove_review(request: HttpRequest):
     review_id = data.get("review_id")
     if not review_id:
         return JsonResponse({"error": "review_id is required"}, status=400)
-    review = InstitutionReview.objects.filter(id=review_id).first()
+    review = InstitutionReview.objects.select_related("institution", "user").filter(id=review_id).first()
     if not review:
         return JsonResponse({"error": "Отзыв не найден"}, status=404)
+    old_status = review.status
     review.status = InstitutionReview.STATUS_DISAPPROVED
     review.save(update_fields=["status", "updated_at"])
+    _notify_review_author_status_changed(admin, review, old_status, review.status)
     return JsonResponse({"success": True, "status": review.status})
 
 
@@ -1782,7 +2150,7 @@ def edit_review_placeholder(request: HttpRequest):
     review_id = data.get("review_id")
     if not review_id:
         return JsonResponse({"error": "review_id is required"}, status=400)
-    review = InstitutionReview.objects.filter(id=review_id).first()
+    review = InstitutionReview.objects.select_related("institution", "user").filter(id=review_id).first()
     if not review:
         return JsonResponse({"error": "Отзыв не найден"}, status=404)
 
@@ -1797,10 +2165,71 @@ def edit_review_placeholder(request: HttpRequest):
         return JsonResponse({"error": "Некорректный статус модерации"}, status=400)
 
     comment = (data.get("comment") or "").strip()
+    old_status = review.status
     review.status = status_value
     review.comment = comment
     review.save(update_fields=["status", "comment", "updated_at"])
+    _notify_review_author_status_changed(admin, review, old_status, status_value)
     return JsonResponse({"success": True, "status": review.status, "comment": review.comment})
+
+
+@require_GET
+def get_admin_institution_reviews(request: HttpRequest):
+    admin = _require_admin(request)
+    if not admin:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    inst_id = request.GET.get("institution_id")
+    if not inst_id or not str(inst_id).isdigit():
+        return JsonResponse({"error": "institution_id required"}, status=400)
+    institution = Institution.objects.filter(pk=int(inst_id)).first()
+    if not institution:
+        return JsonResponse({"error": "Учреждение не найдено"}, status=404)
+    reviews_qs = (
+        InstitutionReview.objects.filter(institution=institution)
+        .select_related("user")
+        .order_by("-created_at", "-id")
+    )
+    reviews = []
+    for rev in reviews_qs:
+        user_name = rev.user.get_full_name() or rev.user.username or "Пользователь"
+        reviews.append(
+            {
+                "id": rev.id,
+                "user_name": user_name,
+                "created_at_display": rev.created_at.strftime("%d.%m.%Y %H:%M"),
+                "rating": float(rev.rating or 0),
+                "comment": rev.comment or "",
+                "status": rev.status,
+            }
+        )
+    return JsonResponse(
+        {
+            "institution": {
+                "id": institution.id,
+                "name": institution.name or "",
+                "district_name": institution.district.name if institution.district_id else "Район не указан",
+                "type_name": institution.type.name_ru if institution.type_id else "Без типа",
+            },
+            "reviews": reviews,
+        }
+    )
+
+
+@csrf_exempt
+@require_POST
+def delete_review_by_admin(request: HttpRequest):
+    admin = _require_admin(request)
+    if not admin:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    data = _parse_json(request) or {}
+    review_id = data.get("review_id")
+    if not review_id:
+        return JsonResponse({"error": "review_id is required"}, status=400)
+    review = InstitutionReview.objects.filter(id=review_id).first()
+    if not review:
+        return JsonResponse({"error": "Отзыв не найден"}, status=404)
+    review.delete()
+    return JsonResponse({"success": True})
 
 
 @csrf_exempt

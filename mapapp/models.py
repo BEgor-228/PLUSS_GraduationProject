@@ -183,6 +183,20 @@ class UserDistrictPreference(models.Model):
         related_name="user_preferences",
     )
     notify_new_institutions = models.BooleanField(default=False)
+    preferred_institution_type = models.ForeignKey(
+        InstitutionType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_preferences_by_type",
+    )
+    child_age_min = models.PositiveSmallIntegerField(null=True, blank=True)
+    child_age_max = models.PositiveSmallIntegerField(null=True, blank=True)
+    school_class_from = models.PositiveSmallIntegerField(null=True, blank=True)
+    school_class_to = models.PositiveSmallIntegerField(null=True, blank=True)
+    preferred_condition_codes = models.JSONField(default=list, blank=True)
+    preferred_accessibility_codes = models.JSONField(default=list, blank=True)
+    prefer_aoop = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
