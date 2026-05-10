@@ -38,6 +38,7 @@
                             <button class="admin-dashboard-nav-btn active" data-admin-tab="dashboard" type="button">Дашборд</button>
                             <button class="admin-dashboard-nav-btn" data-admin-tab="review-moderation" type="button">Администрация отзывов</button>
                             <button class="admin-dashboard-nav-btn" data-admin-tab="users" type="button">Пользователи</button>
+                            <button class="admin-dashboard-nav-btn" data-admin-tab="institutions" type="button">Учреждения</button>
                         </div>
                     </aside>
                     <section class="admin-dashboard-content">
@@ -69,6 +70,22 @@
                                     <div class="admin-chart-pie" id="adminTypePie"></div>
                                     <ul class="admin-chart-legend" id="adminTypeLegend"></ul>
                                 </div>
+                            </div>
+                            <div class="admin-chart-card admin-line-chart-card">
+                                <div class="admin-line-chart-head">
+                                    <h3 class="admin-chart-title admin-line-chart-title">Активность пользователей (новые регистрации по месяцам)</h3>
+                                    <div class="admin-line-chart-controls" role="group" aria-label="Период графика">
+                                        <label class="admin-line-chart-option">
+                                            <input type="radio" name="adminActivityMode" value="all" checked> За всё время
+                                        </label>
+                                        <label class="admin-line-chart-option">
+                                            <input type="radio" name="adminActivityMode" value="month"> До месяца
+                                        </label>
+                                        <input type="month" id="adminActivityEndMonth" class="admin-line-chart-month" disabled aria-label="Конечный месяц периода">
+                                    </div>
+                                </div>
+                                <p class="admin-line-chart-hint">Учитываются пользователи без прав администратора; по оси X — календарный месяц регистрации. Режим «До месяца» показывает до 12 месяцев, заканчивая выбранным месяцем.</p>
+                                <div class="admin-line-chart-wrap" id="adminActivityLineWrap" aria-live="polite"></div>
                             </div>
                             <div class="admin-bars-row">
                                 <div class="admin-chart-card admin-bars-card">
@@ -148,7 +165,10 @@
                                                     <div class="admin-user-cell">
                                                         <div class="admin-user-avatar">{{ item.initials }}</div>
                                                         <div>
-                                                            <p class="admin-user-name">{{ item.display_name }}</p>
+                                                            <p class="admin-user-name">
+                                                                {{ item.display_name }}
+                                                                {% if item.is_blocked %}<span class="admin-user-blocked-badge">Заблокирован</span>{% endif %}
+                                                            </p>
                                                             <p class="admin-user-login">{{ item.username|lower }}</p>
                                                         </div>
                                                     </div>
@@ -160,7 +180,29 @@
                                                     {% if item.is_current_user %}
                                                         <span class="admin-user-self-mark">Вы</span>
                                                     {% else %}
-                                                        <button class="admin-user-delete-btn" data-user-id="{{ item.id }}" title="Удалить пользователя" type="button">✕</button>
+                                                        <div class="admin-user-actions">
+                                                            <button
+                                                                class="admin-user-lock-btn"
+                                                                type="button"
+                                                                title="{% if item.is_blocked %}Блокировка учётной записи{% else %}Заблокировать пользователя{% endif %}"
+                                                                data-user-id="{{ item.id }}"
+                                                                data-display-name="{{ item.display_name|escape }}"
+                                                                data-username="{{ item.username|escape }}"
+                                                                data-email="{{ item.email|escape }}"
+                                                                data-reviews-count="{{ item.reviews_count }}"
+                                                                data-avg-rating="{% if item.avg_rating is not None %}{{ item.avg_rating|floatformat:2 }}{% else %}—{% endif %}"
+                                                                data-date-joined="{{ item.date_joined|date:'d.m.Y H:i' }}"
+                                                                data-is-blocked="{% if item.is_blocked %}1{% else %}0{% endif %}"
+                                                                data-block-reason="{{ item.block_reason|default:''|escape }}"
+                                                                aria-label="Блокировка пользователя"
+                                                            >
+                                                                <svg class="admin-user-lock-icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+                                                                    <rect x="5" y="11" width="14" height="10" rx="1.5" fill="currentColor"/>
+                                                                    <path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                                                </svg>
+                                                            </button>
+                                                            <button class="admin-user-delete-btn" data-user-id="{{ item.id }}" title="Удалить пользователя" type="button">✕</button>
+                                                        </div>
                                                     {% endif %}
                                                 </td>
                                             </tr>
@@ -176,12 +218,76 @@
                                 <button class="admin-users-page-btn" id="adminUsersNextBtn" type="button">Вперед</button>
                             </div>
                         </div>
+                        <div class="admin-tab-panel hidden" data-admin-panel="institutions">
+                            <div class="admin-dashboard-header-row">
+                                <h2 class="profile-title profile-title--dashboard">Учреждения</h2>
+                            </div>
+                            <div class="admin-stats-grid admin-stats-grid--single">
+                                <article class="admin-stat-card">
+                                    <p class="admin-stat-value">{{ admin_total_institutions|default:0 }}</p>
+                                    <p class="admin-stat-label">Образовательных учреждений</p>
+                                    <p class="admin-stat-delta">+{{ admin_institutions_month_delta|default:0 }} за месяц</p>
+                                </article>
+                            </div>
+                            <div class="admin-chart-card">
+                                <h3 class="admin-chart-title">Распределение учреждений по районам</h3>
+                                <div class="admin-chart-wrap">
+                                    <div class="admin-chart-pie" id="adminDistrictPie"></div>
+                                    <ul class="admin-chart-legend" id="adminDistrictLegend"></ul>
+                                </div>
+                            </div>
+                            <div class="admin-users-toolbar">
+                                <input id="adminInstitutionsSearch" class="admin-users-search" type="text" placeholder="Поиск учреждения...">
+                            </div>
+                            <div class="admin-users-table-wrap admin-institutions-table-wrap">
+                                <table class="admin-users-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Название</th>
+                                            <th>Район</th>
+                                            <th>Тип</th>
+                                            <th>Средняя оценка</th>
+                                            <th>Одобренных отзывов</th>
+                                            <th>Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminInstitutionsTbody">
+                                        {% for item in admin_institutions %}
+                                            <tr class="admin-institution-row" data-search="{{ item.name|lower }} {{ item.district_name|lower }} {{ item.type_name|lower }}">
+                                                <td>{{ item.name }}</td>
+                                                <td>{{ item.district_name }}</td>
+                                                <td>{{ item.type_name }}</td>
+                                                <td>{% if item.avg_rating is not None %}{{ item.avg_rating|floatformat:2 }}{% else %}—{% endif %}</td>
+                                                <td>{{ item.approved_reviews_count }}</td>
+                                                <td class="admin-institution-actions-cell">
+                                                    <div class="admin-institution-actions" role="group" aria-label="Действия">
+                                                        <a class="admin-institution-action-btn admin-institution-action-btn--edit" href="{% url 'institution_edit_page' item.id %}" title="Редактировать учреждение" aria-label="Редактировать">
+                                                            <svg class="admin-institution-action-icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+                                                                <circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+                                                                <path d="M14 14l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                                            </svg>
+                                                        </a>
+                                                        <button class="admin-institution-action-btn admin-institution-action-btn--delete" type="button" data-institution-id="{{ item.id }}" title="Удалить учреждение" aria-label="Удалить">
+                                                            <span class="admin-institution-action-x" aria-hidden="true">×</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr><td colspan="6" class="admin-users-empty">Учреждений пока нет</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                         <div class="profile-actions">
                             <a href="{% url 'index' %}" class="btn btn-primary">На карту</a>
                         </div>
                         {{ admin_type_distribution|json_script:"adminTypeDistributionData" }}
+                        {{ admin_district_distribution|json_script:"adminDistrictDistributionData" }}
                         {{ admin_user_reviews_chart|json_script:"adminUserReviewsChartData" }}
                         {{ admin_institution_rating_chart|json_script:"adminInstitutionRatingChartData" }}
+                        {{ admin_user_activity_monthly|json_script:"adminUserActivityData" }}
                     </section>
                 </div>
                 <div class="admin-review-modal hidden" id="adminReviewEditModal">
@@ -271,6 +377,31 @@
                         <div class="admin-export-modal-actions">
                             <button class="btn btn-secondary" id="adminExportCancelBtn" type="button">Отмена</button>
                             <button class="btn btn-primary" id="adminExportGenerateBtn" type="button">Сгенерировать отчет</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="admin-export-modal hidden" id="adminUserBlockModal" role="dialog" aria-modal="true" aria-labelledby="adminUserBlockTitle">
+                    <div class="admin-export-modal-card admin-user-block-modal-card">
+                        <div class="admin-export-modal-header">
+                            <h3 id="adminUserBlockTitle">Блокировка пользователя</h3>
+                            <button class="admin-review-modal-close" id="adminUserBlockCloseBtn" type="button">×</button>
+                        </div>
+                        <div class="admin-export-modal-body">
+                            <dl class="admin-user-block-dl" id="adminUserBlockSummary"></dl>
+                            <div class="form-group" id="adminUserBlockReasonGroup">
+                                <label for="adminUserBlockReasonInput">Причина блокировки (необязательно)</label>
+                                <textarea id="adminUserBlockReasonInput" class="admin-user-block-reason" rows="3" placeholder="Укажите причину для пользователя…"></textarea>
+                            </div>
+                            <p class="admin-user-block-current hidden" id="adminUserBlockCurrentWrap">
+                                <span class="admin-user-block-current-label">Текущая причина:</span>
+                                <span id="adminUserBlockCurrentReason"></span>
+                            </p>
+                            <div id="adminUserBlockMessage" class="profile-settings-message hidden" aria-live="polite"></div>
+                        </div>
+                        <div class="admin-export-modal-actions admin-user-block-actions">
+                            <button class="btn btn-secondary" id="adminUserBlockCancelBtn" type="button">Отмена</button>
+                            <button class="btn btn-primary hidden" id="adminUserBlockUnblockBtn" type="button">Снять блокировку</button>
+                            <button class="btn btn-primary" id="adminUserBlockConfirmBtn" type="button">Подтвердить</button>
                         </div>
                     </div>
                 </div>
@@ -576,10 +707,8 @@
           });
         });
 
-        const pieEl = document.getElementById("adminTypePie");
-        const legendEl = document.getElementById("adminTypeLegend");
-        const chartDataNode = document.getElementById("adminTypeDistributionData");
-        if (pieEl && legendEl && chartDataNode) {
+        const renderPieChart = (pieEl, legendEl, chartDataNode) => {
+          if (!pieEl || !legendEl || !chartDataNode) return;
           let chartItems = [];
           try {
             chartItems = JSON.parse(chartDataNode.textContent || "[]");
@@ -612,6 +741,155 @@
             });
             pieEl.style.background = `conic-gradient(${gradientParts.join(",")})`;
           }
+        };
+
+        renderPieChart(
+          document.getElementById("adminTypePie"),
+          document.getElementById("adminTypeLegend"),
+          document.getElementById("adminTypeDistributionData"),
+        );
+        renderPieChart(
+          document.getElementById("adminDistrictPie"),
+          document.getElementById("adminDistrictLegend"),
+          document.getElementById("adminDistrictDistributionData"),
+        );
+
+        const adminActivityWrap = document.getElementById("adminActivityLineWrap");
+        const adminActivityDataNode = document.getElementById("adminUserActivityData");
+        const adminActivityModeRadios = Array.from(document.querySelectorAll('input[name="adminActivityMode"]'));
+        const adminActivityEndMonth = document.getElementById("adminActivityEndMonth");
+        if (adminActivityWrap && adminActivityDataNode) {
+          let activityRaw = [];
+          try {
+            activityRaw = JSON.parse(adminActivityDataNode.textContent || "[]");
+          } catch (e) {
+            activityRaw = [];
+          }
+          const byMonth = new Map(activityRaw.map((row) => [row.month, Number(row.count || 0)]));
+
+          const ymAddMonths = (ym, delta) => {
+            const [y, m] = ym.split("-").map(Number);
+            const d = new Date(y, m - 1 + delta, 1);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          };
+          const ymCompare = (a, b) => {
+            if (a === b) return 0;
+            const [ya, ma] = a.split("-").map(Number);
+            const [yb, mb] = b.split("-").map(Number);
+            if (ya !== yb) return ya - yb;
+            return ma - mb;
+          };
+          const ymRangeInclusive = (startYm, endYm) => {
+            const out = [];
+            let cur = startYm;
+            let guard = 0;
+            while (guard < 600 && ymCompare(cur, endYm) <= 0) {
+              out.push(cur);
+              cur = ymAddMonths(cur, 1);
+              guard += 1;
+            }
+            return out;
+          };
+          const rollingEndMonths = (endYm, n) => {
+            const startYm = ymAddMonths(endYm, -(n - 1));
+            return ymRangeInclusive(startYm, endYm);
+          };
+          const monthShortRu = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+          const formatMonthTick = (ym) => {
+            const [, m] = ym.split("-").map(Number);
+            return monthShortRu[m - 1] || ym;
+          };
+
+          const buildSeries = () => {
+            const mode = adminActivityModeRadios.find((r) => r.checked)?.value || "all";
+            if (mode === "all") {
+              if (!activityRaw.length) return [];
+              const sorted = [...activityRaw].sort((a, b) => ymCompare(a.month, b.month));
+              const start = sorted[0].month;
+              const end = sorted[sorted.length - 1].month;
+              return ymRangeInclusive(start, end).map((month) => ({ month, count: byMonth.get(month) || 0 }));
+            }
+            const endYm = (adminActivityEndMonth && adminActivityEndMonth.value) || "";
+            if (!endYm) return [];
+            const keys = rollingEndMonths(endYm, 12);
+            return keys.map((month) => ({ month, count: byMonth.get(month) || 0 }));
+          };
+
+          const renderActivityLine = () => {
+            const series = buildSeries();
+            if (!series.length) {
+              adminActivityWrap.innerHTML = '<p class="admin-users-empty">Нет данных для отображения</p>';
+              return;
+            }
+            const w = 640;
+            const h = 220;
+            const padL = 44;
+            const padR = 14;
+            const padT = 14;
+            const padB = 40;
+            const innerW = w - padL - padR;
+            const innerH = h - padT - padB;
+            const maxY = Math.max(1, ...series.map((p) => p.count));
+            const n = series.length;
+            const xAt = (i) => padL + (n <= 1 ? innerW / 2 : (innerW * i) / (n - 1));
+            const yAt = (v) => padT + innerH * (1 - v / maxY);
+            const pts = series.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.count).toFixed(1)}`).join(" ");
+            const labelStep = Math.max(1, Math.ceil(n / 14));
+            let ticks = "";
+            for (let i = 0; i < n; i += labelStep) {
+              const x = xAt(i);
+              const lab = formatMonthTick(series[i].month);
+              ticks += `<text x="${x}" y="${h - 8}" text-anchor="middle" class="admin-line-chart-tick">${lab}</text>`;
+            }
+            if ((n - 1) % labelStep !== 0 && n > 1) {
+              const i = n - 1;
+              const x = xAt(i);
+              const lab = formatMonthTick(series[i].month);
+              ticks += `<text x="${x}" y="${h - 8}" text-anchor="middle" class="admin-line-chart-tick">${lab}</text>`;
+            }
+            const gridLines = [0.25, 0.5, 0.75, 1].map((t) => {
+              const gy = padT + innerH * (1 - t);
+              const val = Math.round(maxY * t);
+              return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${w - padR}" y2="${gy.toFixed(1)}" class="admin-line-chart-grid"/><text x="4" y="${gy + 4}" class="admin-line-chart-ytick">${val}</text>`;
+            });
+            adminActivityWrap.innerHTML = `
+              <svg class="admin-line-chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="График регистраций по месяцам">
+                ${gridLines.join("")}
+                <polyline fill="none" class="admin-line-chart-line" points="${pts}" />
+                ${series
+                  .map(
+                    (p, i) =>
+                      `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(p.count).toFixed(1)}" r="3.5" class="admin-line-chart-dot" data-month="${p.month}" data-count="${p.count}"/>`,
+                  )
+                  .join("")}
+                ${ticks}
+              </svg>`;
+          };
+
+          const syncMonthInputState = () => {
+            const mode = adminActivityModeRadios.find((r) => r.checked)?.value || "all";
+            if (adminActivityEndMonth) {
+              adminActivityEndMonth.disabled = mode !== "month";
+            }
+          };
+
+          const defaultEndYm = () => {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          };
+          if (adminActivityEndMonth && !adminActivityEndMonth.value) {
+            adminActivityEndMonth.value = defaultEndYm();
+          }
+
+          adminActivityModeRadios.forEach((r) => r.addEventListener("change", () => {
+            syncMonthInputState();
+            renderActivityLine();
+          }));
+          if (adminActivityEndMonth) {
+            adminActivityEndMonth.addEventListener("change", renderActivityLine);
+          }
+          syncMonthInputState();
+          renderActivityLine();
         }
 
         const renderHorizontalBars = (listEl, items, maxValue, formatter) => {
@@ -717,6 +995,7 @@
         });
 
         const usersSearchInput = document.getElementById("adminUsersSearch");
+        const institutionsSearchInput = document.getElementById("adminInstitutionsSearch");
         const adminExportReportBtn = document.getElementById("adminExportReportBtn");
         const adminExportModal = document.getElementById("adminExportModal");
         const adminExportCloseBtn = document.getElementById("adminExportCloseBtn");
@@ -727,6 +1006,7 @@
         const adminExportPeriodValue = document.getElementById("adminExportPeriodValue");
         const adminExportFormatBtns = Array.from(document.querySelectorAll("[data-export-format]"));
         const userRows = Array.from(document.querySelectorAll(".admin-user-row"));
+        let institutionRows = Array.from(document.querySelectorAll(".admin-institution-row"));
         const usersPagination = document.getElementById("adminUsersPagination");
         const usersPrevBtn = document.getElementById("adminUsersPrevBtn");
         const usersNextBtn = document.getElementById("adminUsersNextBtn");
@@ -787,15 +1067,11 @@
         });
         adminExportMonthInput?.addEventListener("change", updateExportPeriodLabel);
         adminExportGenerateBtn?.addEventListener("click", async () => {
-          if (selectedExportFormat !== "pdf") {
-            setExportMessage(`Формат ${selectedExportFormat.toUpperCase()} пока в разработке.`, true);
-            return;
-          }
           setExportMessage("");
           adminExportGenerateBtn.disabled = true;
           try {
             const month = adminExportMonthInput?.value || getDefaultExportMonth();
-            const params = new URLSearchParams({ format: "pdf", month });
+            const params = new URLSearchParams({ format: selectedExportFormat, month });
             const response = await fetch(`/api/export_report.php?${params.toString()}`, { method: "GET" });
             if (!response.ok) {
               let errorText = "Не удалось сформировать отчет.";
@@ -809,12 +1085,13 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
-            link.download = `admin_dashboard_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+            const ext = selectedExportFormat === "excel" ? "xlsx" : selectedExportFormat;
+            link.download = `admin_dashboard_report_${month.replace("-", "")}.${ext}`;
             document.body.appendChild(link);
             link.click();
             link.remove();
             URL.revokeObjectURL(url);
-            setExportMessage("PDF-отчет сформирован и скачивается.", false);
+            setExportMessage(`${selectedExportFormat.toUpperCase()}-отчет сформирован и скачивается.`, false);
             setTimeout(closeExportModal, 500);
           } catch (error) {
             setExportMessage(error.message || "Ошибка формирования отчета.", true);
@@ -875,6 +1152,57 @@
         if (userRows.length) {
           renderUsersPage();
         }
+
+        if (institutionsSearchInput && institutionRows.length) {
+          institutionsSearchInput.addEventListener("input", () => {
+            const q = (institutionsSearchInput.value || "").trim().toLowerCase();
+            institutionRows.forEach((row) => {
+              const haystack = (row.dataset.search || "").toLowerCase();
+              row.classList.toggle("hidden", Boolean(q) && !haystack.includes(q));
+            });
+          });
+        }
+
+        document.querySelectorAll(".admin-institution-action-btn--delete").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const id = btn.dataset.institutionId;
+            if (!id) return;
+            const ok = window.confirm("Удалить это учреждение? Действие нельзя отменить.");
+            if (!ok) return;
+            btn.disabled = true;
+            try {
+              const response = await fetch("/api/delete_institution.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: Number(id) }),
+              });
+              const payload = await response.json();
+              if (!response.ok || !payload?.success) {
+                window.alert(payload?.error || "Не удалось удалить учреждение.");
+                return;
+              }
+              const row = btn.closest("tr");
+              if (row) {
+                const idx = institutionRows.indexOf(row);
+                if (idx >= 0) institutionRows.splice(idx, 1);
+                row.remove();
+              }
+              if (!institutionRows.length && institutionsSearchInput) {
+                const tbody = document.getElementById("adminInstitutionsTbody");
+                if (tbody && !tbody.querySelector(".admin-institution-row")) {
+                  const tr = document.createElement("tr");
+                  tr.innerHTML = '<td colspan="6" class="admin-users-empty">Учреждений пока нет</td>';
+                  tbody.appendChild(tr);
+                }
+              }
+            } catch (e) {
+              console.error("Delete institution failed", e);
+              window.alert("Ошибка сети. Попробуйте ещё раз.");
+            } finally {
+              btn.disabled = false;
+            }
+          });
+        });
 
         const reviewsList = document.getElementById("adminReviewsList");
         const reviewModal = document.getElementById("adminReviewEditModal");
@@ -1056,10 +1384,14 @@
         }
 
         document.querySelectorAll(".admin-user-delete-btn").forEach((btn) => {
-          btn.addEventListener("click", async () => {
+          btn.addEventListener("click", async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
             const userId = btn.dataset.userId;
             if (!userId) return;
-            const ok = window.confirm("Удалить пользователя из системы?");
+            const ok = window.confirm(
+              "Удалить этого пользователя из системы? Действие нельзя отменить.",
+            );
             if (!ok) return;
             btn.disabled = true;
             try {
@@ -1087,6 +1419,139 @@
               btn.disabled = false;
             }
           });
+        });
+
+        const adminUserBlockModal = document.getElementById("adminUserBlockModal");
+        const adminUserBlockSummary = document.getElementById("adminUserBlockSummary");
+        const adminUserBlockReasonInput = document.getElementById("adminUserBlockReasonInput");
+        const adminUserBlockReasonGroup = document.getElementById("adminUserBlockReasonGroup");
+        const adminUserBlockCurrentWrap = document.getElementById("adminUserBlockCurrentWrap");
+        const adminUserBlockCurrentReason = document.getElementById("adminUserBlockCurrentReason");
+        const adminUserBlockMessage = document.getElementById("adminUserBlockMessage");
+        const adminUserBlockCloseBtn = document.getElementById("adminUserBlockCloseBtn");
+        const adminUserBlockCancelBtn = document.getElementById("adminUserBlockCancelBtn");
+        const adminUserBlockConfirmBtn = document.getElementById("adminUserBlockConfirmBtn");
+        const adminUserBlockUnblockBtn = document.getElementById("adminUserBlockUnblockBtn");
+        let adminUserBlockTargetBtn = null;
+
+        const setBlockModalMessage = (text, isError) => {
+          if (!adminUserBlockMessage) return;
+          adminUserBlockMessage.textContent = text || "";
+          adminUserBlockMessage.classList.toggle("hidden", !text);
+          adminUserBlockMessage.classList.toggle("error", Boolean(text) && isError);
+          adminUserBlockMessage.classList.toggle("success", Boolean(text) && !isError);
+        };
+
+        const closeUserBlockModal = () => {
+          adminUserBlockModal?.classList.add("hidden");
+          adminUserBlockTargetBtn = null;
+          if (adminUserBlockReasonInput) adminUserBlockReasonInput.value = "";
+          setBlockModalMessage("", false);
+        };
+
+        const openUserBlockModal = (btn) => {
+          if (!adminUserBlockModal || !adminUserBlockSummary) return;
+          adminUserBlockTargetBtn = btn;
+          const isBlocked = btn.dataset.isBlocked === "1";
+          const fields = [
+            ["Имя / отображаемое имя", btn.dataset.displayName || "—"],
+            ["Логин (email)", btn.dataset.username || "—"],
+            ["Почта", btn.dataset.email || "—"],
+            ["Дата регистрации", btn.dataset.dateJoined || "—"],
+            ["Всего отзывов", btn.dataset.reviewsCount ?? "0"],
+            ["Средняя оценка отзывов", btn.dataset.avgRating || "—"],
+          ];
+          adminUserBlockSummary.innerHTML = "";
+          fields.forEach(([dt, dd]) => {
+            const dEl = document.createElement("dt");
+            dEl.textContent = dt;
+            const vEl = document.createElement("dd");
+            vEl.textContent = dd;
+            adminUserBlockSummary.appendChild(dEl);
+            adminUserBlockSummary.appendChild(vEl);
+          });
+          if (adminUserBlockReasonInput) adminUserBlockReasonInput.value = "";
+          if (adminUserBlockCurrentReason) {
+            adminUserBlockCurrentReason.textContent = btn.getAttribute("data-block-reason") || "не указана";
+          }
+          if (adminUserBlockCurrentWrap) adminUserBlockCurrentWrap.classList.toggle("hidden", !isBlocked);
+          if (adminUserBlockReasonGroup) adminUserBlockReasonGroup.classList.toggle("hidden", isBlocked);
+          if (adminUserBlockConfirmBtn) adminUserBlockConfirmBtn.classList.toggle("hidden", isBlocked);
+          if (adminUserBlockUnblockBtn) adminUserBlockUnblockBtn.classList.toggle("hidden", !isBlocked);
+          setBlockModalMessage("", false);
+          adminUserBlockModal.classList.remove("hidden");
+        };
+
+        const updateUserRowBlockState = (btn, isBlocked, reason) => {
+          btn.dataset.isBlocked = isBlocked ? "1" : "0";
+          btn.setAttribute("data-block-reason", reason || "");
+          btn.title = isBlocked ? "Блокировка учётной записи" : "Заблокировать пользователя";
+          const row = btn.closest("tr");
+          const nameEl = row?.querySelector(".admin-user-name");
+          if (nameEl) {
+            let badge = nameEl.querySelector(".admin-user-blocked-badge");
+            if (isBlocked) {
+              if (!badge) {
+                badge = document.createElement("span");
+                badge.className = "admin-user-blocked-badge";
+                badge.textContent = "Заблокирован";
+                nameEl.appendChild(badge);
+              }
+            } else if (badge) {
+              badge.remove();
+            }
+          }
+        };
+
+        document.querySelectorAll(".admin-user-lock-btn").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openUserBlockModal(btn);
+          });
+        });
+
+        adminUserBlockCloseBtn?.addEventListener("click", closeUserBlockModal);
+        adminUserBlockCancelBtn?.addEventListener("click", closeUserBlockModal);
+        adminUserBlockModal?.addEventListener("click", (event) => {
+          if (event.target === adminUserBlockModal) closeUserBlockModal();
+        });
+
+        const postUserBlock = async (block, reason) => {
+          const btn = adminUserBlockTargetBtn;
+          if (!btn) return;
+          const userId = Number(btn.dataset.userId || 0);
+          if (!userId) return;
+          setBlockModalMessage("", false);
+          const busy = block ? adminUserBlockConfirmBtn : adminUserBlockUnblockBtn;
+          if (busy) busy.disabled = true;
+          try {
+            const response = await fetch("/api/set_user_block.php", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ user_id: userId, block, reason: block ? (reason || "").trim() : "" }),
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload?.success) {
+              setBlockModalMessage(payload?.error || "Не удалось сохранить.", true);
+              return;
+            }
+            updateUserRowBlockState(btn, Boolean(payload.is_blocked), payload.block_reason || "");
+            closeUserBlockModal();
+          } catch (err) {
+            console.error("set_user_block failed", err);
+            setBlockModalMessage("Ошибка сети. Попробуйте ещё раз.", true);
+          } finally {
+            if (adminUserBlockConfirmBtn) adminUserBlockConfirmBtn.disabled = false;
+            if (adminUserBlockUnblockBtn) adminUserBlockUnblockBtn.disabled = false;
+          }
+        };
+
+        adminUserBlockConfirmBtn?.addEventListener("click", () => {
+          postUserBlock(true, adminUserBlockReasonInput?.value || "");
+        });
+        adminUserBlockUnblockBtn?.addEventListener("click", () => {
+          postUserBlock(false, "");
         });
 
         const settingsForm = document.getElementById("profileSettingsForm");

@@ -36,6 +36,7 @@ urlpatterns = [
     path("api/export_report.php", views.export_admin_report),
     path("api/create_institution.php", views.create_institution),
     path("api/delete_user.php", views.delete_user),
+    path("api/set_user_block.php", views.set_user_block),
     path("api/update_institution.php", views.update_institution),
     path("api/delete_institution.php", views.delete_institution),
 ]

@@ -361,6 +361,41 @@ g[id="region_eletskiy"] polygon.region {
     line-height: 1.4;
 }
 
+.login-blocked-banner {
+    width: 100%;
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    border: 1px solid #d4a017;
+    background: linear-gradient(135deg, #fff9e6 0%, #fff3cc 100%);
+    border-radius: 10px;
+    color: #5c4a0a;
+}
+
+.login-blocked-banner-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.login-blocked-icon {
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.login-blocked-title {
+    font-weight: 700;
+    font-size: 15px;
+    margin: 0 0 6px;
+    color: #6b5500;
+}
+
+.login-blocked-reason {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: #4a3d08;
+}
+
 .auth-role-tabs {
     width: 100%;
     display: grid;
@@ -2838,6 +2873,11 @@ body[data-page="institution-form"] .checkbox-group {
   margin-bottom: 14px;
 }
 
+.admin-stats-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 320px;
+}
+
 .admin-stat-card {
   border: 1px solid #d9e2ef;
   border-radius: 12px;
@@ -2870,6 +2910,106 @@ body[data-page="institution-form"] .checkbox-group {
   border-radius: 12px;
   background: #fff;
   padding: 14px 16px 16px;
+}
+
+.admin-line-chart-card {
+  margin-top: 12px;
+}
+
+.admin-line-chart-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.admin-line-chart-title {
+  margin-bottom: 0;
+  flex: 1 1 220px;
+}
+
+.admin-line-chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  font-size: 0.88rem;
+  color: #2f4a68;
+}
+
+.admin-line-chart-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.admin-line-chart-option input {
+  margin: 0;
+}
+
+.admin-line-chart-month {
+  min-width: 150px;
+  padding: 6px 10px;
+  border: 1px solid #c5d4e8;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #1e3a5f;
+  background: #fff;
+}
+
+.admin-line-chart-month:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.admin-line-chart-hint {
+  margin: 8px 0 10px;
+  font-size: 0.8rem;
+  color: #7a8da1;
+  line-height: 1.35;
+}
+
+.admin-line-chart-wrap {
+  width: 100%;
+  min-height: 200px;
+}
+
+.admin-line-chart-svg {
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+  display: block;
+}
+
+.admin-line-chart-grid {
+  stroke: #e2eaf4;
+  stroke-width: 1;
+}
+
+.admin-line-chart-line {
+  stroke: #2f8de4;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.admin-line-chart-dot {
+  fill: #fff;
+  stroke: #2f8de4;
+  stroke-width: 2;
+}
+
+.admin-line-chart-tick {
+  fill: #5a7390;
+  font-size: 11px;
+}
+
+.admin-line-chart-ytick {
+  fill: #7a8da1;
+  font-size: 10px;
 }
 
 .admin-bars-row {
@@ -3023,6 +3163,84 @@ body[data-page="institution-form"] .checkbox-group {
   background: #fff;
 }
 
+/* Institutions tab: show ~5 rows, then scroll */
+.admin-users-table-wrap.admin-institutions-table-wrap {
+  max-height: 288px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.admin-institutions-table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 1px 0 #eef2f7;
+}
+
+.admin-institution-actions-cell {
+  width: 1%;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.admin-institution-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-institution-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  flex-shrink: 0;
+  padding: 0;
+  transition: opacity 0.15s ease, transform 0.12s ease;
+}
+
+.admin-institution-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.admin-institution-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-institution-action-btn--edit {
+  background: #1f5ea8;
+  color: #fff;
+}
+
+.admin-institution-action-btn--edit:hover {
+  background: #184a86;
+}
+
+.admin-institution-action-btn--delete {
+  background: #d64141;
+  color: #fff;
+}
+
+.admin-institution-action-btn--delete:hover:not(:disabled) {
+  background: #b92d2d;
+}
+
+.admin-institution-action-icon {
+  display: block;
+}
+
+.admin-institution-action-x {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .admin-users-table {
   width: 100%;
   border-collapse: collapse;
@@ -3092,6 +3310,107 @@ body[data-page="institution-form"] .checkbox-group {
 
 .admin-user-delete-btn:hover {
   background: #b92d2d;
+}
+
+.admin-user-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-user-lock-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #c9a227;
+  border-radius: 6px;
+  background: #f5d547;
+  color: #5c4a0a;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.admin-user-lock-btn:hover {
+  background: #edd03a;
+  border-color: #b89420;
+}
+
+.admin-user-lock-icon {
+  display: block;
+}
+
+.admin-user-blocked-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #5c4a0a;
+  background: #fff3bf;
+  border: 1px solid #e6c84a;
+  border-radius: 6px;
+  vertical-align: middle;
+}
+
+.admin-user-block-modal-card {
+  max-width: 440px;
+}
+
+.admin-user-block-dl {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 6px 12px;
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+}
+
+.admin-user-block-dl dt {
+  margin: 0;
+  color: #7a8da1;
+  font-weight: 600;
+}
+
+.admin-user-block-dl dd {
+  margin: 0;
+  color: #1e3a5f;
+  word-break: break-word;
+}
+
+.admin-user-block-reason {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #c5d4e8;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 72px;
+}
+
+.admin-user-block-current {
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+  color: #5c4a0a;
+  padding: 10px 12px;
+  background: #fff9e6;
+  border: 1px solid #e6d48a;
+  border-radius: 8px;
+}
+
+.admin-user-block-current-label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.admin-user-block-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .admin-user-self-mark {

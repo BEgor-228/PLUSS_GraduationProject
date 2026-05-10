@@ -18,6 +18,7 @@ Object.assign(AdminManager.prototype, {
     },
 
     showLoginError(message) {
+      this.clearAccountBlockedBanner();
       const errorNode = document.getElementById("loginErrorMessage");
       if (!errorNode) return;
       errorNode.textContent = message || "Ошибка входа";
@@ -29,6 +30,27 @@ Object.assign(AdminManager.prototype, {
       if (!errorNode) return;
       errorNode.textContent = "";
       errorNode.classList.add("hidden");
+    },
+
+    showAccountBlockedBanner(reasonText) {
+      const banner = document.getElementById("loginBlockedBanner");
+      const reasonEl = document.getElementById("loginBlockedReason");
+      if (!banner || !reasonEl) return;
+      const r = (reasonText || "").trim();
+      reasonEl.textContent = r ? `Причина: ${r}` : "Обратитесь к администратору за подробностями.";
+      banner.classList.remove("hidden");
+      const err = document.getElementById("loginErrorMessage");
+      if (err) {
+        err.textContent = "";
+        err.classList.add("hidden");
+      }
+    },
+
+    clearAccountBlockedBanner() {
+      const banner = document.getElementById("loginBlockedBanner");
+      const reasonEl = document.getElementById("loginBlockedReason");
+      if (banner) banner.classList.add("hidden");
+      if (reasonEl) reasonEl.textContent = "";
     },
 
     showRegisterError(message) {
@@ -74,6 +96,13 @@ Object.assign(AdminManager.prototype, {
         const data = await response.json();
         this.map.isAdmin = Boolean(data.adminLoggedIn);
         this.map.isPortalUser = Boolean(data.portalLoggedIn);
+        if (data.accountBlocked) {
+          this.map.isPortalUser = false;
+          this.setAuthRole("portal");
+          document.getElementById("registerModal")?.classList.add("hidden");
+          document.getElementById("loginModal")?.classList.remove("hidden");
+          this.showAccountBlockedBanner(data.blockReason || "");
+        }
         if (data.loggedIn) {
           this.map.isAdmin = true;
           this.map.isPortalUser = false;
@@ -100,6 +129,7 @@ Object.assign(AdminManager.prototype, {
     showLoginModal() {
       this.setAuthRole("portal");
       this.clearLoginError();
+      this.clearAccountBlockedBanner();
       document.getElementById('registerModal')?.classList.add('hidden');
       document.getElementById('loginModal')?.classList.remove('hidden');
     },
@@ -108,6 +138,7 @@ Object.assign(AdminManager.prototype, {
       document.getElementById('loginModal')?.classList.add('hidden');
       document.getElementById('loginForm')?.reset();
       this.clearLoginError();
+      this.clearAccountBlockedBanner();
     },
 
     showRegisterModal() {
@@ -139,8 +170,9 @@ Object.assign(AdminManager.prototype, {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ login, password })
         });
-        const data = await response.json();
-        if (data.success) {
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.success) {
+          this.clearAccountBlockedBanner();
           this.map.isAdmin = this.activeAuthRole === "admin";
           this.map.isPortalUser = this.activeAuthRole !== "admin";
           if (this.map.isAdmin) this.showAdminPanel();
@@ -154,6 +186,8 @@ Object.assign(AdminManager.prototype, {
           }
           this.updateHeaderAuthButton();
           this.hideLoginModal();
+        } else if (data.blocked) {
+          this.showAccountBlockedBanner(data.reason || "");
         } else {
           this.showLoginError('Ошибка входа: ' + (data.error || 'Неизвестная ошибка'));
         }

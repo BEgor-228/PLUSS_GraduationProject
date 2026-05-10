@@ -1,11 +1,13 @@
 import json
 import re
+import csv
 from datetime import datetime, timedelta
 
 from django.contrib.auth import authenticate, get_user_model, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import Group
 from django.db import IntegrityError, connection, transaction
 from django.db.models import Avg, Count, Q
+from django.db.models.functions import TruncMonth
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -26,6 +28,7 @@ from .models import (
     InstitutionType,
     Link,
     ProfileNotification,
+    UserBlockState,
     UserDistrictPreference,
 )
 
@@ -84,6 +87,18 @@ def profile_page(request: HttpRequest):
                 }
                 for row in type_distribution_qs
             ]
+            district_distribution_qs = (
+                Institution.objects.values("district__name")
+                .annotate(total=Count("id"))
+                .order_by("-total")
+            )
+            district_distribution = [
+                {
+                    "name": row["district__name"] or "Район не указан",
+                    "count": row["total"],
+                }
+                for row in district_distribution_qs
+            ]
             user_reviews_chart_qs = (
                 User.objects.filter(is_superuser=False)
                 .annotate(reviews_count=Count("institution_reviews"))
@@ -121,6 +136,18 @@ def profile_page(request: HttpRequest):
                 }
                 for inst in institution_rating_chart_qs
             ]
+            activity_qs = (
+                User.objects.filter(is_superuser=False)
+                .annotate(month=TruncMonth("date_joined"))
+                .values("month")
+                .annotate(c=Count("id"))
+                .order_by("month")
+            )
+            admin_user_activity_monthly = [
+                {"month": row["month"].strftime("%Y-%m"), "count": int(row["c"] or 0)}
+                for row in activity_qs
+                if row.get("month")
+            ]
             admin_users_qs = (
                 User.objects.filter(is_superuser=False)
                 .annotate(
@@ -128,14 +155,32 @@ def profile_page(request: HttpRequest):
                     avg_rating=Avg("institution_reviews__rating"),
                 )
                 .order_by("-date_joined")
-                .values("id", "username", "first_name", "last_name", "email", "reviews_count", "avg_rating")
+                .values(
+                    "id",
+                    "username",
+                    "first_name",
+                    "last_name",
+                    "email",
+                    "reviews_count",
+                    "avg_rating",
+                    "date_joined",
+                )
             )
+            admin_user_rows = list(admin_users_qs)
+            block_by_uid = {
+                b.user_id: b
+                for b in UserBlockState.objects.filter(
+                    user_id__in=[r["id"] for r in admin_user_rows],
+                )
+            }
             admin_users = []
-            for row in admin_users_qs:
+            for row in admin_user_rows:
                 full_name = " ".join(part for part in [row["first_name"], row["last_name"]] if part).strip()
                 display_name = full_name or row["username"] or "Пользователь"
                 initials_letters = [ch for ch in display_name if ch.isalnum()]
                 initials = "".join(initials_letters[:2]).upper() if initials_letters else "U"
+                bs = block_by_uid.get(row["id"])
+                is_blocked = bool(bs and bs.is_blocked)
                 admin_users.append(
                     {
                         "id": row["id"],
@@ -146,8 +191,36 @@ def profile_page(request: HttpRequest):
                         "is_current_user": row["id"] == user.id,
                         "reviews_count": int(row.get("reviews_count") or 0),
                         "avg_rating": float(row["avg_rating"]) if row.get("avg_rating") is not None else None,
+                        "date_joined": row["date_joined"],
+                        "is_blocked": is_blocked,
+                        "block_reason": (bs.block_reason or "").strip() if bs else "",
                     }
                 )
+            admin_institutions_qs = (
+                Institution.objects.annotate(
+                    avg_rating=Avg(
+                        "reviews__rating",
+                        filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED),
+                    ),
+                    approved_reviews_count=Count(
+                        "reviews",
+                        filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED),
+                    ),
+                )
+                .select_related("district", "type")
+                .order_by("name")
+            )
+            admin_institutions = [
+                {
+                    "id": inst.id,
+                    "name": inst.name or "Учреждение",
+                    "district_name": inst.district.name if inst.district_id else "Район не указан",
+                    "type_name": inst.type.name_ru if inst.type_id else "Без типа",
+                    "avg_rating": round(float(inst.avg_rating), 2) if inst.avg_rating is not None else None,
+                    "approved_reviews_count": int(inst.approved_reviews_count or 0),
+                }
+                for inst in admin_institutions_qs
+            ]
             moderation_reviews_qs = (
                 InstitutionReview.objects.filter(
                     status__in=[
@@ -190,9 +263,12 @@ def profile_page(request: HttpRequest):
                     "admin_moderation_total": moderation_total,
                     "admin_moderation_month_delta": moderation_month_delta,
                     "admin_type_distribution": type_distribution,
+                    "admin_district_distribution": district_distribution,
                     "admin_user_reviews_chart": user_reviews_chart,
+                    "admin_user_activity_monthly": admin_user_activity_monthly,
                     "admin_institution_rating_chart": institution_rating_chart,
                     "admin_users": admin_users,
+                    "admin_institutions": admin_institutions,
                     "admin_moderation_reviews": moderation_reviews,
                 }
             )
@@ -367,6 +443,36 @@ def _build_pagination(total_items: int, page: int, page_size: int) -> dict:
         "total_items": total_items,
         "total_pages": total_pages,
     }
+
+
+def _user_block_row(user):
+    if not user or not user.is_authenticated:
+        return None
+    return UserBlockState.objects.filter(user_id=user.pk).first()
+
+
+def _user_is_blocked(user) -> bool:
+    row = _user_block_row(user)
+    return bool(row and row.is_blocked)
+
+
+def _user_block_reason(user) -> str:
+    row = _user_block_row(user)
+    if not row or not row.is_blocked:
+        return ""
+    return (row.block_reason or "").strip()
+
+
+def _blocked_login_response(user):
+    return JsonResponse(
+        {
+            "success": False,
+            "blocked": True,
+            "reason": _user_block_reason(user),
+            "error": "Аккаунт заблокирован",
+        },
+        status=403,
+    )
 
 
 def _authenticate_with_login_or_email(request: HttpRequest, login_value: str, password: str):
@@ -859,6 +965,8 @@ def _require_portal_user(request: HttpRequest):
         return None
     if user.is_superuser or user.groups.filter(name="administrators").exists():
         return None
+    if _user_is_blocked(user):
+        return None
     return user
 
 
@@ -992,6 +1100,8 @@ def login(request: HttpRequest):
     user = _authenticate_with_login_or_email(request, data["login"], data["password"])
     if not user:
         return JsonResponse({"error": "Invalid credentials"}, status=401)
+    if _user_is_blocked(user):
+        return _blocked_login_response(user)
     is_admin = user.is_superuser or user.groups.filter(name="administrators").exists()
     if not is_admin:
         return JsonResponse({"error": "Admin role is required"}, status=403)
@@ -1012,10 +1122,20 @@ def check_session(request: HttpRequest):
     user = request.user
     is_authenticated = bool(user and user.is_authenticated)
     is_admin = is_authenticated and (user.is_superuser or user.groups.filter(name="administrators").exists())
+    account_blocked = False
+    block_reason = ""
+    if is_authenticated and not is_admin and _user_is_blocked(user):
+        account_blocked = True
+        block_reason = _user_block_reason(user)
+        auth_logout(request)
+        is_authenticated = False
+        is_admin = False
     payload = {
         "loggedIn": bool(is_admin),
         "adminLoggedIn": bool(is_admin),
         "portalLoggedIn": bool(is_authenticated and not is_admin),
+        "accountBlocked": account_blocked,
+        "blockReason": block_reason,
     }
     if is_authenticated and not is_admin:
         payload["portalUserName"] = user.get_full_name() or user.username
@@ -1089,6 +1209,8 @@ def login_portal_user(request: HttpRequest):
     user = _authenticate_with_login_or_email(request, data["login"], data["password"])
     if not user:
         return JsonResponse({"error": "Invalid credentials"}, status=401)
+    if _user_is_blocked(user):
+        return _blocked_login_response(user)
     is_admin = user.is_superuser or user.groups.filter(name="administrators").exists()
     if is_admin:
         return JsonResponse({"error": "Portal user role is required"}, status=403)
@@ -1149,8 +1271,8 @@ def export_admin_report(request: HttpRequest):
         return JsonResponse({"error": "Unauthorized"}, status=401)
 
     export_format = (request.GET.get("format") or "pdf").strip().lower()
-    if export_format != "pdf":
-        return JsonResponse({"error": "Формат пока не поддерживается"}, status=400)
+    if export_format not in {"pdf", "excel", "csv"}:
+        return JsonResponse({"error": "Формат не поддерживается"}, status=400)
 
     now = timezone.localtime()
     month_value = (request.GET.get("month") or "").strip()
@@ -1223,7 +1345,7 @@ def export_admin_report(request: HttpRequest):
 
     users_list_rows = (
         User.objects.annotate(reviews_count=Count("institution_reviews"))
-        .order_by("username", "id")
+        .order_by("-reviews_count", "username", "id")
         .values("first_name", "last_name", "username", "email", "reviews_count")
     )
     users_list = []
@@ -1242,7 +1364,7 @@ def export_admin_report(request: HttpRequest):
             avg_rating=Avg("reviews__rating", filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED))
         )
         .select_related("district")
-        .order_by("name")
+        .order_by("-avg_rating", "name")
         .values("name", "district__name", "avg_rating")
     )
     institutions_list = [
@@ -1253,6 +1375,122 @@ def export_admin_report(request: HttpRequest):
         }
         for row in institutions_list_rows
     ]
+
+    if export_format == "csv":
+        from io import StringIO
+
+        csv_buffer = StringIO()
+        writer = csv.writer(csv_buffer, delimiter=";")
+        writer.writerow(["Admin Dashboard Report"])
+        writer.writerow(["Generated", now.strftime("%Y-%m-%d %H:%M")])
+        writer.writerow(
+            [
+                "Selected period",
+                period_start.strftime("%Y-%m-%d"),
+                (period_end - timedelta(days=1)).strftime("%Y-%m-%d"),
+            ]
+        )
+        writer.writerow([])
+        writer.writerow(["Core metrics"])
+        writer.writerow(["Institutions total", total_institutions, "New in selected month", institutions_month_delta])
+        writer.writerow(["Registered users", total_users, "New in selected month", users_month_delta])
+        writer.writerow(["Reviews on moderation", moderation_total, "New in selected month", moderation_month_delta])
+        writer.writerow(["Approved reviews total", approved_reviews_total])
+        writer.writerow(["Average approved institution rating", f"{avg_approved_rating_value:.2f}"])
+        writer.writerow([])
+        writer.writerow(["Additional insights"])
+        writer.writerow(["Largest institution type", top_type_name, top_type_count])
+        writer.writerow(["Most active reviewer", top_user_name, top_user_reviews])
+        writer.writerow([])
+        writer.writerow(["Distribution by institution type"])
+        writer.writerow(["#", "Type", "Count", "Percent"])
+        for idx, item in enumerate(type_distribution_lines, start=1):
+            writer.writerow([idx, item[0], item[1], f"{item[2]:.2f}%"])
+        writer.writerow([])
+        writer.writerow(["All users and review counts"])
+        writer.writerow(["#", "Display name", "Username", "Reviews"])
+        for idx, item in enumerate(users_list, start=1):
+            writer.writerow([idx, item["display_name"], item["username"], item["reviews_count"]])
+        writer.writerow([])
+        writer.writerow(["All institutions and average ratings"])
+        writer.writerow(["#", "Institution", "District", "Average rating"])
+        for idx, item in enumerate(institutions_list, start=1):
+            writer.writerow(
+                [
+                    idx,
+                    item["name"],
+                    item["district_name"],
+                    "n/a" if item["avg_rating"] is None else f"{item['avg_rating']:.2f}",
+                ]
+            )
+
+        csv_content = csv_buffer.getvalue()
+        filename = f"admin_dashboard_report_{period_start.strftime('%Y%m')}_{now.strftime('%d_%H%M')}.csv"
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response.write("\ufeff")
+        response.write(csv_content)
+        return response
+
+    if export_format == "excel":
+        try:
+            from io import BytesIO
+
+            from openpyxl import Workbook
+        except Exception:
+            return JsonResponse({"error": "Excel библиотека не установлена. Установите openpyxl."}, status=500)
+
+        workbook = Workbook()
+        summary_ws = workbook.active
+        summary_ws.title = "Summary"
+        summary_ws.append(["Admin Dashboard Report"])
+        summary_ws.append(["Generated", now.strftime("%Y-%m-%d %H:%M")])
+        summary_ws.append(
+            [
+                "Selected period",
+                period_start.strftime("%Y-%m-%d"),
+                (period_end - timedelta(days=1)).strftime("%Y-%m-%d"),
+            ]
+        )
+        summary_ws.append([])
+        summary_ws.append(["Core metrics"])
+        summary_ws.append(["Institutions total", total_institutions, "New in selected month", institutions_month_delta])
+        summary_ws.append(["Registered users", total_users, "New in selected month", users_month_delta])
+        summary_ws.append(["Reviews on moderation", moderation_total, "New in selected month", moderation_month_delta])
+        summary_ws.append(["Approved reviews total", approved_reviews_total])
+        summary_ws.append(["Average approved institution rating", avg_approved_rating_value])
+        summary_ws.append([])
+        summary_ws.append(["Additional insights"])
+        summary_ws.append(["Largest institution type", top_type_name, top_type_count])
+        summary_ws.append(["Most active reviewer", top_user_name, top_user_reviews])
+
+        type_ws = workbook.create_sheet("Types")
+        type_ws.append(["#", "Type", "Count", "Percent"])
+        for idx, item in enumerate(type_distribution_lines, start=1):
+            type_ws.append([idx, item[0], item[1], round(item[2], 2)])
+
+        users_ws = workbook.create_sheet("Users")
+        users_ws.append(["#", "Display name", "Username", "Reviews"])
+        for idx, item in enumerate(users_list, start=1):
+            users_ws.append([idx, item["display_name"], item["username"], item["reviews_count"]])
+
+        institutions_ws = workbook.create_sheet("Institutions")
+        institutions_ws.append(["#", "Institution", "District", "Average rating"])
+        for idx, item in enumerate(institutions_list, start=1):
+            institutions_ws.append(
+                [idx, item["name"], item["district_name"], None if item["avg_rating"] is None else item["avg_rating"]]
+            )
+
+        excel_buffer = BytesIO()
+        workbook.save(excel_buffer)
+        excel_buffer.seek(0)
+        filename = f"admin_dashboard_report_{period_start.strftime('%Y%m')}_{now.strftime('%d_%H%M')}.xlsx"
+        response = HttpResponse(
+            excel_buffer.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
 
     try:
         from io import BytesIO
@@ -1390,6 +1628,40 @@ def delete_user(request: HttpRequest):
         return JsonResponse({"error": "Нельзя удалить суперпользователя"}, status=400)
     target.delete()
     return JsonResponse({"success": True})
+
+
+@csrf_exempt
+@require_POST
+def set_user_block(request: HttpRequest):
+    admin = _require_admin(request)
+    if not admin:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    data = _parse_json(request) or {}
+    user_id = data.get("user_id")
+    block = bool(data.get("block"))
+    reason = (data.get("reason") or "").strip()
+    if not user_id:
+        return JsonResponse({"error": "user_id is required"}, status=400)
+    User = get_user_model()
+    target = User.objects.filter(id=user_id).first()
+    if not target:
+        return JsonResponse({"error": "User not found"}, status=404)
+    if target.id == admin.id:
+        return JsonResponse({"error": "Нельзя изменить блокировку для собственной учётной записи"}, status=400)
+    if target.is_superuser:
+        return JsonResponse({"error": "Нельзя блокировать суперпользователя"}, status=400)
+    state, _ = UserBlockState.objects.get_or_create(user=target)
+    state.is_blocked = block
+    state.block_reason = reason if block else ""
+    state.blocked_at = timezone.now() if block else None
+    state.save(update_fields=["is_blocked", "block_reason", "blocked_at"])
+    return JsonResponse(
+        {
+            "success": True,
+            "is_blocked": state.is_blocked,
+            "block_reason": (state.block_reason or "").strip(),
+        }
+    )
 
 
 @csrf_exempt

@@ -185,3 +185,20 @@ class UserDistrictPreference(models.Model):
     notify_new_institutions = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class UserBlockState(models.Model):
+    """Блокировка учётной записи (отдельная таблица 1:1 к auth_user)."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="block_state",
+    )
+    is_blocked = models.BooleanField(default=False)
+    block_reason = models.TextField(blank=True)
+    blocked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "состояние блокировки пользователя"
+        verbose_name_plural = "состояния блокировки пользователей"
