@@ -92,7 +92,7 @@ Object.assign(AdminManager.prototype, {
 
     async checkSession() {
       try {
-        const response = await fetch('/api/check_session.php');
+        const response = await fetch('/api/check_session');
         const data = await response.json();
         this.map.isAdmin = Boolean(data.adminLoggedIn);
         this.map.isPortalUser = Boolean(data.portalLoggedIn);
@@ -162,7 +162,7 @@ Object.assign(AdminManager.prototype, {
       e.preventDefault();
       const login = document.getElementById('adminLoginInput').value;
       const password = document.getElementById('adminPassword').value;
-      const endpoint = this.activeAuthRole === "admin" ? "/api/login.php" : "/api/login_portal.php";
+      const endpoint = this.activeAuthRole === "admin" ? "/api/login" : "/api/login_portal";
   
       try {
         const response = await fetch(endpoint, {
@@ -215,7 +215,7 @@ Object.assign(AdminManager.prototype, {
       }
 
       try {
-        const response = await fetch("/api/register_portal_user.php", {
+        const response = await fetch("/api/register_portal_user", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -242,7 +242,7 @@ Object.assign(AdminManager.prototype, {
   
     async handleLogout() {
       try {
-        await fetch('/api/logout.php', { method: 'POST' });
+        await fetch('/api/logout', { method: 'POST' });
         this.map.isAdmin = false;
         this.map.isPortalUser = false;
         document.getElementById('adminPanel')?.classList.add('hidden');

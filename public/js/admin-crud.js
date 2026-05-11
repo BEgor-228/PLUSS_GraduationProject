@@ -12,7 +12,7 @@ Object.assign(AdminManager.prototype, {
   async deleteInstitution(id) {
     if (!confirm("Вы уверены, что хотите удалить это учреждение?")) return;
     try {
-      const response = await fetch('/api/delete_institution.php', {
+      const response = await fetch('/api/delete_institution', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
@@ -39,10 +39,10 @@ Object.assign(AdminManager.prototype, {
 
       let url;
       if (this.map.editingInstitution && this.map.editingInstitution.id) {
-        url = '/api/update_institution.php';
+        url = '/api/update_institution';
         console.log("Режим: ОБНОВЛЕНИЕ");
       } else {
-        url = '/api/create_institution.php';
+        url = '/api/create_institution';
         console.log("Режим: СОЗДАНИЕ");
       }
 

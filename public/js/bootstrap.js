@@ -19,11 +19,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (document.body.dataset.page === "district") {
     const districtName = document.body.dataset.districtName;
+    const requestedInstitution = (new URLSearchParams(window.location.search).get("q") || "").trim();
     if (districtName) {
+      const applySearchFromQuery = async () => {
+        if (!requestedInstitution) return;
+        for (let i = 0; i < 30; i++) {
+          const input = document.getElementById("institutionSearch");
+          if (input) {
+            input.value = requestedInstitution;
+            if (typeof lipetskMap.applyCombinedFilters === "function") {
+              lipetskMap.currentPage = 1;
+              await lipetskMap.applyCombinedFilters(1);
+            }
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      };
       const waitDistrictMap = async () => {
         for (let i = 0; i < 40; i++) {
           if (lipetskMap.districtIdMap && lipetskMap.districtIdMap[districtName]) {
             lipetskMap.showDistrictView(districtName);
+            await applySearchFromQuery();
             return;
           }
           await new Promise((resolve) => setTimeout(resolve, 100));

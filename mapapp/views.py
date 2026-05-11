@@ -132,26 +132,26 @@ def profile_page(request: HttpRequest):
                         filter=Q(reviews__status=InstitutionReview.STATUS_APPROVED),
                     ),
                 )
-                .filter(avg_rating__isnull=False)
                 .select_related("district")
-                .order_by("-avg_rating", "name")
+                .order_by("name")
             )
             institution_rating_chart = []
             for inst in institution_rating_chart_qs:
                 bayesian_value = _calc_bayesian_rating(
-                    float(inst.avg_rating or 0),
+                    float(inst.avg_rating) if inst.avg_rating is not None else None,
                     int(inst.approved_reviews_count or 0),
                     global_rating_mean,
                 )
-                if bayesian_value is None:
-                    continue
+                # Учреждения без одобренных отзывов тоже показываем в рейтинге дашборда.
+                score_value = bayesian_value if bayesian_value is not None else 0.0
                 institution_rating_chart.append(
                     {
                         "name": inst.name,
                         "district_name": inst.district.name if inst.district_id else "",
-                        "value": bayesian_value,
+                        "value": score_value,
                     }
                 )
+            institution_rating_chart.sort(key=lambda row: (-float(row.get("value") or 0), row.get("name") or ""))
             activity_qs = (
                 User.objects.filter(is_superuser=False)
                 .annotate(month=TruncMonth("date_joined"))

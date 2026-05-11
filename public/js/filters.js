@@ -34,7 +34,7 @@ Object.assign(LipetskMap.prototype, {
       }
 
       try {
-        const response = await fetch(`/api/search_institutions.php?${params.toString()}`);
+        const response = await fetch(`/api/search_institutions?${params.toString()}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (data.error) throw new Error(data.error);

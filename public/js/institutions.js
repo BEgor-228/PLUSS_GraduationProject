@@ -7,7 +7,7 @@ Object.assign(LipetskMap.prototype, {
 
     async loadDistricts() {
       try {
-        const response = await fetch("/api/get_districts.php");
+        const response = await fetch("/api/get_districts");
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (data.error) throw new Error(data.error);
@@ -39,7 +39,7 @@ Object.assign(LipetskMap.prototype, {
           page: String(page),
           page_size: String(this.itemsPerPage || 10),
         });
-        const response = await fetch(`/api/get_institutions.php?${params}`);
+        const response = await fetch(`/api/get_institutions?${params}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (data.error) throw new Error(data.error);
@@ -65,7 +65,7 @@ Object.assign(LipetskMap.prototype, {
       linksDiv.innerHTML = '';
   
       try {
-        const response = await fetch(`/api/get_links.php?district_id=${districtId}`);
+        const response = await fetch(`/api/get_links?district_id=${districtId}`);
         if (!response.ok) throw new Error('HTTP ' + response.status);
         const data = await response.json();
         if (data.links && data.links.length > 0) {
@@ -245,7 +245,7 @@ Object.assign(LipetskMap.prototype, {
     },
 
     async toggleFavorite(institutionId, isFavorite, buttonEl) {
-      const endpoint = isFavorite ? "/api/remove_favorite.php" : "/api/add_favorite.php";
+      const endpoint = isFavorite ? "/api/remove_favorite" : "/api/add_favorite";
       buttonEl.disabled = true;
       try {
         const response = await fetch(endpoint, {
@@ -419,7 +419,7 @@ Object.assign(LipetskMap.prototype, {
         errorNode.classList.add("hidden");
       }
       try {
-        const response = await fetch("/api/create_review.php", {
+        const response = await fetch("/api/create_review", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

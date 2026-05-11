@@ -208,7 +208,7 @@
     e.preventDefault();
     try {
       const data = collectFormData();
-      const url = data.id ? "/api/update_institution.php" : "/api/create_institution.php";
+      const url = data.id ? "/api/update_institution" : "/api/create_institution";
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
