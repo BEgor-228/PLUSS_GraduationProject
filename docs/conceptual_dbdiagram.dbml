@@ -1,0 +1,233 @@
+//// Концептуальная модель InteractiveMap — dbdiagram.io
+//// PK: [pk] = <pi>   Обязательное: [not null] = <M>
+//// FK-колонки нужны dbdiagram для линий; в пояснении к концептуальной — «связи без перечисления FK»
+
+Table AUTH_USER {
+  USER_ID serial [pk, not null]
+  USER_username varchar(20) [not null]
+  USER_password varchar(20) [not null]
+  USER_email varchar(40) [not null]
+  USER_first_name varchar(20) [not null]
+  USER_last_name varchar(20) [not null]
+  USER_is_staff boolean [not null]
+  USER_is_superuser boolean [not null]
+  USER_is_active boolean [not null]
+  USER_date_joined datetime [not null]
+  USER_last_login datetime
+}
+
+Table AUTH_GROUP {
+  GROUP_ID serial [pk, not null]
+  GROUP_name varchar(20) [not null]
+}
+
+Table AUTH_USER_GROUPS {
+  AUG_ID serial [pk, not null]
+  USER_ID integer [not null, note: 'FK']
+  GROUP_ID integer [not null, note: 'FK']
+}
+
+Table USER_BLOCK_STATE {
+  UBS_ID serial [pk, not null]
+  USER_ID integer [not null, unique, note: 'FK']
+  UBS_is_blocked boolean [not null]
+  UBS_block_reason text
+  UBS_blocked_at datetime [not null]
+}
+
+Table ACTION_LOG {
+  ACTLOG_ID serial [pk, not null]
+  USER_ID integer [not null, note: 'FK']
+  ACTLOG_action varchar(20) [not null]
+  ACTLOG_entity varchar(50) [not null]
+  ACTLOG_record_id integer
+  ACTLOG_old_data text
+  ACTLOG_new_data text
+  ACTLOG_created_at datetime [not null]
+}
+
+Table USER_DISTRICT_PREFERENCE {
+  UDP_ID serial [pk, not null]
+  USER_ID integer [not null, unique, note: 'FK']
+  DISTRICT_ID integer [note: 'FK']
+  INSTTYPE_CODE varchar(20) [note: 'FK']
+  UDP_notify_new_institutions boolean [not null]
+  UDP_child_age_min smallint
+  UDP_child_age_max smallint
+  UDP_school_class_from smallint
+  UDP_school_class_to smallint
+  UDP_preferred_condition_codes text [not null]
+  UDP_preferred_accessibility_codes text [not null]
+  UDP_prefer_aoop boolean [not null]
+  UDP_created_at datetime [not null]
+  UDP_updated_at datetime [not null]
+}
+
+Table FAVORITE {
+  FAV_ID serial [pk, not null]
+  USER_ID integer [not null, note: 'FK']
+  INST_ID integer [not null, note: 'FK']
+  FAV_created_at datetime [not null]
+
+  indexes {
+    (USER_ID, INST_ID) [unique]
+  }
+}
+
+Table INSTITUTION_REVIEW {
+  INSTREV_ID serial [pk, not null]
+  USER_ID integer [not null, note: 'FK']
+  INST_ID integer [not null, note: 'FK']
+  INSTREV_rating decimal [not null]
+  INSTREV_criteria_scores text [not null]
+  INSTREV_comment text
+  INSTREV_status varchar(20) [not null]
+  INSTREV_created_at datetime [not null]
+  INSTREV_updated_at datetime [not null]
+
+  indexes {
+    (USER_ID, INST_ID) [unique]
+  }
+}
+
+Table PROFILE_NOTIFICATION {
+  PROFNOT_ID serial [pk, not null]
+  USER_ID integer [not null, note: 'FK']
+  ACTLOG_ID integer [not null, note: 'FK']
+  INST_ID integer [not null, note: 'FK']
+  PROFNOT_message text
+  PROFNOT_created_at datetime [not null]
+
+  indexes {
+    (USER_ID, ACTLOG_ID) [unique]
+  }
+}
+
+Table DISTRICT {
+  DISTRICT_ID serial [pk, not null]
+  DISTRICT_name varchar(100) [not null]
+  DISTRICT_created_at datetime [not null]
+}
+
+Table LINK {
+  LINK_ID serial [pk, not null]
+  DISTRICT_ID integer [not null, note: 'FK']
+  LINK_linksTo varchar(50)
+  LINK_linkToInstitution text
+}
+
+Table INSTITUTION_TYPE {
+  INSTTYPE_CODE varchar(20) [pk, not null]
+  INSTTYPE_name_ru varchar(100) [not null]
+  INSTTYPE_description text
+  INSTTYPE_created_at datetime [not null]
+}
+
+Table INSTITUTION {
+  INST_ID serial [pk, not null]
+  DISTRICT_ID integer [not null, note: 'FK']
+  INSTTYPE_CODE varchar(20) [not null, note: 'FK']
+  DIR_ID integer [unique, note: 'FK']
+  INST_name varchar(100) [not null]
+  INST_description text
+  INST_range_min smallint
+  INST_range_max smallint
+  INST_website varchar(100)
+  INST_aoop_url varchar(100)
+  INST_address text
+  INST_created_at datetime [not null]
+  INST_updated_at datetime [not null]
+}
+
+Table DIRECTOR {
+  DIR_ID serial [pk, not null]
+  DIR_full_name varchar(100) [not null]
+  DIR_phone varchar(20)
+  DIR_email varchar(50)
+  DIR_created_at datetime [not null]
+  DIR_updated_at datetime [not null]
+}
+
+Table AOOP_PROGRAM {
+  AOOP_ID serial [pk, not null]
+  INST_ID integer [not null, note: 'FK']
+  AOOP_name varchar(50) [not null]
+  AOOP_created_at datetime [not null]
+}
+
+Table CONDITION_TYPE {
+  CONDTYPE_CODE varchar(50) [pk, not null]
+  CONDTYPE_name_ru varchar(100) [not null]
+  CONDTYPE_description text
+  CONDTYPE_created_at datetime [not null]
+}
+
+Table INSTITUTION_CONDITIONS {
+  INSTCOND_ID serial [pk, not null]
+  INST_ID integer [not null, note: 'FK']
+  CONDTYPE_CODE varchar(50) [not null, note: 'FK']
+}
+
+Table ADMISSION_TYPE {
+  ADMTYPE_CODE varchar(20) [pk, not null]
+  ADMTYPE_name_ru varchar(100) [not null]
+  ADMTYPE_description text
+  ADMTYPE_created_at datetime [not null]
+}
+
+Table INSTITUTION_ADMISSION {
+  INSTADM_ID serial [pk, not null]
+  INST_ID integer [not null, note: 'FK']
+  ADMTYPE_CODE varchar(20) [not null, note: 'FK']
+}
+
+Table ACCESSIBILITY_CRITERION_TYPE {
+  ACT_CODE varchar(50) [pk, not null]
+  ACT_name_ru varchar(100) [not null]
+  ACT_description text
+  ACT_created_at datetime [not null]
+}
+
+Table INSTITUTION_ACCESSIBILITY {
+  INSTAC_ID serial [pk, not null]
+  INST_ID integer [not null, note: 'FK']
+  ACT_CODE varchar(50) [not null, note: 'FK']
+}
+
+//// --- Связи: имя в кавычках (DBML для dbdiagram.io) ---
+//// Документация: https://dbml.dbdiagram.io/docs/#relationship-definitions
+
+Ref "Состоит в": AUTH_USER_GROUPS.USER_ID > AUTH_USER.USER_ID
+Ref "Включает": AUTH_USER_GROUPS.GROUP_ID > AUTH_GROUP.GROUP_ID
+
+Ref "Блокировка": USER_BLOCK_STATE.USER_ID > AUTH_USER.USER_ID
+Ref "Заполняет": ACTION_LOG.USER_ID > AUTH_USER.USER_ID
+Ref "Настраивает": USER_DISTRICT_PREFERENCE.USER_ID > AUTH_USER.USER_ID
+Ref "Добавляет в избранное": FAVORITE.USER_ID > AUTH_USER.USER_ID
+Ref "Пишет отзывы": INSTITUTION_REVIEW.USER_ID > AUTH_USER.USER_ID
+Ref "Получает уведомления": PROFILE_NOTIFICATION.USER_ID > AUTH_USER.USER_ID
+
+Ref "Выбран район": USER_DISTRICT_PREFERENCE.DISTRICT_ID > DISTRICT.DISTRICT_ID
+Ref "Имеет": LINK.DISTRICT_ID > DISTRICT.DISTRICT_ID
+Ref "Содержит": INSTITUTION.DISTRICT_ID > DISTRICT.DISTRICT_ID
+
+Ref "Выбран тип": USER_DISTRICT_PREFERENCE.INSTTYPE_CODE > INSTITUTION_TYPE.INSTTYPE_CODE
+Ref "Имеет тип": INSTITUTION.INSTTYPE_CODE > INSTITUTION_TYPE.INSTTYPE_CODE
+
+Ref "Руководит": INSTITUTION.DIR_ID > DIRECTOR.DIR_ID
+
+Ref "Предлагает": AOOP_PROGRAM.INST_ID > INSTITUTION.INST_ID
+Ref "В избранном": FAVORITE.INST_ID > INSTITUTION.INST_ID
+Ref "Оценивается": INSTITUTION_REVIEW.INST_ID > INSTITUTION.INST_ID
+Ref "Упоминается": PROFILE_NOTIFICATION.INST_ID > INSTITUTION.INST_ID
+
+Ref "Имеет условия": INSTITUTION_CONDITIONS.INST_ID > INSTITUTION.INST_ID
+Ref "Присвоен": INSTITUTION_CONDITIONS.CONDTYPE_CODE > CONDITION_TYPE.CONDTYPE_CODE
+
+Ref "Имеет документы": INSTITUTION_ADMISSION.INST_ID > INSTITUTION.INST_ID
+Ref "Используется в": INSTITUTION_ADMISSION.ADMTYPE_CODE > ADMISSION_TYPE.ADMTYPE_CODE
+
+Ref "Имеет критерии": INSTITUTION_ACCESSIBILITY.INST_ID > INSTITUTION.INST_ID
+Ref "Присвоен учреждениям": INSTITUTION_ACCESSIBILITY.ACT_CODE > ACCESSIBILITY_CRITERION_TYPE.ACT_CODE
+
+Ref "Порождает": PROFILE_NOTIFICATION.ACTLOG_ID > ACTION_LOG.ACTLOG_ID

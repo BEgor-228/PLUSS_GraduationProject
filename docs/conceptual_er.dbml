@@ -1,0 +1,149 @@
+//// Концептуальная ER — InteractiveMap (dbdiagram.io)
+//// Сущности без предметных атрибутов: в таблицах только суррогатные ключи для отрисовки связей.
+//// Вставьте в https://dbdiagram.io/d  →  Import → Paste DBML
+
+//// --- Пользователи и роли ---
+
+Table "Пользователь" as AUTH_USER {
+  id integer [pk, note: 'концептуальный ключ']
+}
+
+Table "Группа" as AUTH_GROUP {
+  id integer [pk]
+}
+
+Table "Пользователь — группа" as AUTH_USER_GROUPS {
+  user_id integer [pk]
+  group_id integer [pk]
+}
+
+Table "Блокировка пользователя" as USER_BLOCK_STATE {
+  user_id integer [pk]
+}
+
+Table "Журнал действий" as ACTION_LOG {
+  id integer [pk]
+  user_id integer
+}
+
+Table "Настройки района" as USER_DISTRICT_PREFERENCE {
+  user_id integer [pk]
+  district_id integer
+  institution_type_code varchar
+}
+
+Table "Избранное" as FAVORITE {
+  id integer [pk]
+  user_id integer
+  institution_id integer
+}
+
+Table "Отзыв" as INSTITUTION_REVIEW {
+  id integer [pk]
+  user_id integer
+  institution_id integer
+}
+
+Table "Уведомление профиля" as PROFILE_NOTIFICATION {
+  id integer [pk]
+  user_id integer
+  institution_id integer
+  action_log_id integer
+}
+
+//// --- Районы и учреждения ---
+
+Table "Район" as DISTRICT {
+  id integer [pk]
+}
+
+Table "Ссылка района" as LINK {
+  id integer [pk]
+  district_id integer
+}
+
+Table "Тип учреждения" as INSTITUTION_TYPE {
+  code varchar [pk]
+}
+
+Table "Директор" as DIRECTOR {
+  id integer [pk]
+}
+
+Table "Учреждение" as INSTITUTION {
+  id integer [pk]
+  district_id integer
+  institution_type_code varchar
+  director_id integer
+}
+
+Table "Программа АООП" as AOOP_PROGRAM {
+  id integer [pk]
+  institution_id integer
+}
+
+//// --- Справочники и связи M:N ---
+
+Table "Тип условия" as CONDITION_TYPE {
+  code varchar [pk]
+}
+
+Table "Учреждение — условие" as INSTITUTION_CONDITIONS {
+  institution_id integer [pk]
+  condition_type_code varchar [pk]
+}
+
+Table "Тип поступления" as ADMISSION_TYPE {
+  code varchar [pk]
+}
+
+Table "Учреждение — поступление" as INSTITUTION_ADMISSION {
+  institution_id integer [pk]
+  admission_type_code varchar [pk]
+}
+
+Table "Критерий доступности" as ACCESSIBILITY_CRITERION_TYPE {
+  code varchar [pk]
+}
+
+Table "Учреждение — доступность" as INSTITUTION_ACCESSIBILITY {
+  institution_id integer [pk]
+  accessibility_code varchar [pk]
+}
+
+//// --- Связи (подписи на русском) ---
+
+Ref "состоит в": AUTH_USER_GROUPS.user_id > AUTH_USER.id
+Ref "включает": AUTH_USER_GROUPS.group_id > AUTH_GROUP.id
+
+Ref "блокировка": USER_BLOCK_STATE.user_id - AUTH_USER.id
+Ref "ведёт журнал": ACTION_LOG.user_id > AUTH_USER.id
+Ref "настраивает": USER_DISTRICT_PREFERENCE.user_id - AUTH_USER.id
+Ref "добавляет в избранное": FAVORITE.user_id > AUTH_USER.id
+Ref "пишет отзывы": INSTITUTION_REVIEW.user_id > AUTH_USER.id
+Ref "получает уведомления": PROFILE_NOTIFICATION.user_id > AUTH_USER.id
+
+Ref "выбран район": USER_DISTRICT_PREFERENCE.district_id > DISTRICT.id
+Ref "имеет ссылки": LINK.district_id > DISTRICT.id
+Ref "содержит": INSTITUTION.district_id > DISTRICT.id
+
+Ref "предпочитает тип": USER_DISTRICT_PREFERENCE.institution_type_code > INSTITUTION_TYPE.code
+Ref "имеет тип": INSTITUTION.institution_type_code > INSTITUTION_TYPE.code
+
+Ref "руководит": INSTITUTION.director_id > DIRECTOR.id
+
+Ref "предлагает программы": AOOP_PROGRAM.institution_id > INSTITUTION.id
+Ref "в избранном": FAVORITE.institution_id > INSTITUTION.id
+Ref "оценивается": INSTITUTION_REVIEW.institution_id > INSTITUTION.id
+Ref "упоминается в уведомлении": PROFILE_NOTIFICATION.institution_id > INSTITUTION.id
+
+Ref "имеет условия": INSTITUTION_CONDITIONS.institution_id > INSTITUTION.id
+Ref "присвоен": INSTITUTION_CONDITIONS.condition_type_code > CONDITION_TYPE.code
+
+Ref "имеет документы поступления": INSTITUTION_ADMISSION.institution_id > INSTITUTION.id
+Ref "тип поступления": INSTITUTION_ADMISSION.admission_type_code > ADMISSION_TYPE.code
+
+Ref "имеет критерии доступности": INSTITUTION_ACCESSIBILITY.institution_id > INSTITUTION.id
+Ref "критерий": INSTITUTION_ACCESSIBILITY.accessibility_code > ACCESSIBILITY_CRITERION_TYPE.code
+
+Ref "порождает уведомление": PROFILE_NOTIFICATION.action_log_id > ACTION_LOG.id
