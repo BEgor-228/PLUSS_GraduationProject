@@ -1,4 +1,4 @@
-{% load static %}
+{% load static l10n %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -34,6 +34,7 @@
                         <div class="admin-dashboard-avatar">{{ profile_initials|default:"U" }}</div>
                         <p class="admin-dashboard-name">{{ display_name }}</p>
                         <p class="admin-dashboard-email">{{ display_email }}</p>
+                        <p class="profile-role-badge profile-role-badge--admin">{{ display_role_ru }}</p>
                         <div class="admin-dashboard-nav">
                             <button class="admin-dashboard-nav-btn active" data-admin-tab="dashboard" type="button">Дашборд</button>
                             <button class="admin-dashboard-nav-btn" data-admin-tab="review-moderation" type="button">Администрация отзывов</button>
@@ -160,8 +161,16 @@
                                                 <th>Учреждение</th>
                                                 <th>Район</th>
                                                 <th>Тип</th>
-                                                <th>Средняя оценка</th>
-                                                <th>Всего отзывов</th>
+                                                <th>
+                                                    <button type="button" class="admin-table-sort-btn" data-sort-key="avgRating" aria-label="Сортировать по средней оценке">
+                                                        Средняя оценка<span class="admin-table-sort-indicator" aria-hidden="true"></span>
+                                                    </button>
+                                                </th>
+                                                <th>
+                                                    <button type="button" class="admin-table-sort-btn" data-sort-key="reviewsCount" aria-label="Сортировать по числу отзывов">
+                                                        Всего отзывов<span class="admin-table-sort-indicator" aria-hidden="true"></span>
+                                                    </button>
+                                                </th>
                                                 <th>Действие</th>
                                             </tr>
                                         </thead>
@@ -174,6 +183,8 @@
                                                     data-type="{{ item.type_name|default:''|escapejs }}"
                                                     data-name="{{ item.name|default:''|escapejs }}"
                                                     data-search="{{ item.district_name|default:''|lower }} {{ item.type_name|default:''|lower }} {{ item.name|default:''|lower }}"
+                                                    data-avg-rating="{% if item.avg_rating is not None %}{{ item.avg_rating|floatformat:2|unlocalize }}{% endif %}"
+                                                    data-reviews-count="{{ item.total_reviews_count|default:0 }}"
                                                     title="Открыть отзывы"
                                                 >
                                                     <td>
@@ -226,14 +237,22 @@
                                         <tr>
                                             <th>Пользователь</th>
                                             <th>Почта</th>
-                                            <th>Средняя оценка</th>
-                                            <th>Всего отзывов</th>
+                                            <th>
+                                                <button type="button" class="admin-table-sort-btn" data-sort-key="avgRating" aria-label="Сортировать по средней оценке">
+                                                    Средняя оценка<span class="admin-table-sort-indicator" aria-hidden="true"></span>
+                                                </button>
+                                            </th>
+                                            <th>
+                                                <button type="button" class="admin-table-sort-btn" data-sort-key="reviewsCount" aria-label="Сортировать по числу отзывов">
+                                                    Всего отзывов<span class="admin-table-sort-indicator" aria-hidden="true"></span>
+                                                </button>
+                                            </th>
                                             <th>Действие</th>
                                         </tr>
                                     </thead>
                                     <tbody id="adminUsersTbody">
                                         {% for item in admin_users %}
-                                            <tr class="admin-user-row" data-search="{{ item.display_name|lower }} {{ item.username|lower }} {{ item.email|lower }}">
+                                            <tr class="admin-user-row" data-search="{{ item.display_name|lower }} {{ item.username|lower }} {{ item.email|lower }}" data-name="{{ item.display_name|escape }}" data-avg-rating="{% if item.avg_rating is not None %}{{ item.avg_rating|floatformat:2|unlocalize }}{% endif %}" data-reviews-count="{{ item.reviews_count|default:0 }}">
                                                 <td>
                                                     <div class="admin-user-cell">
                                                         <div class="admin-user-avatar">{{ item.initials }}</div>
@@ -319,14 +338,22 @@
                                             <th>Название</th>
                                             <th>Район</th>
                                             <th>Тип</th>
-                                            <th>Средняя оценка</th>
-                                            <th>Одобренных отзывов</th>
+                                            <th>
+                                                <button type="button" class="admin-table-sort-btn" data-sort-key="avgRating" aria-label="Сортировать по средней оценке">
+                                                    Средняя оценка<span class="admin-table-sort-indicator" aria-hidden="true"></span>
+                                                </button>
+                                            </th>
+                                            <th>
+                                                <button type="button" class="admin-table-sort-btn" data-sort-key="approvedReviews" aria-label="Сортировать по числу одобренных отзывов">
+                                                    Одобренных отзывов<span class="admin-table-sort-indicator" aria-hidden="true"></span>
+                                                </button>
+                                            </th>
                                             <th>Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody id="adminInstitutionsTbody">
                                         {% for item in admin_institutions %}
-                                            <tr class="admin-institution-row" data-search="{{ item.name|lower }} {{ item.district_name|lower }} {{ item.type_name|lower }}">
+                                            <tr class="admin-institution-row" data-search="{{ item.name|lower }} {{ item.district_name|lower }} {{ item.type_name|lower }}" data-name="{{ item.name|default:''|escape }}" data-avg-rating="{% if item.avg_rating is not None %}{{ item.avg_rating|floatformat:2|unlocalize }}{% endif %}" data-approved-reviews="{{ item.approved_reviews_count|default:0 }}">
                                                 <td>{{ item.name }}</td>
                                                 <td>{{ item.district_name }}</td>
                                                 <td>{{ item.type_name }}</td>
@@ -511,6 +538,7 @@
                 <div class="profile-avatar">{{ profile_initials|default:"U" }}</div>
                 <p class="profile-user-name">{{ display_name }}</p>
                 <p class="profile-user-email">{{ display_email }}</p>
+                <p class="profile-role-badge profile-role-badge--portal">{{ display_role_ru }}</p>
                 <div class="profile-nav">
                     <button class="profile-nav-btn active" data-profile-tab="overview" type="button">Обзор</button>
                     <button class="profile-nav-btn" data-profile-tab="main_info" type="button">Основная информация</button>
@@ -545,25 +573,25 @@
                             {% if favorite_institutions %}
                                 <div class="profile-favorites-list">
                                     {% for item in favorite_institutions %}
-                                        <article class="profile-favorite-card{% if forloop.counter > 4 %} profile-favorite-card--extra hidden{% endif %}">
-                                            <h3>{{ item.name }}</h3>
+                                        <article class="profile-favorite-card institution-card{% if forloop.counter > 4 %} profile-favorite-card--extra hidden{% endif %}" data-search="{{ item.name|lower }} {{ item.district_name|lower }} {{ item.type_name|lower }} {{ item.address|lower }}">
+                                            <div class="institution-title-row profile-favorite-title-row">
+                                                <h4>{{ item.name }}</h4>
+                                            </div>
                                             {% if item.type_name %}
-                                                <p class="profile-favorite-meta">{{ item.type_name }}</p>
+                                                <span class="institution-type">{{ item.type_name }}</span>
                                             {% endif %}
-                                            {% if item.district_name %}
-                                                <p class="profile-favorite-meta">{{ item.district_name }}</p>
-                                            {% endif %}
-                                            {% if item.range_min or item.range_max %}
-                                                <p class="profile-favorite-meta">
-                                                    Диапазон:
-                                                    {% if item.range_min %}от {{ item.range_min }}{% endif %}
-                                                    {% if item.range_max %} до {{ item.range_max }}{% endif %}
-                                                </p>
-                                            {% endif %}
+                                            <div class="institution-details">
+                                                {% if item.district_name %}
+                                                    <div class="detail-item"><strong>Округ:</strong> {{ item.district_name }}</div>
+                                                {% endif %}
+                                                {% if item.address %}
+                                                    <div class="detail-item profile-favorite-address"><strong>Адрес:</strong> {{ item.address }}</div>
+                                                {% endif %}
+                                            </div>
                                             {% if item.district_id %}
-                                                <a class="btn btn-primary" href="/district/{{ item.district_id }}/?q={{ item.name|urlencode }}">Подробнее</a>
+                                                <a class="btn btn-primary profile-favorite-action" href="/district/{{ item.district_id }}/?q={{ item.name|urlencode }}">Подробнее</a>
                                             {% else %}
-                                                <a class="btn btn-primary" href="{% url 'index' %}">На карту</a>
+                                                <a class="btn btn-primary profile-favorite-action" href="{% url 'index' %}">На карту</a>
                                             {% endif %}
                                         </article>
                                     {% endfor %}
@@ -1177,6 +1205,80 @@
           });
         });
 
+        const setupAdminTableSort = (table, { rowSelector, onSorted }) => {
+          if (!table) return;
+          const tbody = table.querySelector("tbody");
+          if (!tbody) return;
+          const sortButtons = Array.from(table.querySelectorAll(".admin-table-sort-btn"));
+          if (!sortButtons.length) return;
+
+          let activeKey = null;
+          let activeDir = null;
+
+          const datasetKeyToAttr = (datasetKey) =>
+            datasetKey.replace(/[A-Z]/g, (ch) => `-${ch.toLowerCase()}`);
+
+          const parseRowNumber = (row, datasetKey) => {
+            const attrName = `data-${datasetKeyToAttr(datasetKey)}`;
+            const raw = (row.getAttribute(attrName) || "").trim();
+            if (!raw || raw === "—" || raw === "-") return null;
+            const normalized = raw.replace(/\u00a0/g, "").replace(/\s/g, "").replace(",", ".");
+            const num = Number(normalized);
+            return Number.isFinite(num) ? num : null;
+          };
+
+          const rowLabel = (row) =>
+            (row.dataset.name || row.dataset.search || row.textContent || "").trim().toLowerCase();
+
+          const updateIndicators = () => {
+            sortButtons.forEach((btn) => {
+              const key = btn.dataset.sortKey;
+              const indicator = btn.querySelector(".admin-table-sort-indicator");
+              const isActive = key === activeKey;
+              btn.classList.toggle("is-active", isActive);
+              if (indicator) {
+                indicator.textContent = isActive && activeDir ? (activeDir === "asc" ? " ↑" : " ↓") : "";
+              }
+            });
+          };
+
+          const sortRows = (datasetKey, direction) => {
+            const rows = Array.from(tbody.querySelectorAll(rowSelector));
+            rows.sort((a, b) => {
+              const va = parseRowNumber(a, datasetKey);
+              const vb = parseRowNumber(b, datasetKey);
+              if (va === null && vb === null) {
+                return rowLabel(a).localeCompare(rowLabel(b), "ru");
+              }
+              if (va === null) return 1;
+              if (vb === null) return -1;
+              if (va !== vb) {
+                return direction === "asc" ? va - vb : vb - va;
+              }
+              return rowLabel(a).localeCompare(rowLabel(b), "ru");
+            });
+            rows.forEach((row) => tbody.appendChild(row));
+            if (typeof onSorted === "function") onSorted(rows);
+          };
+
+          sortButtons.forEach((btn) => {
+            btn.addEventListener("click", (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              const key = btn.dataset.sortKey;
+              if (!key) return;
+              if (activeKey === key) {
+                activeDir = activeDir === "desc" ? "asc" : "desc";
+              } else {
+                activeKey = key;
+                activeDir = "desc";
+              }
+              sortRows(activeKey, activeDir);
+              updateIndicators();
+            });
+          });
+        };
+
         const usersSearchInput = document.getElementById("adminUsersSearch");
         const institutionsSearchInput = document.getElementById("adminInstitutionsSearch");
         const adminExportReportBtn = document.getElementById("adminExportReportBtn");
@@ -1335,6 +1437,32 @@
         if (userRows.length) {
           renderUsersPage();
         }
+
+        setupAdminTableSort(
+          document.querySelector(".admin-catalog-institutions-table-wrap .admin-users-table"),
+          { rowSelector: ".admin-catalog-institution-row" },
+        );
+        setupAdminTableSort(
+          document.querySelector('[data-admin-panel="users"] .admin-users-table'),
+          {
+            rowSelector: ".admin-user-row",
+            onSorted: (sorted) => {
+              userRows.length = 0;
+              userRows.push(...sorted);
+              applyUsersFilter();
+            },
+          },
+        );
+        setupAdminTableSort(
+          document.querySelector('[data-admin-panel="institutions"] .admin-users-table'),
+          {
+            rowSelector: ".admin-institution-row",
+            onSorted: (sorted) => {
+              institutionRows.length = 0;
+              institutionRows.push(...sorted);
+            },
+          },
+        );
 
         if (institutionsSearchInput && institutionRows.length) {
           institutionsSearchInput.addEventListener("input", () => {
@@ -2001,7 +2129,7 @@
         const applyFavoritesFilter = () => {
           const q = (favoritesSearchInput?.value || "").trim().toLowerCase();
           document.querySelectorAll(".profile-favorite-card").forEach((card) => {
-            const text = (card.textContent || "").toLowerCase();
+            const text = ((card.dataset.search || "") + " " + (card.textContent || "")).toLowerCase();
             const extra = card.classList.contains("profile-favorite-card--extra");
             const match = !q || text.includes(q);
             const shouldHideByExpand = !q && extra && !expandedFavorites;
@@ -2325,5 +2453,6 @@
       })();
     </script>
 
+    {% include "mapapp/partials/accessibility_widget.html" %}
 </body>
 </html>

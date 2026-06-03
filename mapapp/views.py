@@ -37,12 +37,19 @@ BAYESIAN_CONFIDENCE_THRESHOLD = 10
 
 
 def index(request: HttpRequest):
-    return render(request, "mapapp/index.html")
+    return render(
+        request,
+        "mapapp/index.html",
+        _accessibility_template_context(request, on_index=True),
+    )
 
 
 def profile_page(request: HttpRequest):
     user = request.user
-    ctx: dict = {"profile_role": "guest"}
+    ctx: dict = {
+        "profile_role": "guest",
+        **_accessibility_template_context(request, on_index=False),
+    }
     if user.is_authenticated:
         is_admin = user.is_superuser or user.groups.filter(name="administrators").exists()
         login_base = (user.username or "").split("@")[0].strip()
@@ -53,7 +60,9 @@ def profile_page(request: HttpRequest):
             "profile_role": "admin" if is_admin else "portal",
             "display_name": user.get_full_name() or user.username,
             "display_email": user.email,
+            "display_role_ru": "Администратор" if is_admin else "Пользователь",
             "profile_initials": profile_initials,
+            **_accessibility_template_context(request, on_index=False),
         }
         if is_admin:
             now = timezone.now()
@@ -341,8 +350,7 @@ def profile_page(request: HttpRequest):
                         "name": inst.name,
                         "district_name": inst.district.name if inst.district_id else "",
                         "type_name": inst.type.name_ru if inst.type_id else "",
-                        "range_min": inst.range_min,
-                        "range_max": inst.range_max,
+                        "address": (inst.address or "").strip(),
                     }
                 )
             ctx["favorite_institutions"] = favorite_cards
@@ -422,7 +430,14 @@ def profile_page(request: HttpRequest):
 
 def district_page(request: HttpRequest, district_id: int):
     district = get_object_or_404(District, pk=district_id)
-    return render(request, "mapapp/district.html", {"district": district})
+    return render(
+        request,
+        "mapapp/district.html",
+        {
+            "district": district,
+            **_accessibility_template_context(request, on_index=False),
+        },
+    )
 
 
 @require_GET
@@ -436,7 +451,12 @@ def institution_create_page(request: HttpRequest):
     return render(
         request,
         "mapapp/institution_form.html",
-        {"initial_data": initial_data, "districts": districts, "mode": "create"},
+        {
+            "initial_data": initial_data,
+            "districts": districts,
+            "mode": "create",
+            "enable_accessibility_widget": False,
+        },
     )
 
 
@@ -455,7 +475,12 @@ def institution_edit_page(request: HttpRequest, institution_id: int):
     return render(
         request,
         "mapapp/institution_form.html",
-        {"initial_data": _serialize_institution(inst), "districts": districts, "mode": "edit"},
+        {
+            "initial_data": _serialize_institution(inst),
+            "districts": districts,
+            "mode": "edit",
+            "enable_accessibility_widget": False,
+        },
     )
 
 
@@ -1585,6 +1610,27 @@ def _require_admin(request: HttpRequest):
     return None
 
 
+def _is_admin_user(user) -> bool:
+    if not user.is_authenticated:
+        return False
+    return user.is_superuser or user.groups.filter(name="administrators").exists()
+
+
+def _enable_accessibility_widget(request: HttpRequest, *, on_index: bool = False) -> bool:
+    """Обычные пользователи и гости — на всех страницах; администратор — только на главной."""
+    if _is_admin_user(request.user):
+        return on_index
+    return True
+
+
+def _accessibility_template_context(request: HttpRequest, *, on_index: bool = False) -> dict:
+    widget_enabled = _enable_accessibility_widget(request, on_index=on_index)
+    return {
+        "enable_accessibility_widget": widget_enabled,
+        "accessibility_color_schemes": widget_enabled and on_index,
+    }
+
+
 @csrf_exempt
 @require_GET
 def export_admin_report(request: HttpRequest):
@@ -1850,6 +1896,38 @@ def export_admin_report(request: HttpRequest):
 
     y = height - 48
     bottom_margin = 48
+    right_margin = 48
+
+    def wrap_text(text: str, size: int, x: int = 48) -> list[str]:
+        max_width = width - x - right_margin
+        if not text:
+            return [""]
+        words = text.split(" ")
+        lines: list[str] = []
+        current = ""
+        for word in words:
+            candidate = f"{current} {word}".strip() if current else word
+            if pdfmetrics.stringWidth(candidate, font_name, size) <= max_width:
+                current = candidate
+                continue
+            if current:
+                lines.append(current)
+            if pdfmetrics.stringWidth(word, font_name, size) <= max_width:
+                current = word
+                continue
+            chunk = ""
+            for ch in word:
+                next_chunk = chunk + ch
+                if pdfmetrics.stringWidth(next_chunk, font_name, size) <= max_width:
+                    chunk = next_chunk
+                else:
+                    if chunk:
+                        lines.append(chunk)
+                    chunk = ch
+            current = chunk
+        if current:
+            lines.append(current)
+        return lines or [""]
 
     def ensure_space(required_height: int = 14):
         nonlocal y
@@ -1859,10 +1937,11 @@ def export_admin_report(request: HttpRequest):
 
     def write_line(text: str, x: int = 48, step: int = 14, size: int = 10):
         nonlocal y
-        ensure_space(step)
-        pdf.setFont(font_name, size)
-        pdf.drawString(x, y, text)
-        y -= step
+        for line in wrap_text(text, size, x):
+            ensure_space(step)
+            pdf.setFont(font_name, size)
+            pdf.drawString(x, y, line)
+            y -= step
 
     def write_section_title(text: str):
         nonlocal y

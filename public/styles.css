@@ -2813,6 +2813,10 @@ body[data-page="institution-form"] .checkbox-group {
 .admin-dashboard-email {
   color: #607588;
   font-size: 0.88rem;
+  margin-bottom: 8px;
+}
+
+.admin-dashboard-sidebar .profile-role-badge {
   margin-bottom: 14px;
 }
 
@@ -3126,7 +3130,10 @@ body[data-page="institution-form"] .checkbox-group {
 .admin-chart-legend {
   list-style: none;
   display: grid;
-  gap: 8px;
+  grid-template-rows: repeat(7, auto);
+  grid-auto-flow: column;
+  gap: 8px 20px;
+  align-content: start;
 }
 
 .admin-chart-legend-item {
@@ -3259,6 +3266,31 @@ body[data-page="institution-form"] .checkbox-group {
   color: #2f4a68;
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+.admin-table-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-table-sort-btn:hover,
+.admin-table-sort-btn.is-active {
+  color: #1f5ea8;
+}
+
+.admin-table-sort-indicator {
+  font-size: 0.9em;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .admin-user-cell {
@@ -4134,10 +4166,86 @@ body[data-page="institution-form"] .checkbox-group {
 }
 
 .profile-favorite-card {
-  border: 1px solid #d9e2ef;
-  border-radius: 10px;
-  padding: 12px 14px;
-  background: #f9fbff;
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8f9ff 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.profile-favorite-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.profile-favorite-title-row {
+  padding-right: 0;
+  margin-bottom: 10px;
+}
+
+.profile-favorite-title-row h4 {
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.profile-favorite-address {
+  align-items: flex-start;
+}
+
+.profile-favorite-address strong {
+  flex-shrink: 0;
+}
+
+.profile-favorite-conditions {
+  margin-top: 4px;
+}
+
+.profile-favorite-conditions h5,
+.profile-favorite-accessibility h5 {
+  font-size: 14px;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.profile-favorite-accessibility {
+  margin-top: 4px;
+}
+
+.profile-favorite-conditions .institution-tags {
+  margin-bottom: 10px;
+}
+
+.profile-favorite-indicators {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.profile-favorite-indicator {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef4fb;
+  color: #2f4a68;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid #d5e3f3;
+}
+
+.profile-favorite-indicator--aoop {
+  background: #edf8f0;
+  color: #1f6b3a;
+  border-color: #c8e6d0;
+}
+
+.profile-favorite-action {
+  align-self: flex-start;
+  margin-top: auto;
 }
 
 .profile-favorite-card h3 {
@@ -4381,7 +4489,30 @@ body[data-page="institution-form"] .checkbox-group {
 .profile-user-email {
   font-size: 0.88rem;
   color: #607588;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
+}
+
+.profile-role-badge {
+  display: inline-block;
+  margin: 0 0 14px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+.profile-role-badge--portal {
+  color: #1f5ea8;
+  background: #e8f1fb;
+  border: 1px solid #c5daf3;
+}
+
+.profile-role-badge--admin {
+  color: #7a4b00;
+  background: #fff3dc;
+  border: 1px solid #f0d49a;
 }
 
 .profile-nav {
@@ -4464,10 +4595,25 @@ body[data-page="institution-form"] .checkbox-group {
 .profile-body[data-profile-theme="dark"] .profile-favorite-meta,
 .profile-body[data-profile-theme="dark"] .profile-hint,
 .profile-body[data-profile-theme="dark"] .profile-favorite-card h3,
+.profile-body[data-profile-theme="dark"] .profile-favorite-card h4,
+.profile-body[data-profile-theme="dark"] .profile-favorite-conditions h5,
+.profile-body[data-profile-theme="dark"] .profile-favorite-accessibility h5,
 .profile-body[data-profile-theme="dark"] .profile-notification-title,
 .profile-body[data-profile-theme="dark"] .profile-notification-message,
 .profile-body[data-profile-theme="dark"] .profile-notification-date {
   color: #d8e0ee;
+}
+
+.profile-body[data-profile-theme="dark"] .profile-role-badge--portal {
+  color: #9ec5f5;
+  background: #1e3a5f;
+  border-color: #2f5588;
+}
+
+.profile-body[data-profile-theme="dark"] .profile-role-badge--admin {
+  color: #f5d08a;
+  background: #4a3a12;
+  border-color: #7a5c1a;
 }
 
 .profile-body[data-profile-theme="dark"] .profile-notification-card {

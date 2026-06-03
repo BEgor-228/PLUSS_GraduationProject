@@ -5,6 +5,7 @@ class AccessibilityModule {
         this.speechSynthesis = window.speechSynthesis;
         this.speechUtterance = null;
         this.currentHighlightedElement = null;
+        this.showColorSchemes = window.ACCESSIBILITY_SHOW_COLOR_SCHEMES !== false;
         this.init();
     }
 
@@ -14,6 +15,18 @@ class AccessibilityModule {
     }
 
     createAccessibilityPanel() {
+        const colorSchemeBlock = this.showColorSchemes
+            ? `
+                <div class="option-group">
+                    <h3 class="option-group-title">Цветовая схема</h3>
+                    <button id="black-on-white" class="color-scheme-btn black-on-white">Черным по белому</button>
+                    <button id="white-on-black" class="color-scheme-btn white-on-black">Белым по черному</button>
+                    <button id="brown-on-beige" class="color-scheme-btn brown-on-beige">Коричневым по бежевому</button>
+                    <button id="dark-blue-on-blue" class="color-scheme-btn dark-blue-on-blue">Темно-синим по синему</button>
+                </div>
+            `
+            : "";
+
         const panelHTML = `
             <button class="accessibility-toggle" aria-expanded="false" title="Настройки доступности">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye-icon lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
@@ -22,13 +35,7 @@ class AccessibilityModule {
             <div class="accessibility-panel">
                 <div id="accessibility-title">Настройки доступности</div>
     
-                <div class="option-group">
-                    <h3 class="option-group-title">Цветовая схема</h3>
-                    <button id="black-on-white" class="color-scheme-btn black-on-white">Черным по белому</button>
-                    <button id="white-on-black" class="color-scheme-btn white-on-black">Белым по черному</button>
-                    <button id="brown-on-beige" class="color-scheme-btn brown-on-beige">Коричневым по бежевому</button>
-                    <button id="dark-blue-on-blue" class="color-scheme-btn dark-blue-on-blue">Темно-синим по синему</button>
-                </div>
+                ${colorSchemeBlock}
     
                 <div class="option-group">
                     <h3 class="option-group-title">Размер текста</h3>
@@ -90,9 +97,11 @@ class AccessibilityModule {
             }
         });
         const colorSchemeButtons = document.querySelectorAll('.color-scheme-btn');
-        colorSchemeButtons.forEach(button => {
-            button.addEventListener('click', () => this.handleColorScheme(button));
-        });
+        if (this.showColorSchemes) {
+            colorSchemeButtons.forEach(button => {
+                button.addEventListener('click', () => this.handleColorScheme(button));
+            });
+        }
     
         document.getElementById('decrease-font').addEventListener('click', () => this.changeFontSize(-10));
         document.getElementById('normal-font').addEventListener('click', () => this.resetFontSize());
@@ -423,5 +432,8 @@ class AccessibilityModule {
 
 let accessibilityModule;
 document.addEventListener('DOMContentLoaded', () => {
+    if (document.body.dataset.accessibilityWidget === '0') {
+        return;
+    }
     accessibilityModule = new AccessibilityModule();
 });

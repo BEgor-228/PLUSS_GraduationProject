@@ -101,5 +101,6 @@
 
     {{ initial_data|json_script:"institutionInitialData" }}
     <script src="{% static 'js/institution-form-page.js' %}"></script>
+    {% include "mapapp/partials/accessibility_widget.html" %}
 </body>
 </html>

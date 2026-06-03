@@ -590,7 +590,12 @@ Object.assign(LipetskMap.prototype, {
             .join("")}
             </ul>
             ${institution.aoop_url
-            ? `<div class="aoop-global-link"><strong>Общая ссылка на АООП:</strong> <a href="${institution.aoop_url}" target="_blank">${institution.aoop_url}</a></div>`
+            ? (() => {
+                const MAX_URL_LEN = 60;
+                const fullUrl = institution.aoop_url;
+                const shownUrl = fullUrl.length > MAX_URL_LEN ? fullUrl.slice(0, MAX_URL_LEN) + '…' : fullUrl;
+                return `<div class="aoop-global-link"><strong>Общая ссылка на АООП:</strong> <a href="${fullUrl}" target="_blank" title="${fullUrl}">${shownUrl}</a></div>`;
+              })()
             : ''}
           </div>`
           : "";

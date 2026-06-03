@@ -1,0 +1,5 @@
+{% load static %}
+{% if enable_accessibility_widget %}
+<script>window.ACCESSIBILITY_SHOW_COLOR_SCHEMES = {% if accessibility_color_schemes %}true{% else %}false{% endif %};</script>
+<script src="{% static 'js/accessibility.js' %}"></script>
+{% endif %}

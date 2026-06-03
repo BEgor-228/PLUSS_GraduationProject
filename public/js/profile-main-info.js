@@ -103,7 +103,7 @@
           const lo = min != null ? String(min) : "—";
           const hi = max != null ? String(max) : "—";
           const t = row.type;
-          if (t === "preschool") return `Возраст (как на карте): ${lo} — ${hi}`;
+          if (t === "preschool") return `Возраст: ${lo} — ${hi}`;
           if (t === "school" || t === "school_internat") return `Классы / диапазон: ${lo} — ${hi}`;
           return `Диапазон: ${lo} — ${hi}`;
         };
@@ -211,7 +211,12 @@
             a.href = inst.aoop_url;
             a.target = "_blank";
             a.rel = "noopener noreferrer";
-            a.textContent = inst.aoop_url;
+            a.title = inst.aoop_url;
+            const MAX_URL_LEN = 60;
+            a.textContent =
+              inst.aoop_url.length > MAX_URL_LEN
+                ? inst.aoop_url.slice(0, MAX_URL_LEN) + "…"
+                : inst.aoop_url;
             row.append(strong, document.createTextNode(" "), a);
             detail.appendChild(row);
           }
