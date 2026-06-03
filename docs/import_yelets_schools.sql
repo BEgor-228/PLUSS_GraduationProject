@@ -8,7 +8,9 @@
 --   СОШ / средняя / гимназия / лицей  -> range_min=5,  range_max=11
 --   ООШ / основная                    -> range_min=1,  range_max=9
 --   Школа № 18, № 19                  -> range_min=1,  range_max=11
---   admission, conditions, accessibility_criteria — не заполняются
+--   admission — не заполняются
+--   conditions — заполняются для СШ №12, Гимназии №11 и Гимназии №97 (см. секцию 5)
+--   accessibility_criteria — заполняются для тех же школ (см. секцию 6)
 --   АООП: aoop_url + названия программ из исходного файла
 --
 -- Примечания к исходному файлу:
@@ -223,6 +225,78 @@ WHERE i.name = 'МБОУ «СШ №24 им.Героя Российской Фе�
       WHERE p.institution_id = i.id
         AND p.name = 'Адаптированная программа ЗПР на 2025 - 2026 учебный год'
   );
+
+-- ---------------------------------------------------------------------------
+-- 5. Особые условия поступления (ОВЗ)
+--    Источники: разделы «Доступная среда» и «Образование» на сайтах школ
+-- ---------------------------------------------------------------------------
+CREATE TEMP TABLE _yelets_conditions (
+    institution_name VARCHAR(255) NOT NULL,
+    condition_code   VARCHAR(50) NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO _yelets_conditions (institution_name, condition_code) VALUES
+    -- МАОУ "СШ№12 им. В.А.Дорохина" — нарушения слуха, зрения, ОДА
+    ('МАОУ "СШ№12 им.Героя Российской Федерации В.А.Дорохина"', 'hearing_impairment'),
+    ('МАОУ "СШ№12 им.Героя Российской Федерации В.А.Дорохина"', 'vision_impairment'),
+    ('МАОУ "СШ№12 им.Героя Российской Федерации В.А.Дорохина"', 'musculoskeletal_impairment'),
+
+    -- МБОУ "Гимназия № 11 г. Ельца" — все категории, кроме РАС (включая ЗПР и множественные)
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'hearing_impairment'),
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'vision_impairment'),
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'musculoskeletal_impairment'),
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'speech_impairment'),
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'mental_retardation'),
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'multiple_disorders'),
+
+    -- МБОУ "Гимназия № 97 г. Ельца" — нарушения слуха, зрения, ОДА
+    ('МБОУ "Гимназия № 97 г. Ельца"', 'hearing_impairment'),
+    ('МБОУ "Гимназия № 97 г. Ельца"', 'vision_impairment'),
+    ('МБОУ "Гимназия № 97 г. Ельца"', 'musculoskeletal_impairment');
+
+INSERT INTO mapapp_institution_conditions (institution_id, conditiontype_id)
+SELECT i.id, c.condition_code
+FROM _yelets_conditions c
+JOIN mapapp_institution i ON i.name = c.institution_name
+ON CONFLICT (institution_id, conditiontype_id) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 6. Критерии физической доступности
+-- ---------------------------------------------------------------------------
+CREATE TEMP TABLE _yelets_accessibility (
+    institution_name VARCHAR(255) NOT NULL,
+    criterion_code   VARCHAR(60) NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO _yelets_accessibility (institution_name, criterion_code) VALUES
+    -- СШ №12: пандус, тифлотехника (без Брайля/индукции/эвакуации)
+    ('МАОУ "СШ№12 им.Героя Российской Федерации В.А.Дорохина"', 'ramps_lifts'),
+    ('МАОУ "СШ№12 им.Героя Российской Федерации В.А.Дорохина"', 'entrance_groups_doorways'),
+    ('МАОУ "СШ№12 им.Героя Российской Федерации В.А.Дорохина"', 'tactile_pedestrian_indicators'),
+    ('МАОУ "СШ№12 им.Героя Российской Федерации В.А.Дорохина"', 'accessible_sanitary_facilities'),
+
+    -- Гимназия №11: подробная доступная среда (без акустики/эвакуации)
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'ramps_lifts'),
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'entrance_groups_doorways'),
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'tactile_pedestrian_indicators'),
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'braille_signage'),
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'accessible_sanitary_facilities'),
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'assistant_call_system'),
+    ('МБОУ "Гимназия № 11 г. Ельца"', 'contrast_marking'),
+
+    -- Гимназия №97: доступная среда без Брайля/индукции/эвакуации
+    ('МБОУ "Гимназия № 97 г. Ельца"', 'ramps_lifts'),
+    ('МБОУ "Гимназия № 97 г. Ельца"', 'entrance_groups_doorways'),
+    ('МБОУ "Гимназия № 97 г. Ельца"', 'tactile_pedestrian_indicators'),
+    ('МБОУ "Гимназия № 97 г. Ельца"', 'accessible_sanitary_facilities'),
+    ('МБОУ "Гимназия № 97 г. Ельца"', 'assistant_call_system'),
+    ('МБОУ "Гимназия № 97 г. Ельца"', 'contrast_marking');
+
+INSERT INTO mapapp_institution_accessibility_criteria (institution_id, accessibilitycriteriontype_id)
+SELECT i.id, a.criterion_code
+FROM _yelets_accessibility a
+JOIN mapapp_institution i ON i.name = a.institution_name
+ON CONFLICT (institution_id, accessibilitycriteriontype_id) DO NOTHING;
 
 COMMIT;
 

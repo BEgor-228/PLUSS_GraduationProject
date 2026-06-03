@@ -252,7 +252,7 @@
                                     </thead>
                                     <tbody id="adminUsersTbody">
                                         {% for item in admin_users %}
-                                            <tr class="admin-user-row" data-search="{{ item.display_name|lower }} {{ item.username|lower }} {{ item.email|lower }}" data-name="{{ item.display_name|escape }}" data-avg-rating="{% if item.avg_rating is not None %}{{ item.avg_rating|floatformat:2|unlocalize }}{% endif %}" data-reviews-count="{{ item.reviews_count|default:0 }}">
+                                            <tr class="admin-user-row admin-user-row--clickable" role="button" tabindex="0" data-user-id="{{ item.id }}" data-search="{{ item.display_name|lower }} {{ item.username|lower }} {{ item.email|lower }}" data-name="{{ item.display_name|escape }}" data-avg-rating="{% if item.avg_rating is not None %}{{ item.avg_rating|floatformat:2|unlocalize }}{% endif %}" data-reviews-count="{{ item.reviews_count|default:0 }}" aria-label="Открыть отзывы пользователя {{ item.display_name|escape }}">
                                                 <td>
                                                     <div class="admin-user-cell">
                                                         <div class="admin-user-avatar">{{ item.initials }}</div>
@@ -380,9 +380,6 @@
                                 </table>
                             </div>
                         </div>
-                        <div class="profile-actions">
-                            <a href="{% url 'index' %}" class="btn btn-primary">На карту</a>
-                        </div>
                         {{ admin_type_distribution|json_script:"adminTypeDistributionData" }}
                         {{ admin_district_distribution|json_script:"adminDistrictDistributionData" }}
                         {{ admin_user_reviews_chart|json_script:"adminUserReviewsChartData" }}
@@ -438,6 +435,27 @@
                                 <button class="btn btn-primary" id="adminReviewEditSaveBtn" type="submit">Сохранить изменения</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+                <div class="admin-export-modal admin-user-reviews-modal hidden" id="adminUserReviewsModal" role="dialog" aria-modal="true" aria-labelledby="adminUserReviewsModalTitle">
+                    <div class="admin-export-modal-card admin-user-reviews-modal-card">
+                        <div class="admin-export-modal-header">
+                            <h3 id="adminUserReviewsModalTitle">Отзывы пользователя</h3>
+                            <button class="admin-review-modal-close" id="adminUserReviewsModalCloseBtn" type="button" aria-label="Закрыть">×</button>
+                        </div>
+                        <div class="admin-export-modal-body">
+                            <p class="admin-user-reviews-subtitle" id="adminUserReviewsSubtitle"></p>
+                            <div class="admin-chart-card admin-user-reviews-chart-card">
+                                <h4 class="admin-chart-title">Распределение оценок по учреждениям</h4>
+                                <div class="admin-chart-wrap admin-user-reviews-chart-wrap">
+                                    <div class="admin-chart-pie" id="adminUserReviewsPie"></div>
+                                    <ul class="admin-chart-legend" id="adminUserReviewsPieLegend"></ul>
+                                </div>
+                            </div>
+                            <h4 class="admin-user-reviews-list-title">Все отзывы</h4>
+                            <div class="admin-user-reviews-scroll" id="adminUserReviewsModalBody"></div>
+                            <p class="admin-users-empty hidden" id="adminUserReviewsModalEmpty">У пользователя пока нет отзывов.</p>
+                        </div>
                     </div>
                 </div>
                 <div class="admin-export-modal admin-institution-reviews-modal hidden" id="adminInstitutionReviewsModal" role="dialog" aria-modal="true" aria-labelledby="adminInstitutionReviewsModalTitle">
@@ -918,6 +936,40 @@
           });
         });
 
+        const renderPieChartItems = (pieEl, legendEl, chartItems, legendSuffix = "") => {
+          if (!pieEl || !legendEl) return;
+          const palette = ["#1f5ea8", "#2e8b57", "#d9781d", "#b63d35", "#8e44ad", "#34495e", "#16a085"];
+          const total = chartItems.reduce((sum, item) => sum + Number(item.count || 0), 0);
+          pieEl.classList.remove("admin-chart-pie--empty");
+          pieEl.style.background = "";
+          pieEl.textContent = "";
+          if (!total) {
+            pieEl.classList.add("admin-chart-pie--empty");
+            pieEl.textContent = "Нет данных";
+            legendEl.innerHTML = '<li class="admin-chart-legend-item admin-chart-legend-item--empty">Нет данных для отображения</li>';
+            return;
+          }
+          let currentPercent = 0;
+          const gradientParts = [];
+          legendEl.innerHTML = "";
+          chartItems.forEach((item, idx) => {
+            const count = Number(item.count || 0);
+            const percent = (count / total) * 100;
+            const start = currentPercent;
+            const end = currentPercent + percent;
+            const color = palette[idx % palette.length];
+            gradientParts.push(`${color} ${start.toFixed(2)}% ${end.toFixed(2)}%`);
+            currentPercent = end;
+
+            const legendItem = document.createElement("li");
+            legendItem.className = "admin-chart-legend-item";
+            const suffix = legendSuffix ? ` ${legendSuffix}` : "";
+            legendItem.innerHTML = `<span class="admin-chart-legend-dot" style="background:${color}"></span><span>${item.name} (${count}${suffix})</span>`;
+            legendEl.appendChild(legendItem);
+          });
+          pieEl.style.background = `conic-gradient(${gradientParts.join(",")})`;
+        };
+
         const renderPieChart = (pieEl, legendEl, chartDataNode) => {
           if (!pieEl || !legendEl || !chartDataNode) return;
           let chartItems = [];
@@ -926,32 +978,7 @@
           } catch (e) {
             chartItems = [];
           }
-          const palette = ["#1f5ea8", "#2e8b57", "#d9781d", "#b63d35", "#8e44ad", "#34495e", "#16a085"];
-          const total = chartItems.reduce((sum, item) => sum + Number(item.count || 0), 0);
-          if (!total) {
-            pieEl.classList.add("admin-chart-pie--empty");
-            pieEl.textContent = "Нет данных";
-            legendEl.innerHTML = '<li class="admin-chart-legend-item admin-chart-legend-item--empty">Нет данных для отображения</li>';
-          } else {
-            let currentPercent = 0;
-            const gradientParts = [];
-            legendEl.innerHTML = "";
-            chartItems.forEach((item, idx) => {
-              const count = Number(item.count || 0);
-              const percent = (count / total) * 100;
-              const start = currentPercent;
-              const end = currentPercent + percent;
-              const color = palette[idx % palette.length];
-              gradientParts.push(`${color} ${start.toFixed(2)}% ${end.toFixed(2)}%`);
-              currentPercent = end;
-
-              const legendItem = document.createElement("li");
-              legendItem.className = "admin-chart-legend-item";
-              legendItem.innerHTML = `<span class="admin-chart-legend-dot" style="background:${color}"></span><span>${item.name} (${count})</span>`;
-              legendEl.appendChild(legendItem);
-            });
-            pieEl.style.background = `conic-gradient(${gradientParts.join(",")})`;
-          }
+          renderPieChartItems(pieEl, legendEl, chartItems);
         };
 
         renderPieChart(
@@ -1524,7 +1551,9 @@
         const reviewPreviewText = document.getElementById("adminReviewPreviewText");
         let editingReviewCard = null;
         let editingFromInstitutionCatalog = false;
+        let editingFromUserModal = false;
         let catalogInstitutionReviewsId = null;
+        let catalogUserReviewsId = null;
         let catalogInstitutionLine = "";
 
         const institutionReviewsModal = document.getElementById("adminInstitutionReviewsModal");
@@ -1614,6 +1643,7 @@
         const openReviewModal = (card) => {
           if (!reviewModal || !reviewForm || !card) return;
           editingFromInstitutionCatalog = false;
+          editingFromUserModal = false;
           editingReviewCard = card;
           setReviewMessage("");
           fillReviewEditFormFields({
@@ -1630,6 +1660,7 @@
         const openReviewModalFromCatalogRow = (row) => {
           if (!reviewModal || !reviewForm || !row) return;
           editingFromInstitutionCatalog = true;
+          editingFromUserModal = false;
           editingReviewCard = null;
           setReviewMessage("");
           fillReviewEditFormFields({
@@ -1643,11 +1674,29 @@
           });
           reviewModal.classList.remove("hidden");
         };
+        const openReviewModalFromUserRow = (row) => {
+          if (!reviewModal || !reviewForm || !row) return;
+          editingFromInstitutionCatalog = false;
+          editingFromUserModal = true;
+          editingReviewCard = null;
+          setReviewMessage("");
+          fillReviewEditFormFields({
+            reviewId: row.dataset.reviewId,
+            institutionLine: row.dataset.institutionLine || "",
+            author: document.getElementById("adminUserReviewsSubtitle")?.textContent?.trim() || "",
+            dateStr: row.dataset.createdAt || "",
+            ratingNum: row.dataset.rating,
+            statusRaw: row.dataset.reviewStatus || "pending",
+            comment: row.dataset.comment || "",
+          });
+          reviewModal.classList.remove("hidden");
+        };
         const closeReviewModal = () => {
           if (!reviewModal) return;
           reviewModal.classList.add("hidden");
           editingReviewCard = null;
           editingFromInstitutionCatalog = false;
+          editingFromUserModal = false;
           setReviewMessage("");
           reviewForm?.reset();
         };
@@ -1686,6 +1735,14 @@
             }
             const finalStatus = data?.status || status;
             const finalComment = data?.comment ?? comment;
+            if (editingFromUserModal && catalogUserReviewsId) {
+              document.querySelector(`.admin-review-card[data-review-id="${reviewId}"]`)?.remove();
+              ensureEmptyState();
+              closeReviewModal();
+              await loadUserReviewsForModal(catalogUserReviewsId);
+              setReviewMessage("");
+              return;
+            }
             if (editingFromInstitutionCatalog && catalogInstitutionReviewsId) {
               document.querySelector(`.admin-review-card[data-review-id="${reviewId}"]`)?.remove();
               ensureEmptyState();
@@ -1890,6 +1947,137 @@
         document.getElementById("adminInstitutionReviewsModalCloseBtn")?.addEventListener("click", closeInstitutionReviewsModal);
         institutionReviewsModal?.addEventListener("click", (event) => {
           if (event.target === institutionReviewsModal) closeInstitutionReviewsModal();
+        });
+
+        const userReviewsModal = document.getElementById("adminUserReviewsModal");
+        const userReviewsModalBody = document.getElementById("adminUserReviewsModalBody");
+        const userReviewsSubtitle = document.getElementById("adminUserReviewsSubtitle");
+        const userReviewsModalEmpty = document.getElementById("adminUserReviewsModalEmpty");
+        const userReviewsPie = document.getElementById("adminUserReviewsPie");
+        const userReviewsPieLegend = document.getElementById("adminUserReviewsPieLegend");
+        const adminUsersTbody = document.getElementById("adminUsersTbody");
+
+        const renderUserReviewsIntoModal = (reviews) => {
+          if (!userReviewsModalBody || !userReviewsModalEmpty) return;
+          userReviewsModalBody.innerHTML = "";
+          if (!reviews.length) {
+            userReviewsModalEmpty.classList.remove("hidden");
+            return;
+          }
+          userReviewsModalEmpty.classList.add("hidden");
+          reviews.forEach((rev) => {
+            const article = document.createElement("article");
+            article.className = "admin-catalog-review-row";
+            const institutionLine = rev.institution_line || rev.institution_name || "";
+            const dateStr = rev.created_at_display || "";
+            const ratingVal = Number.isFinite(Number(rev.rating)) ? Number(rev.rating) : 0;
+            const mainStars = Math.round(Math.min(5, Math.max(0, ratingVal)));
+            const comment = rev.comment || "";
+            const statusRaw = rev.status || "pending";
+            const statusLabel = catalogReviewStatusLabel(statusRaw);
+            const statusBadgeClass = catalogReviewStatusBadgeClass(statusRaw);
+            article.dataset.reviewId = String(rev.id);
+            article.dataset.institutionLine = institutionLine;
+            article.dataset.createdAt = dateStr;
+            article.dataset.rating = String(ratingVal);
+            article.dataset.comment = comment;
+            article.dataset.reviewStatus = statusRaw;
+            article.dataset.search = `${institutionLine} ${dateStr} ${mainStars} ${ratingVal} ${comment} ${statusLabel}`.toLowerCase();
+            article.innerHTML = `
+              <div class="admin-catalog-review-head">
+                <span class="admin-catalog-review-author">${escapeHtml(rev.institution_name || "Учреждение")}</span>
+                <span class="${statusBadgeClass}">${escapeHtml(statusLabel)}</span>
+                <span class="admin-catalog-review-date">${escapeHtml(dateStr)}</span>
+                <span class="admin-catalog-review-rating-main" title="Оценка учреждения">${"★".repeat(mainStars)}${"☆".repeat(5 - mainStars)} <span class="admin-catalog-review-rating-num">${mainStars}</span></span>
+              </div>
+              <p class="admin-catalog-review-comment"></p>
+              <div class="admin-catalog-review-actions">
+                <button type="button" class="admin-review-btn admin-review-btn--edit" data-user-review-edit>Редактировать</button>
+              </div>
+            `;
+            const p = article.querySelector(".admin-catalog-review-comment");
+            if (p) p.textContent = comment || "—";
+            userReviewsModalBody.appendChild(article);
+          });
+        };
+
+        const loadUserReviewsForModal = async (userId) => {
+          if (!userReviewsModalBody) return;
+          userReviewsModalBody.innerHTML =
+            '<p class="admin-users-empty admin-catalog-reviews-loading">Загрузка…</p>';
+          userReviewsModalEmpty?.classList.add("hidden");
+          if (userReviewsPie && userReviewsPieLegend) {
+            renderPieChartItems(userReviewsPie, userReviewsPieLegend, [], "★");
+          }
+          try {
+            const response = await fetch(`/api/get_admin_user_reviews?user_id=${encodeURIComponent(userId)}`);
+            const data = await response.json();
+            if (!response.ok) {
+              userReviewsModalBody.innerHTML = `<p class="admin-users-empty">${escapeHtml(data?.error || "Ошибка загрузки")}</p>`;
+              return;
+            }
+            const user = data.user || {};
+            if (userReviewsSubtitle) {
+              const subtitleParts = [user.display_name, user.email].filter(Boolean);
+              userReviewsSubtitle.textContent = subtitleParts.join(" · ");
+            }
+            if (userReviewsPie && userReviewsPieLegend) {
+              renderPieChartItems(userReviewsPie, userReviewsPieLegend, data.pie_chart || [], "★");
+            }
+            renderUserReviewsIntoModal(data.reviews || []);
+          } catch (e) {
+            console.error(e);
+            userReviewsModalBody.innerHTML =
+              '<p class="admin-users-empty">Ошибка сети. Попробуйте ещё раз.</p>';
+          }
+        };
+
+        const openUserReviewsModal = async (row) => {
+          if (!userReviewsModal || !row) return;
+          catalogUserReviewsId = row.dataset.userId || null;
+          userReviewsModal.classList.remove("hidden");
+          if (catalogUserReviewsId) {
+            await loadUserReviewsForModal(catalogUserReviewsId);
+          }
+        };
+
+        const closeUserReviewsModal = () => {
+          userReviewsModal?.classList.add("hidden");
+          catalogUserReviewsId = null;
+          if (userReviewsModalBody) userReviewsModalBody.innerHTML = "";
+          if (userReviewsSubtitle) userReviewsSubtitle.textContent = "";
+          if (userReviewsPie && userReviewsPieLegend) {
+            renderPieChartItems(userReviewsPie, userReviewsPieLegend, [], "★");
+          }
+        };
+
+        document.getElementById("adminUserReviewsModalCloseBtn")?.addEventListener("click", closeUserReviewsModal);
+        userReviewsModal?.addEventListener("click", (event) => {
+          if (event.target === userReviewsModal) closeUserReviewsModal();
+        });
+
+        adminUsersTbody?.addEventListener("click", (event) => {
+          if (event.target.closest(".admin-user-actions")) return;
+          const row = event.target.closest(".admin-user-row");
+          if (!row || !row.dataset.userId) return;
+          openUserReviewsModal(row);
+        });
+
+        adminUsersTbody?.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          const row = event.target.closest(".admin-user-row");
+          if (!row || !row.dataset.userId) return;
+          if (event.target.closest(".admin-user-actions")) return;
+          event.preventDefault();
+          openUserReviewsModal(row);
+        });
+
+        userReviewsModalBody?.addEventListener("click", (event) => {
+          const editBtn = event.target.closest("[data-user-review-edit]");
+          const row = event.target.closest(".admin-catalog-review-row");
+          if (editBtn && row) {
+            openReviewModalFromUserRow(row);
+          }
         });
 
         catalogInstitutionsTbody?.addEventListener("click", (event) => {

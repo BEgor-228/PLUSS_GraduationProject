@@ -134,6 +134,22 @@ body {
   border: 1px solid #ddd;
 }
 
+.map-data-notice {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 20;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fff3cd;
+  border: 1px solid #ffecb5;
+  color: #664d03;
+  font-size: 14px;
+  line-height: 1.4;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
 .map-wrapper {
   width: 100%;
   height: 100%;
@@ -192,7 +208,8 @@ g[id="region_eletskiy"] {
   pointer-events: none;
 }
 
-g[id="region_eletskiy"] polygon.region {
+g[id="region_eletskiy"] polygon.region,
+g[id="region_eletskiy"] polygon.district {
   pointer-events: all;
 }
 
@@ -689,6 +706,12 @@ g[id="region_eletskiy"] polygon.region {
   justify-content: center;
   z-index: 9999;
   text-align: center;
+  transition: opacity 0.3s ease;
+}
+
+.page-loader.is-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .modal-loader {
@@ -851,6 +874,46 @@ g[id="region_eletskiy"] polygon.region {
   background: linear-gradient(135deg, #d1ecf1, #bee5eb);
   color: #0c5460;
   border-left: 2px solid #17a2b8;
+}
+
+.accessibility-section.is-collapsed .accessibility-rating-row--collapsible {
+  display: none;
+}
+
+.accessibility-toggle-btn {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0c5460;
+  background: #eaf6f8;
+  border: 1px solid #b8dbe2;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.accessibility-toggle-btn:hover {
+  background: #d1ecf1;
+  color: #094753;
+}
+
+.accessibility-toggle-btn:active {
+  transform: translateY(1px);
+}
+
+.accessibility-toggle-icon {
+  display: inline-block;
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.accessibility-toggle-btn[data-expanded="true"] .accessibility-toggle-icon {
+  transform: rotate(180deg);
 }
 
 .institution-reviews-section {
@@ -1798,7 +1861,7 @@ body.accessibility-white-on-black.large-cursor {
 
 .district:hover,
 .region:hover {
-  transform: translate(-5px, -5px) scale(1.02);
+  /* Без translate/scale: смещение ломает hit-area и click в Chrome/Opera. */
   filter: drop-shadow(1px 1px 0 #95a5a6) drop-shadow(2px 2px 0 #95a5a6) drop-shadow(3px 3px 0 #8b9a9b) drop-shadow(4px 4px 0 #8b9a9b) drop-shadow(5px 5px 0 #7f8c8d) drop-shadow(8px 8px 10px rgba(0, 0, 0, 0.3));
   stroke-width: 2;
   stroke: #ecf0f1;
@@ -3538,6 +3601,80 @@ body[data-page="institution-form"] .checkbox-group {
 .admin-catalog-institution-open-btn:hover {
   background: #edd03a;
   border-color: #b89420;
+}
+
+.admin-user-row--clickable {
+  cursor: pointer;
+}
+
+.admin-user-row--clickable:hover {
+  background: #f4f9ff;
+}
+
+.admin-user-row--clickable:focus-visible {
+  outline: 2px solid #1f5ea8;
+  outline-offset: -2px;
+}
+
+.admin-user-reviews-modal {
+  z-index: 2990;
+}
+
+.admin-user-reviews-modal-card {
+  max-width: 720px;
+  max-height: min(92vh, 820px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-user-reviews-modal .admin-export-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-user-reviews-subtitle {
+  margin: 0 0 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f5ea8;
+  line-height: 1.35;
+}
+
+.admin-user-reviews-chart-card {
+  margin-bottom: 16px;
+}
+
+.admin-user-reviews-chart-wrap {
+  min-height: 0;
+  align-items: flex-start;
+}
+
+.admin-user-reviews-modal .admin-chart-pie {
+  width: 140px;
+  height: 140px;
+}
+
+.admin-user-reviews-modal .admin-chart-legend {
+  grid-template-rows: repeat(5, auto);
+  gap: 6px 14px;
+  font-size: 0.88rem;
+}
+
+.admin-user-reviews-list-title {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2c425c;
+}
+
+.admin-user-reviews-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .admin-institution-reviews-modal {

@@ -6,6 +6,7 @@ Object.assign(LipetskMap.prototype, {
     showPageLoader() {
       const pageLoader = document.getElementById("pageLoader");
       if (pageLoader) {
+        pageLoader.classList.remove("is-hidden");
         pageLoader.style.display = 'flex';
       }
     },
@@ -13,7 +14,7 @@ Object.assign(LipetskMap.prototype, {
     hidePageLoader() {
       const pageLoader = document.getElementById("pageLoader");
       if (pageLoader) {
-        pageLoader.style.opacity = '0';
+        pageLoader.classList.add("is-hidden");
         setTimeout(() => {
           pageLoader.style.display = 'none';
         }, 300);

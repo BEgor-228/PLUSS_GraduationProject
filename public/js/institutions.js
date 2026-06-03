@@ -5,23 +5,43 @@
 
 Object.assign(LipetskMap.prototype, {
 
+    applyDistrictCatalog(districtMap) {
+      this.districts = districtMap || {};
+      this.districtIdMap = {};
+      Object.entries(this.districts).forEach(([id, name]) => {
+        this.districtIdMap[name] = parseInt(id, 10);
+      });
+      this.populateLegend();
+      this.populateDistrictSelect();
+    },
+
+    showDistrictCatalogNotice(message) {
+      const mapContainer = document.querySelector(".map-container");
+      if (!mapContainer || document.getElementById("districtCatalogNotice")) return;
+      const notice = document.createElement("div");
+      notice.id = "districtCatalogNotice";
+      notice.className = "map-data-notice";
+      notice.textContent = message;
+      mapContainer.prepend(notice);
+    },
+
     async loadDistricts() {
+      const emptyCatalogMessage =
+        "Справочник районов пуст. Выполните: docker compose exec web python manage.py seed_reference_data";
+
       try {
         const response = await fetch("/api/get_districts");
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (data.error) throw new Error(data.error);
-        this.districts = data.districts;
-        this.districtIdMap = {};
-        Object.entries(this.districts).forEach(([id, name]) => {
-          this.districtIdMap[name] = parseInt(id);
-        });
-        this.populateLegend();
-        this.populateDistrictSelect();
+        if (!data.districts || Object.keys(data.districts).length === 0) {
+          throw new Error("Empty districts catalog");
+        }
+        this.applyDistrictCatalog(data.districts);
       } catch (error) {
         console.error("Error loading districts:", error);
-        this.districts = { 1: "Липецкий округ", 2: "Елецкий округ" };
-        this.populateLegend();
+        this.applyDistrictCatalog({});
+        this.showDistrictCatalogNotice(emptyCatalogMessage);
       }
     },
   
@@ -135,6 +155,32 @@ Object.assign(LipetskMap.prototype, {
         this.bindFavoriteActions();
         this.bindReviewActions();
       }
+
+      this.bindAccessibilityToggles();
+    },
+
+    bindAccessibilityToggles() {
+      const list = document.getElementById("institutionsList");
+      if (!list || list.dataset.accessibilityToggleBound === "1") return;
+      list.dataset.accessibilityToggleBound = "1";
+      list.addEventListener("click", (event) => {
+        const btn = event.target.closest(".accessibility-toggle-btn");
+        if (!btn || !list.contains(btn)) return;
+        const section = btn.closest(".accessibility-section");
+        if (!section) return;
+        const expanded = btn.dataset.expanded === "true";
+        const next = !expanded;
+        btn.dataset.expanded = next ? "true" : "false";
+        btn.setAttribute("aria-expanded", next ? "true" : "false");
+        section.classList.toggle("is-collapsed", !next);
+        const hiddenCount = Number(btn.dataset.hiddenCount || 0);
+        const labelNode = btn.querySelector(".accessibility-toggle-label");
+        if (labelNode) {
+          labelNode.textContent = next
+            ? "Свернуть"
+            : `Показать ещё (${hiddenCount})`;
+        }
+      });
     },
   
     updatePagination() {
@@ -550,25 +596,41 @@ Object.assign(LipetskMap.prototype, {
             </div>
           </div>`
           : "";
+      const ACCESSIBILITY_PREVIEW_COUNT = 3;
+      const accessibilityRowsHtml = uniqueAccessibilityCriteria
+        .map((criterion, idx) => {
+          const avg = avgAccessibility[criterion];
+          const avgBadge =
+            typeof avg === "number"
+              ? `<span class="tag-avg-circle" title="Средняя оценка критерия">${avg.toFixed(2)}</span>`
+              : "";
+          const label = accessibilityNames[criterion] || criterion;
+          const collapsibleClass =
+            idx >= ACCESSIBILITY_PREVIEW_COUNT
+              ? " accessibility-rating-row--collapsible"
+              : "";
+          return `<div class="accessibility-rating-row${collapsibleClass}"><span class="accessibility-rating-label">${label}</span>${avgBadge}</div>`;
+        })
+        .join("");
+      const hiddenAccessibilityCount = Math.max(
+        0,
+        uniqueAccessibilityCriteria.length - ACCESSIBILITY_PREVIEW_COUNT
+      );
+      const accessibilityToggleBtn =
+        hiddenAccessibilityCount > 0
+          ? `<button type="button" class="accessibility-toggle-btn" data-expanded="false" data-hidden-count="${hiddenAccessibilityCount}" aria-expanded="false">
+              <span class="accessibility-toggle-label">Показать ещё (${hiddenAccessibilityCount})</span>
+              <span class="accessibility-toggle-icon" aria-hidden="true">▾</span>
+            </button>`
+          : "";
       const accessibilitySection =
         uniqueAccessibilityCriteria.length > 0
-          ? `<div class="admission-section">
+          ? `<div class="admission-section accessibility-section${hiddenAccessibilityCount > 0 ? " is-collapsed" : ""}">
             <h5>Критерии физической доступности:</h5>
             <div class="accessibility-rating-list">
-              ${uniqueAccessibilityCriteria
-            .map(
-              (criterion) => {
-                const avg = avgAccessibility[criterion];
-                const avgBadge =
-                  typeof avg === "number"
-                    ? `<span class="tag-avg-circle" title="Средняя оценка критерия">${avg.toFixed(2)}</span>`
-                    : "";
-                const label = accessibilityNames[criterion] || criterion;
-                return `<div class="accessibility-rating-row"><span class="accessibility-rating-label">${label}</span>${avgBadge}</div>`;
-              }
-            )
-            .join("")}
+              ${accessibilityRowsHtml}
             </div>
+            ${accessibilityToggleBtn}
           </div>`
           : "";
   

@@ -7,7 +7,9 @@
 -- Правила заполнения:
 --   type_id = school_internat, range_min=1, range_max=11
 --   name — краткое название; description — полное официальное
---   admission, conditions, accessibility_criteria — не заполняются
+--   admission — не заполняются
+--   conditions — заполняются для «Специальной школы-интерната г. Ельца» (секция 5)
+--   accessibility_criteria — заполняются для «Специальной школы-интерната г. Ельца» (секция 6)
 --   АООП: aoop_url (первая программа) + все названия в mapapp_aoopprogram
 --   ЦОРиО — не импортируется
 --
@@ -249,6 +251,53 @@ WHERE NOT EXISTS (
     SELECT 1 FROM mapapp_aoopprogram p
     WHERE p.institution_id = i.id AND p.name = a.program_name
 );
+
+-- ---------------------------------------------------------------------------
+-- 5. Особые условия поступления (ОВЗ)
+--    Источник: shkola-internat-elets.gosuslugi.ru — основной профиль АООП ОУО
+--    (умственная отсталость), логопедия (речь), косвенно слух/зрение и ОДА
+-- ---------------------------------------------------------------------------
+CREATE TEMP TABLE _internat_conditions (
+    institution_name VARCHAR(255) NOT NULL,
+    condition_code   VARCHAR(50) NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO _internat_conditions (institution_name, condition_code) VALUES
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'hearing_impairment'),
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'vision_impairment'),
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'musculoskeletal_impairment'),
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'speech_impairment'),
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'mental_retardation');
+
+INSERT INTO mapapp_institution_conditions (institution_id, conditiontype_id)
+SELECT i.id, c.condition_code
+FROM _internat_conditions c
+JOIN mapapp_institution i ON i.name = c.institution_name
+ON CONFLICT (institution_id, conditiontype_id) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 6. Критерии физической доступности
+-- ---------------------------------------------------------------------------
+CREATE TEMP TABLE _internat_accessibility (
+    institution_name VARCHAR(255) NOT NULL,
+    criterion_code   VARCHAR(60) NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO _internat_accessibility (institution_name, criterion_code) VALUES
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'ramps_lifts'),
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'entrance_groups_doorways'),
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'tactile_pedestrian_indicators'),
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'accessible_sanitary_facilities'),
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'assistant_call_system'),
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'contrast_marking'),
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'safety_zones_evacuation_routes'),
+    ('ГБОУ «Специальная школа-интернат г. Ельца»', 'acoustic_systems_induction_loops');
+
+INSERT INTO mapapp_institution_accessibility_criteria (institution_id, accessibilitycriteriontype_id)
+SELECT i.id, a.criterion_code
+FROM _internat_accessibility a
+JOIN mapapp_institution i ON i.name = a.institution_name
+ON CONFLICT (institution_id, accessibilitycriteriontype_id) DO NOTHING;
 
 COMMIT;
 

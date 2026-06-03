@@ -1,0 +1,19 @@
+=== lgtu ===
+https://www.stu.lipetsk.ru/sveden/objects ERR: HTTP Error 403: Forbidden
+https://www.stu.lipetsk.ru/sveden/mtl ERR: HTTP Error 403: Forbidden
+https://www.stu.lipetsk.ru/sveden/common ERR: HTTP Error 403: Forbidden
+https://www.stu.lipetsk.ru/sveden/ ERR: HTTP Error 403: Forbidden
+https://www.stu.lipetsk.ru/sveden/education ERR: HTTP Error 403: Forbidden
+https://www.stu.lipetsk.ru/sveden/document ERR: HTTP Error 403: Forbidden
+https://www.stu.lipetsk.ru/sveden/struct ERR: HTTP Error 403: Forbidden
+home ERR: HTTP Error 403: Forbidden
+
+=== ranepa ===
+https://lip.ranepa.ru/sveden/objects -> 200, len=13602
+https://lip.ranepa.ru/sveden/mtl -> 200, len=13602
+https://lip.ranepa.ru/sveden/common -> 200, len=13602
+https://lip.ranepa.ru/sveden/ -> 200, len=13602
+https://lip.ranepa.ru/sveden/education -> 200, len=13602
+https://lip.ranepa.ru/sveden/document -> 200, len=13602
+https://lip.ranepa.ru/sveden/struct -> 200, len=13602
+Links:

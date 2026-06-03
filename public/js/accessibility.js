@@ -289,14 +289,17 @@ class AccessibilityModule {
     }
 
     handleTextClick(event) {
+        const target = event.target;
+        if (target.closest('.accessibility-module')) {
+            return;
+        }
+        if (target.closest('.district, .region, .legend-item, #mapWrapper')) {
+            return;
+        }
         event.preventDefault();
         event.stopPropagation();
         if (this.speechSynthesis.speaking) {
             this.speechSynthesis.cancel();
-        }
-        const target = event.target;
-        if (target.closest('.accessibility-module')) {
-            return;
         }
         let textToRead = this.extractTextFromElement(target);
         if (textToRead && textToRead.trim()) {

@@ -893,17 +893,21 @@ def _calc_relevance(
     selected_conditions: list[str],
     selected_accessibility: list[str],
     aoop_selected: bool,
+    selected_admission: list[str] | None = None,
 ) -> float:
     weights = {
-        "type": 0.5,
+        "type": 0.45,
         "conditions": 0.15,
         "age": 0.15,
         "aoop": 0.1,
         "accessibility": 0.1,
+        "admission": 0.05,
     }
+    selected_admission = selected_admission or []
     inst_conditions = inst_payload.get("conditions") or []
     inst_accessibility = inst_payload.get("accessibility_criteria") or []
     inst_aoop = inst_payload.get("aoop_programs") or []
+    inst_admission = inst_payload.get("conditionsAdmission") or []
 
     type_score = 1.0 if not selected_types else (1.0 if inst_payload.get("type") in selected_types else 0.0)
     conditions_score = (
@@ -922,12 +926,18 @@ def _calc_relevance(
         if not selected_accessibility
         else sum(1 for c in selected_accessibility if c in inst_accessibility) / len(selected_accessibility)
     )
+    admission_score = (
+        1.0
+        if not selected_admission
+        else sum(1 for a in selected_admission if a in inst_admission) / len(selected_admission)
+    )
     return (
         weights["type"] * type_score
         + weights["conditions"] * conditions_score
         + weights["age"] * age_score
         + weights["aoop"] * aoop_score
         + weights["accessibility"] * accessibility_score
+        + weights["admission"] * admission_score
     )
 
 
@@ -1056,6 +1066,7 @@ def search_institutions(request: HttpRequest):
     selected_ages = [v for v in request.GET.getlist("age") if v]
     selected_conditions = [v for v in request.GET.getlist("condition") if v]
     selected_accessibility = [v for v in request.GET.getlist("accessibility") if v]
+    selected_admission = [v for v in request.GET.getlist("admission") if v]
     aoop_selected = request.GET.get("aoop") in {"1", "true", "yes"}
     search_term = (request.GET.get("q") or "").strip()
 
@@ -1080,6 +1091,7 @@ def search_institutions(request: HttpRequest):
                 selected_conditions,
                 selected_accessibility,
                 aoop_selected,
+                selected_admission=selected_admission,
             ),
         )
         for inst in institutions
@@ -2250,6 +2262,71 @@ def edit_review_placeholder(request: HttpRequest):
     review.save(update_fields=["status", "comment", "updated_at"])
     _notify_review_author_status_changed(admin, review, old_status, status_value)
     return JsonResponse({"success": True, "status": review.status, "comment": review.comment})
+
+
+@require_GET
+def get_admin_user_reviews(request: HttpRequest):
+    admin = _require_admin(request)
+    if not admin:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    User = get_user_model()
+    user_id = request.GET.get("user_id")
+    if not user_id or not str(user_id).isdigit():
+        return JsonResponse({"error": "user_id required"}, status=400)
+    target_user = User.objects.filter(pk=int(user_id), is_superuser=False).first()
+    if not target_user:
+        return JsonResponse({"error": "Пользователь не найден"}, status=404)
+
+    reviews_qs = (
+        InstitutionReview.objects.filter(user=target_user)
+        .select_related("institution__district", "institution__type")
+        .order_by("-created_at", "-id")
+    )
+    reviews = []
+    pie_items = []
+    for rev in reviews_qs:
+        institution = rev.institution
+        inst_name = institution.name if institution else "Учреждение"
+        district_name = institution.district.name if institution and institution.district_id else ""
+        type_name = institution.type.name_ru if institution and institution.type_id else ""
+        rating_val = float(rev.rating or 0)
+        rating_int = max(1, min(5, int(round(rating_val)))) if rating_val > 0 else 1
+        pie_items.append(
+            {
+                "name": inst_name,
+                "count": rating_int,
+            }
+        )
+        reviews.append(
+            {
+                "id": rev.id,
+                "institution_name": inst_name,
+                "district_name": district_name,
+                "type_name": type_name,
+                "institution_line": " | ".join(part for part in [district_name, type_name, inst_name] if part),
+                "created_at_display": rev.created_at.strftime("%d.%m.%Y %H:%M"),
+                "rating": rating_val,
+                "comment": rev.comment or "",
+                "status": rev.status,
+            }
+        )
+
+    full_name = " ".join(
+        part for part in [target_user.first_name, target_user.last_name] if part
+    ).strip()
+    display_name = full_name or target_user.username or "Пользователь"
+    return JsonResponse(
+        {
+            "user": {
+                "id": target_user.id,
+                "display_name": display_name,
+                "username": target_user.username or "",
+                "email": target_user.email or "",
+            },
+            "pie_chart": pie_items,
+            "reviews": reviews,
+        }
+    )
 
 
 @require_GET

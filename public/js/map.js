@@ -75,11 +75,19 @@ Object.assign(LipetskMap.prototype, {
             group: group,
           };
   
-          polygon.addEventListener("click", (e) => {
+          const navigateToDistrict = (e) => {
+            e.preventDefault();
             e.stopPropagation();
             this.handleDistrictClick(e, regionName);
+          };
+
+          // pointerdown надёжнее click для SVG в Chrome/Opera:
+          // hover-transform и перестановка групп могут «терять» click.
+          polygon.addEventListener("pointerdown", (e) => {
+            if (e.button !== 0) return;
+            navigateToDistrict(e);
           });
-  
+
           polygon.addEventListener("mouseenter", (e) => {
             e.stopPropagation();
             if (hideTimeout) clearTimeout(hideTimeout);
@@ -118,7 +126,7 @@ Object.assign(LipetskMap.prototype, {
             this.showTooltip(e, currentRegionName);
           });
           
-          polygon.addEventListener("mouseout", (e) => {
+          polygon.addEventListener("mouseleave", (e) => {
             e.stopPropagation();
             if (hideTimeout) clearTimeout(hideTimeout);
             
@@ -252,8 +260,16 @@ Object.assign(LipetskMap.prototype, {
   
     openDistrictModal(districtName) {
       const districtId = this.districtIdMap[districtName];
-      if (!districtId) return;
-      window.location.href = `/district/${districtId}/`;
+      if (!districtId) {
+        const isCatalogEmpty = !this.districtIdMap || Object.keys(this.districtIdMap).length === 0;
+        const message = isCatalogEmpty
+          ? "Справочник районов не загружен. Заполните БД командой:\ndocker compose exec web python manage.py seed_reference_data\n\nЗатем обновите страницу."
+          : `Район «${districtName}» не найден в справочнике. Обновите страницу или выполните seed_reference_data.`;
+        console.warn("District id not found for:", districtName, this.districtIdMap);
+        alert(message);
+        return;
+      }
+      window.location.assign(`/district/${districtId}/`);
     },
 
     showDistrictView(districtName) {

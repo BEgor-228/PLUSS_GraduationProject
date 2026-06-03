@@ -29,6 +29,7 @@ Object.assign(LipetskMap.prototype, {
       checkedValues("filter_age").forEach((v) => params.append("age", v));
       checkedValues("filter_condition").forEach((v) => params.append("condition", v));
       checkedValues("filter_accessibility").forEach((v) => params.append("accessibility", v));
+      checkedValues("filter_admission").forEach((v) => params.append("admission", v));
       if (document.querySelector('.filter-group-accordion input[name="filter_aoop"]:checked')) {
         params.set("aoop", "1");
       }

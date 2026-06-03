@@ -8,7 +8,9 @@
 --   type_id: vo (высшее образование) или spo (техникум ЕТЖТ)
 --   range_min, range_max — NULL
 --   name — краткое название; description — полное официальное
---   admission, conditions, accessibility_criteria — не заполняются
+--   admission: для всех ВО (type vo) — attestat (Аттестат); для СПО — не заполняется
+--   conditions — заполняются для ЛГПУ, ЛГТУ, ЛИК, ЛКИТиУ, РАНХиГС (секция 5)
+--   accessibility_criteria — заполняются для тех же вузов (секция 6)
 --   АООП — нет ни у одного учреждения
 --   Телефон — один основной (приёмная директора / ректора / локальный)
 --   Email директора — личный, если указан; иначе общий учреждения
@@ -164,6 +166,135 @@ FROM _vuzy_import v
 JOIN mapapp_district d ON d.name = v.district_name
 LEFT JOIN mapapp_director dir ON dir.full_name = v.director_name
 ON CONFLICT (name) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 4. Условия приёма: аттестат для всех учреждений ВО из этого импорта
+-- ---------------------------------------------------------------------------
+INSERT INTO mapapp_institution_admission (institution_id, admissiontype_id)
+SELECT i.id, 'attestat'
+FROM mapapp_institution i
+JOIN _vuzy_import v ON v.name = i.name
+WHERE v.institution_type = 'vo'
+ON CONFLICT (institution_id, admissiontype_id) DO NOTHING;
+
+-- Дополнительно: все уже существующие ВО в БД (на случай повторного запуска)
+INSERT INTO mapapp_institution_admission (institution_id, admissiontype_id)
+SELECT i.id, 'attestat'
+FROM mapapp_institution i
+WHERE i.type_id = 'vo'
+ON CONFLICT (institution_id, admissiontype_id) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 5. Особые условия поступления (ОВЗ)
+--    Источники: разделы «Сведения об организации» / «Доступная среда» /
+--      «Профессиональная ориентация инвалидов и лиц с ОВЗ» вузов;
+--      РАНХиГС — частично подтверждённые сведения по «Слышащие сердца»
+--      и общей политике приёма МГН.
+-- ---------------------------------------------------------------------------
+CREATE TEMP TABLE _vuzy_conditions (
+    institution_name VARCHAR(255) NOT NULL,
+    condition_code   VARCHAR(50) NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO _vuzy_conditions (institution_name, condition_code) VALUES
+    -- ЛГПУ: слух, зрение, ОДА; речь (направление «Логопедия») — учитывается как
+    --       подготовка профильных специалистов и подтверждена адаптивной средой
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'hearing_impairment'),
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'vision_impairment'),
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'musculoskeletal_impairment'),
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'speech_impairment'),
+
+    -- ЛГТУ: явно описаны спецусловия вступительных испытаний для слепых,
+    --       слабовидящих, глухих/слабослышащих, ОДА и тяжёлых нарушений речи
+    ('ЛГТУ', 'hearing_impairment'),
+    ('ЛГТУ', 'vision_impairment'),
+    ('ЛГТУ', 'musculoskeletal_impairment'),
+    ('ЛГТУ', 'speech_impairment'),
+
+    -- ЛИК: сурдоперевод (соглашение с ВОГ), NVDA для слабовидящих, кнопка
+    --      вызова и широкие проёмы для ОДА
+    ('ЛИК', 'hearing_impairment'),
+    ('ЛИК', 'vision_impairment'),
+    ('ЛИК', 'musculoskeletal_impairment'),
+
+    -- ЛКИТиУ: индукционная система (слух), версия для слабовидящих, специализированная
+    --        мебель и кресла-коляски (ОДА)
+    ('ЛКИТиУ (филиал) ФГБОУ ВО «МГУТУ им. К.Г. Разумовского (ПКУ)»', 'hearing_impairment'),
+    ('ЛКИТиУ (филиал) ФГБОУ ВО «МГУТУ им. К.Г. Разумовского (ПКУ)»', 'vision_impairment'),
+    ('ЛКИТиУ (филиал) ФГБОУ ВО «МГУТУ им. К.Г. Разумовского (ПКУ)»', 'musculoskeletal_impairment'),
+
+    -- РАНХиГС: проект «Слышащие сердца» (слух); ОДА/зрение — по общей политике
+    --         РАНХиГС и базовой инфраструктуре филиала
+    ('Липецкий филиал РАНХиГС', 'hearing_impairment'),
+    ('Липецкий филиал РАНХиГС', 'vision_impairment'),
+    ('Липецкий филиал РАНХиГС', 'musculoskeletal_impairment');
+
+INSERT INTO mapapp_institution_conditions (institution_id, conditiontype_id)
+SELECT i.id, c.condition_code
+FROM _vuzy_conditions c
+JOIN mapapp_institution i ON i.name = c.institution_name
+ON CONFLICT (institution_id, conditiontype_id) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 6. Критерии физической доступности
+-- ---------------------------------------------------------------------------
+CREATE TEMP TABLE _vuzy_accessibility (
+    institution_name VARCHAR(255) NOT NULL,
+    criterion_code   VARCHAR(60) NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO _vuzy_accessibility (institution_name, criterion_code) VALUES
+    -- ЛГПУ: один из наиболее подробных разделов — почти все критерии
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'ramps_lifts'),
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'entrance_groups_doorways'),
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'tactile_pedestrian_indicators'),
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'braille_signage'),
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'accessible_sanitary_facilities'),
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'assistant_call_system'),
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'contrast_marking'),
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'safety_zones_evacuation_routes'),
+    ('ЛГПУ имени П.П.Семенова-Тян-Шанского', 'acoustic_systems_induction_loops'),
+
+    -- ЛГТУ: тифло-информационный центр, индукция, Брайль, пандусы, лифты, кнопка
+    ('ЛГТУ', 'ramps_lifts'),
+    ('ЛГТУ', 'entrance_groups_doorways'),
+    ('ЛГТУ', 'tactile_pedestrian_indicators'),
+    ('ЛГТУ', 'braille_signage'),
+    ('ЛГТУ', 'accessible_sanitary_facilities'),
+    ('ЛГТУ', 'assistant_call_system'),
+    ('ЛГТУ', 'contrast_marking'),
+    ('ЛГТУ', 'safety_zones_evacuation_routes'),
+    ('ЛГТУ', 'acoustic_systems_induction_loops'),
+
+    -- ЛИК: входная группа, Брайль, гигиеническая комната, контрастность, вызов
+    ('ЛИК', 'entrance_groups_doorways'),
+    ('ЛИК', 'braille_signage'),
+    ('ЛИК', 'accessible_sanitary_facilities'),
+    ('ЛИК', 'assistant_call_system'),
+    ('ЛИК', 'contrast_marking'),
+    ('ЛИК', 'acoustic_systems_induction_loops'),
+
+    -- ЛКИТиУ: паспорт доступности, пандусы, санузел, индукция, Брайль, мнемосхемы
+    ('ЛКИТиУ (филиал) ФГБОУ ВО «МГУТУ им. К.Г. Разумовского (ПКУ)»', 'ramps_lifts'),
+    ('ЛКИТиУ (филиал) ФГБОУ ВО «МГУТУ им. К.Г. Разумовского (ПКУ)»', 'entrance_groups_doorways'),
+    ('ЛКИТиУ (филиал) ФГБОУ ВО «МГУТУ им. К.Г. Разумовского (ПКУ)»', 'tactile_pedestrian_indicators'),
+    ('ЛКИТиУ (филиал) ФГБОУ ВО «МГУТУ им. К.Г. Разумовского (ПКУ)»', 'braille_signage'),
+    ('ЛКИТиУ (филиал) ФГБОУ ВО «МГУТУ им. К.Г. Разумовского (ПКУ)»', 'accessible_sanitary_facilities'),
+    ('ЛКИТиУ (филиал) ФГБОУ ВО «МГУТУ им. К.Г. Разумовского (ПКУ)»', 'assistant_call_system'),
+    ('ЛКИТиУ (филиал) ФГБОУ ВО «МГУТУ им. К.Г. Разумовского (ПКУ)»', 'safety_zones_evacuation_routes'),
+    ('ЛКИТиУ (филиал) ФГБОУ ВО «МГУТУ им. К.Г. Разумовского (ПКУ)»', 'acoustic_systems_induction_loops'),
+
+    -- РАНХиГС: базовый минимум (раздел «Сведения» на сайте филиала недоступен)
+    ('Липецкий филиал РАНХиГС', 'ramps_lifts'),
+    ('Липецкий филиал РАНХиГС', 'entrance_groups_doorways'),
+    ('Липецкий филиал РАНХиГС', 'assistant_call_system'),
+    ('Липецкий филиал РАНХиГС', 'safety_zones_evacuation_routes');
+
+INSERT INTO mapapp_institution_accessibility_criteria (institution_id, accessibilitycriteriontype_id)
+SELECT i.id, a.criterion_code
+FROM _vuzy_accessibility a
+JOIN mapapp_institution i ON i.name = a.institution_name
+ON CONFLICT (institution_id, accessibilitycriteriontype_id) DO NOTHING;
 
 COMMIT;
 
